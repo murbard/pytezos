@@ -1,2 +1,2 @@
 # pytezos
-python utils for tezos
+Python utils for tezos
