@@ -8,6 +8,7 @@ pysodium = "*"
 "pyblake2" = "*"
 "base58" = "*"
 "secp256k1" = "*"
+"parameterized" = "*"
 
 [dev-packages]
 
