@@ -7,13 +7,14 @@ cache:
   pip: true
   directories:
     - $HOME/.cache/pypoetry
-    - $HOME/libsodium/lib
+
+addons:
+  apt:
+    update: true
+    packages:
+      - libsodium-dev
 
 before_install:
-  - curl -sSL https://raw.githubusercontent.com/google/hat-backup/master/travis-install-libsodium.sh | bash
-  - export PATH=$PATH:$HOME/libsodium/lib
-  - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/libsodium/lib
-  - export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:$HOME/libsodium/lib
   - curl -sSL https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py | python
   - source $HOME/.poetry/env
 
