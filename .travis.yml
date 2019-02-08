@@ -8,13 +8,9 @@ cache:
   directories:
     - $HOME/.cache/pypoetry
 
-addons:
-  apt:
-    update: true
-    packages:
-      - libsodium-dev
-
 before_install:
+  - sudo add-apt-repository ppa:chris-lea/libsodium
+  - sudo apt-get update && sudo apt-get install -y libsodium-dev
   - curl -sSL https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py | python
   - source $HOME/.poetry/env
 
