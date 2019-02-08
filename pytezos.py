@@ -69,11 +69,8 @@ class Key(object):
                 "NFKD", (email + passphrase).decode("utf8")).encode("utf8")
 
             seed = hashlib.pbkdf2_hmac("sha512", mnemonic, "mnemonic" + salt, 2048, 64)
-            pk, sk = pysodium.crypto_sign_seed_keypair(seed[0:32])
-
+            self._public_key, self._secret_key = pysodium.crypto_sign_seed_keypair(seed[0:32])
             self.curve = b"ed"
-            self._secret_key = seed[0:32]
-            self._public_key = pk
             self.is_secret = True
             return
 

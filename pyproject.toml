@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "pytezos"
+version = "0.1.0"
+description = "Python utils for Tezos"
+authors = ["Arthur Breitman, Baking Bad <257byte@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/baking-bad/pytezos"
+keywords = ['tezos', 'ed25519', 'secp256k1', 'p256']
+
+[tool.poetry.dependencies]
+python = "^3.5"
+pysodium = "^0.7.1"
+pyblake2 = "^1.1.2"
+base58 = "^1.0.3"
+secp256k1 = "^0.13.2"
+
+[tool.poetry.dev-dependencies]
+parameterized = "^0.7.0"
+pytest = "^3.0"
+pytest-cov = "^2.4"
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"
