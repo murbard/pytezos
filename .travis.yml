@@ -8,8 +8,13 @@ cache:
   directories:
     - $HOME/.cache/pypoetry
 
+addons:
+  apt:
+    update: true
+    packages:
+      - libsodium
+
 before_install:
-  - curl -sSL https://raw.githubusercontent.com/google/hat-backup/master/travis-install-libsodium.sh | bash
   - curl -sSL https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py | python
   - source $HOME/.poetry/env
 
