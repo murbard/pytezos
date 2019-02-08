@@ -9,7 +9,8 @@ Python utils for Tezos.
 ## Requirements
 
 * git
-* python 3.5+
+* python 3.6+
+* pip 19.0.1+
 
 ## Installation
 
