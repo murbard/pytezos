@@ -15,7 +15,7 @@ Python utils for Tezos.
 ## Installation
 
 ```
-$ pip3 install git+https://github.com/baking-bad/pytezos --user
+$ pip3 install git+https://github.com/murbard/pytezos --user
 ```
 
 ## Usage
