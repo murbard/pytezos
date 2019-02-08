@@ -10,7 +10,7 @@ keywords = ['tezos', 'ed25519', 'secp256k1', 'p256']
 
 [tool.poetry.dependencies]
 python = "^3.5"
-pysodium = "^0.7.1"
+pysodium = { version = "^0.7.1", extras = [ "standalone" ] }
 pyblake2 = "^1.1.2"
 base58 = "^1.0.3"
 secp256k1 = "^0.13.2"
