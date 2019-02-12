@@ -1,10 +1,10 @@
 from unittest import TestCase
 from parameterized import parameterized
 
-from pytezos import Key
+from pytezos.crypto import Key
 
 
-class TestPyTezos(TestCase):
+class TestCrypto(TestCase):
     """
     Test data generation:
     ./tezos-client gen keys test_ed25519 -s ed25519 --force
