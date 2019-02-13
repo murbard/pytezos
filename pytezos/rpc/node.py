@@ -2,15 +2,18 @@ import requests
 import os
 
 predefined = {
-    'main': ['https://rpc.tezrpc.me/']
+    'mainnet': ['https://rpc.tezrpc.me/', 'https://mainnet-node.tzscan.io/'],
+    'zeronet': ['https://zeronet-node.tzscan.io/']
 }
 
 
 class Node:
 
-    def __init__(self, chain_id='main', uri=predefined['main'][0]):
-        self.chain_id = chain_id
+    def __init__(self, uri=predefined['mainnet'][0]):
         self.uri = uri
+
+    def __repr__(self):
+        return f'{self.uri}'
 
     def get(self, path, params=None):
         res = requests.get(

@@ -1,33 +1,31 @@
 from datetime import datetime
+from typing import List
 
 from pytezos.rpc.node import Node
-from pytezos.rpc.block import Block, BlockSelector
+from pytezos.rpc.block import Block
 
 
 class Chain:
-    __dyn_attrs__ = ['head', 'genesis']
 
-    def __init__(self, node=Node()):
+    def __init__(self, chain_id='main', node=Node()):
         self._node = node
-        self._blocks = {x: Block(x, node) for x in self.__dyn_attrs__}
+        self._chain_id = chain_id
+        self._head = Block('head', chain_id, node)
+        self._genesis = Block('genesis', chain_id, node)
+        self._path = f'chains/{self.chain_id}'
 
-    def __dir__(self):
-        return sorted(super(Chain, self).__dir__() + self.__dyn_attrs__)
-
-    def __getattr__(self, item):
-        if item in self._blocks:
-            return self._blocks[item]
-        raise AttributeError(item)
+    def __repr__(self):
+        return self._path
 
     def get_block(self, block_id) -> Block:
         """
         All the information about a block.
-        :param block_id: can be block hash (str) or block level (int); special cases: head, genesis
+        :param block_id: can be block hash (str) or block level (int); special aliases: head, genesis
         :return: an instance of Block class
         """
-        return Block(block_id, self._node)
+        return Block(block_id, self._chain_id, self._node)
 
-    def get_blocks(self, length=1, head: list = None, min_date: datetime = None) -> BlockSelector:
+    def get_blocks(self, length=None, head=None, min_date=None) -> List[List[Block]]:
         """
         Lists known heads of the blockchain sorted with decreasing fitness. Optional arguments allows to returns
         the list of predecessors for known heads or the list of predecessors for a given list of blocks.
@@ -35,6 +33,31 @@ class Chain:
         :param head: An empty argument requests blocks from the current heads. A non empty list allow to request
         specific fragment of the chain
         :param min_date: When `min_date` is provided, heads with a timestamp before `min_date` are filtered out
-        :return: an instance of BlockSelector class
+        :return: a list of lists of Block instances
         """
-        return BlockSelector(length, head, min_date, self._node)
+        hash_matrix = self._node.get(f'{self._path}/blocks', params=dict(
+            length=length,
+            head=head,
+            min_date=int(min_date.timestamp()) if isinstance(min_date, datetime) else min_date
+        ))
+        blocks = [
+            list(map(lambda x: Block(x, self._chain_id, self._node), hash_row))
+            for hash_row in hash_matrix
+        ]
+        return blocks
+
+    @property
+    def node(self) -> Node:
+        return self._node
+
+    @property
+    def chain_id(self):
+        return self._node.get(f'{self._path}/chain_id')
+
+    @property
+    def head(self) -> Block:
+        return self._head
+
+    @property
+    def genesis(self) -> Block:
+        return self._genesis

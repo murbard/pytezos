@@ -1,4 +1,5 @@
 from unittest import TestCase
+from unittest.mock import patch
 from parameterized import parameterized
 
 from pytezos.crypto import Key
@@ -7,9 +8,9 @@ from pytezos.crypto import Key
 class TestCrypto(TestCase):
     """
     Test data generation:
-    ./tezos-client gen keys test_ed25519 -s ed25519 --force
-    ./tezos-client gen keys test_secp256k1 -s secp256k1 --force
-    ./tezos-client gen keys test_p256 -s p256 --force
+    ./tezos-client gen keys test_ed25519 -s ed25519 --force (--encrypted)
+    ./tezos-client gen keys test_secp256k1 -s secp256k1 --force (--encrypted)
+    ./tezos-client gen keys test_p256 -s p256 --force (--encrypted)
     ./tezos-client show address test_ed25519 -S
     ./tezos-client show address test_secp256k1 -S
     ./tezos-client show address test_p256 -S
@@ -41,11 +42,9 @@ class TestCrypto(TestCase):
         self.assertEqual(pk, secret_key.public_key())
 
     @parameterized.expand([
-        ('edpku976gpuAD2bXyx1XGraeKuCo1gUZ3LAJcHM12W1ecxZwoiu22R',
-         b'test',
+        ('edpku976gpuAD2bXyx1XGraeKuCo1gUZ3LAJcHM12W1ecxZwoiu22R', b'test',
          'edsigtzLBGCyadERX1QsYHKpwnxSxEYQeGLnJGsSkHEsyY8vB5GcNdnvzUZDdFevJK7YZQ2ujwVjvQZn62ahCEcy74AwtbA8HuN'),
-        ('sppk7aMNM3xh14haqEyaxNjSt7hXanCDyoWtRcxF8wbtya859ak6yZT',
-         b'test',
+        ('sppk7aMNM3xh14haqEyaxNjSt7hXanCDyoWtRcxF8wbtya859ak6yZT', b'test',
          'spsig1RriZtYADyRhyNoQMa6AiPuJJ7AUDcrxWZfgqexzgANqMv4nXs6qsXDoXcoChBgmCcn2t7Y3EkJaVRuAmNh2cDDxWTdmsz')
     ])
     def test_verify_ext_signatures(self, pk, msg, sig):
@@ -63,11 +62,9 @@ class TestCrypto(TestCase):
         key.verify(sig, msg)
 
     @parameterized.expand([
-        ('edsk3nM41ygNfSxVU4w1uAW3G9EnTQEB5rjojeZedLTGmiGRcierVv',
-         b'test',
+        ('edsk3nM41ygNfSxVU4w1uAW3G9EnTQEB5rjojeZedLTGmiGRcierVv', b'test',
          'edsigtzLBGCyadERX1QsYHKpwnxSxEYQeGLnJGsSkHEsyY8vB5GcNdnvzUZDdFevJK7YZQ2ujwVjvQZn62ahCEcy74AwtbA8HuN'),
-        ('spsk1zkqrmst1yg2c4xi3crWcZPqgdc9KtPtb9SAZWYHAdiQzdHy7j',
-         b'test',
+        ('spsk1zkqrmst1yg2c4xi3crWcZPqgdc9KtPtb9SAZWYHAdiQzdHy7j', b'test',
          'spsig1RriZtYADyRhyNoQMa6AiPuJJ7AUDcrxWZfgqexzgANqMv4nXs6qsXDoXcoChBgmCcn2t7Y3EkJaVRuAmNh2cDDxWTdmsz'),
     ])
     def test_deterministic_signatures(self, sk, msg, sig):
@@ -78,3 +75,19 @@ class TestCrypto(TestCase):
         key = Key(sk)
         signature = key.sign(msg)
         self.assertEqual(sig, signature)
+
+    @parameterized.expand([
+        ('edesk1zxaPJkhNGSzgZDDSphvPzSNrnbmqes8xzUrw1wdFxdRT7ePiQz8D2Q18fMjn6fC9ZRS2rUbg8d8snxxznE',
+         'qqq', b'\xf2h\xbb\xf5\xc7\xe2\xb9\x97', 'edpktmNJub2v7tVjSU8nA9jZrdV5JezmFtZA4yd3jj18i6VKcCJzdo'),
+        ('spesk21cruoqtYmxfq5fpkXiZZRLRw4vh7VFJauGCAgHxZf3q6Q5LTv9m9dnMxyVjna6RzWQL45q4ppGLh97xZpV',
+         'qqq', b'\xbe\xb8\xeefi\x14\\T', 'sppk7Zbcqfy67b6pRMAKax5QKzAxTQUxmfQcCuvn1QMFQsXqy1NkSkz'),
+        # ('p2esk1rqdHRPz4xQh8uP8JaWSVnGFTKxkh2utdjK5CPDTXAzzh5sXnnobLkGrXEZzGhCKFDSjv8Ggrjt7PnobRzs',
+        #  'qqq',
+        #  'p2pk68Ky2h9UZZ4jUYws8mU8Cazhu4H1LdK22wD8HgDPRSvsJPBDtJ7'),
+    ])
+    def test_encrypted_keys(self, sk, passphrase, salt, pk):
+        key = Key(sk, passphrase=passphrase)
+        self.assertEqual(pk, key.public_key())
+
+        with patch('pytezos.crypto.pysodium.randombytes', return_value=salt):
+            self.assertEqual(sk, key.secret_key(passphrase))
