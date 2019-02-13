@@ -7,6 +7,7 @@ from pytezos.encoding import scrub_input, base58_encode, base58_decode
 class TestEncoding(TestCase):
 
     @parameterized.expand([
+        (b'NetXdQprcVkpaWU', b'Net'),
         (b'BKjWN8ALguCJ3oAjzMjZCNcFfUf1p9BfVAwYiVHs1QW3yMB9RNb', b'B'),
         (b'oop1fbAVi2ZwEt3vpu4uKpYGbbxumyMBSWwWf9qbByeM4JYAu92', b'o'),
         (b'LLoabcny4pVg1k6x3AktnNhwe1KSVBZh5Di45JeZPhUCmCu5Xj6ND', b'LLo'),

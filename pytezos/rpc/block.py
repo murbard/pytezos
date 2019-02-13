@@ -1,3 +1,5 @@
+from functools import lru_cache
+
 from pytezos.rpc.node import Node
 from pytezos.rpc.context import Context
 from pytezos.encoding import base58_decode, scrub_input
@@ -12,7 +14,7 @@ class Block:
         self._node = node
         self._raw = dict()
         self._synced = False
-        self._path = f'/chains/{self._chain_id}/blocks/{self._block_id}'
+        self._path = f'chains/{chain_id}/blocks/{block_id}'
 
         try:
             base58_decode(scrub_input(block_id))
@@ -21,12 +23,12 @@ class Block:
             pass
 
     def _sync_all(self):
-        if self._block_id == 'head' or not self._synced:
+        if 'head' in self._block_id or not self._synced:
             self._raw = self._node.get(self._path)
             self._synced = True
 
     def _sync_item(self, item):
-        if self._block_id == 'head' or item not in self._raw:
+        if 'head' in self._block_id or item not in self._raw:
             self._raw[item] = self._node.get(f'{self._path}/{item}')
 
     def to_dict(self) -> dict:
@@ -57,8 +59,9 @@ class Block:
         raise AttributeError(item)
 
     @property
+    @lru_cache(maxsize=None)
     def context(self) -> Context:
-        return Context(self._block_id, self._node)
+        return Context(self._block_id, self._chain_id, self._node)
 
     def get_prev_block(self, offset=1):
         return Block(f'{self._block_id}~{offset}', self._chain_id, self._node)

@@ -6,11 +6,11 @@ class Context:
 
     def __init__(self, block_id='head', chain_id='main', node=Node()):
         self._block_id = block_id
-        self._chain = chain_id
+        self._chain_id = chain_id
         self._node = node
         self._raw = dict()
         self._synced = False
-        self._path = f'chains/{self._chain_id}/blocks/{self._block_id}/context'
+        self._path = f'chains/{chain_id}/blocks/{block_id}/context'
 
     def _sync(self):
         if 'head' in self._block_id or not self._synced:
@@ -33,4 +33,4 @@ class Context:
         raise AttributeError(item)
 
     def get_contract(self, public_key_hash) -> Contract:
-        return Contract(public_key_hash, self._block_id, self._node)
+        return Contract(public_key_hash, self._block_id, self._chain_id, self._node)

@@ -1,5 +1,5 @@
-from pytezos.rpc.chain import Chain
-from pytezos.rpc.node import Node, predefined
+from pytezos.rpc.shell import Shell
+from pytezos.rpc.node import Node, TEZRPC_MAINNET, TZSCAN_ZERONET
 
-mainnet = Chain(node=Node(predefined['mainnet'][0]))
-zeronet = Chain(node=Node(predefined['zeronet'][0]))
+mainnet = Shell(Node(TEZRPC_MAINNET))
+zeronet = Shell(Node(TZSCAN_ZERONET))

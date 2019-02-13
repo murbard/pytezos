@@ -12,7 +12,7 @@ class Contract:
         self._node = node
         self._raw = dict()
         self._synced = False
-        self._path = f'chains/{self._chain_id}/blocks/{self._block_id}/context/contracts/{self._pkh}'
+        self._path = f'chains/{chain_id}/blocks/{block_id}/context/contracts/{public_key_hash}'
 
     def _sync_all(self):
         if 'head' in self._block_id or not self._synced:

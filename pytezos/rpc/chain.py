@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import List
+from functools import lru_cache
 
 from pytezos.rpc.node import Node
 from pytezos.rpc.block import Block
@@ -8,15 +9,14 @@ from pytezos.rpc.block import Block
 class Chain:
 
     def __init__(self, chain_id='main', node=Node()):
-        self._node = node
         self._chain_id = chain_id
-        self._head = Block('head', chain_id, node)
-        self._genesis = Block('genesis', chain_id, node)
-        self._path = f'chains/{self.chain_id}'
+        self._node = node
+        self._path = f'chains/{chain_id}'
 
     def __repr__(self):
         return self._path
 
+    @lru_cache(maxsize=None)
     def get_block(self, block_id) -> Block:
         """
         All the information about a block.
@@ -47,17 +47,26 @@ class Chain:
         return blocks
 
     @property
-    def node(self) -> Node:
-        return self._node
-
-    @property
+    @lru_cache(maxsize=None)
     def chain_id(self):
+        """
+        The chain unique identifier
+        :return: base58 encoded string
+        """
         return self._node.get(f'{self._path}/chain_id')
 
     @property
     def head(self) -> Block:
-        return self._head
+        """
+        Head block alias
+        :return: cached Block instance (block data is not cached)
+        """
+        return self.get_block('head')
 
     @property
     def genesis(self) -> Block:
-        return self._genesis
+        """
+        First of all time block alias
+        :return: cached Block instance
+        """
+        return self.get_block('genesis')
