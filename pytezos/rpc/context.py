@@ -8,29 +8,13 @@ class Context:
         self._block_id = block_id
         self._chain_id = chain_id
         self._node = node
-        self._raw = dict()
-        self._synced = False
-        self._path = f'chains/{chain_id}/blocks/{block_id}/context'
-
-    def _sync(self):
-        if 'head' in self._block_id or not self._synced:
-            self._raw = self._node.get(f'{self._path}/raw/json?depth=1')
-            self._synced = True
-
-    def to_dict(self) -> dict:
-        self._sync()
-        return self._raw
+        self._path = f'chains/{chain_id}/blocks/{block_id}/context/raw/json'
 
     def __repr__(self):
         return self._path
 
-    def __getitem__(self, item):
-        return self.to_dict()[item]
-
-    def __getattr__(self, item):
-        if not item.startswith('_'):
-            return getattr(self.to_dict(), item)
-        raise AttributeError(item)
+    def __call__(self, *args, **kwargs):
+        return self._node.get(self._path)
 
     def get_contract(self, public_key_hash) -> Contract:
         return Contract(public_key_hash, self._block_id, self._chain_id, self._node)

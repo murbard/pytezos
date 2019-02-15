@@ -17,6 +17,9 @@ class TestCrypto(TestCase):
     ./tezos-client sign bytes 0x74657374 for test_ed25519
     ./tezos-client sign bytes 0x74657374 for test_secp256k1
     ./tezos-client sign bytes 0x74657374 for test_p256
+
+    Issues:
+    * `tezos-client sign bytes` does not support P256 curve
     """
 
     @parameterized.expand([
@@ -26,9 +29,9 @@ class TestCrypto(TestCase):
         ('spsk1zkqrmst1yg2c4xi3crWcZPqgdc9KtPtb9SAZWYHAdiQzdHy7j',
          'sppk7aMNM3xh14haqEyaxNjSt7hXanCDyoWtRcxF8wbtya859ak6yZT',
          'tz28YZoayJjVz2bRgGeVjxE8NonMiJ3r2Wdu'),
-        # ('p2sk3PM77YMR99AvD3fSSxeLChMdiQ6kkEzqoPuSwQqhPsh29irGLC',
-        #  'p2pk679D18uQNkdjpRxuBXL5CqcDKTKzsiXVtc9oCUT6xb82zQmgUks',
-        #  'tz3agP9LGe2cXmKQyYn6T68BHKjjktDbbSWX')
+        ('p2sk3PM77YMR99AvD3fSSxeLChMdiQ6kkEzqoPuSwQqhPsh29irGLC',
+         'p2pk679D18uQNkdjpRxuBXL5CqcDKTKzsiXVtc9oCUT6xb82zQmgUks',
+         'tz3agP9LGe2cXmKQyYn6T68BHKjjktDbbSWX')
     ])
     def test_derive_key_data(self, sk, pk, hash):
         public_key = Key(pk)
@@ -38,28 +41,30 @@ class TestCrypto(TestCase):
 
         secret_key = Key(sk)
         self.assertTrue(secret_key.is_secret)
-        self.assertEqual(sk, secret_key.secret_key())
         self.assertEqual(pk, secret_key.public_key())
+        self.assertEqual(sk, secret_key.secret_key())
 
     @parameterized.expand([
         ('edpku976gpuAD2bXyx1XGraeKuCo1gUZ3LAJcHM12W1ecxZwoiu22R', b'test',
          'edsigtzLBGCyadERX1QsYHKpwnxSxEYQeGLnJGsSkHEsyY8vB5GcNdnvzUZDdFevJK7YZQ2ujwVjvQZn62ahCEcy74AwtbA8HuN'),
         ('sppk7aMNM3xh14haqEyaxNjSt7hXanCDyoWtRcxF8wbtya859ak6yZT', b'test',
-         'spsig1RriZtYADyRhyNoQMa6AiPuJJ7AUDcrxWZfgqexzgANqMv4nXs6qsXDoXcoChBgmCcn2t7Y3EkJaVRuAmNh2cDDxWTdmsz')
+         'spsig1RriZtYADyRhyNoQMa6AiPuJJ7AUDcrxWZfgqexzgANqMv4nXs6qsXDoXcoChBgmCcn2t7Y3EkJaVRuAmNh2cDDxWTdmsz'),
     ])
     def test_verify_ext_signatures(self, pk, msg, sig):
         key = Key(pk)
         key.verify(sig, msg)
-        self.assertRaises(Exception, key.verify, sig, b'fake')
+        self.assertRaises(ValueError, key.verify, sig, b'fake')
 
     @parameterized.expand([
         ('edsk3nM41ygNfSxVU4w1uAW3G9EnTQEB5rjojeZedLTGmiGRcierVv', '0xdeadbeaf'),
-        ('spsk1zkqrmst1yg2c4xi3crWcZPqgdc9KtPtb9SAZWYHAdiQzdHy7j', b'hello')
+        ('spsk1zkqrmst1yg2c4xi3crWcZPqgdc9KtPtb9SAZWYHAdiQzdHy7j', b'hello'),
+        ('p2sk3PM77YMR99AvD3fSSxeLChMdiQ6kkEzqoPuSwQqhPsh29irGLC', b'test')
     ])
     def test_sign_and_verify(self, sk, msg):
         key = Key(sk)
         sig = key.sign(msg)
         key.verify(sig, msg)
+        self.assertRaises(ValueError, key.verify, sig, b'fake')
 
     @parameterized.expand([
         ('edsk3nM41ygNfSxVU4w1uAW3G9EnTQEB5rjojeZedLTGmiGRcierVv', b'test',
@@ -81,9 +86,8 @@ class TestCrypto(TestCase):
          'qqq', b'\xf2h\xbb\xf5\xc7\xe2\xb9\x97', 'edpktmNJub2v7tVjSU8nA9jZrdV5JezmFtZA4yd3jj18i6VKcCJzdo'),
         ('spesk21cruoqtYmxfq5fpkXiZZRLRw4vh7VFJauGCAgHxZf3q6Q5LTv9m9dnMxyVjna6RzWQL45q4ppGLh97xZpV',
          'qqq', b'\xbe\xb8\xeefi\x14\\T', 'sppk7Zbcqfy67b6pRMAKax5QKzAxTQUxmfQcCuvn1QMFQsXqy1NkSkz'),
-        # ('p2esk1rqdHRPz4xQh8uP8JaWSVnGFTKxkh2utdjK5CPDTXAzzh5sXnnobLkGrXEZzGhCKFDSjv8Ggrjt7PnobRzs',
-        #  'qqq',
-        #  'p2pk68Ky2h9UZZ4jUYws8mU8Cazhu4H1LdK22wD8HgDPRSvsJPBDtJ7'),
+        ('p2esk1rqdHRPz4xQh8uP8JaWSVnGFTKxkh2utdjK5CPDTXAzzh5sXnnobLkGrXEZzGhCKFDSjv8Ggrjt7PnobRzs',
+         'qqq', b'"\xf8\x0e \x0f]hc', 'p2pk68Ky2h9UZZ4jUYws8mU8Cazhu4H1LdK22wD8HgDPRSvsJPBDtJ7'),
     ])
     def test_encrypted_keys(self, sk, passphrase, salt, pk):
         key = Key(sk, passphrase=passphrase)

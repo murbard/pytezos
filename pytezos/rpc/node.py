@@ -1,9 +1,11 @@
 import requests
 import os
 
-TEZRPC_MAINNET = 'https://rpc.tezrpc.me/'
-TZSCAN_MAINNET = 'https://mainnet-node.tzscan.io/'
-TZSCAN_ZERONET = 'https://zeronet-node.tzscan.io/'
+public_nodes = {
+    'mainnet': ['https://rpc.tezrpc.me/', 'https://mainnet-node.tzscan.io/'],
+    'zeronet': ['https://zeronet-node.tzscan.io/'],
+    'alphanet': ['https://alphanet-node.tzscan.io/']
+}
 
 
 class RpcError(ValueError):
@@ -18,19 +20,26 @@ class RpcError(ValueError):
 
 class Node:
 
-    def __init__(self, uri=TEZRPC_MAINNET):
+    def __init__(self, uri=public_nodes['mainnet'][0]):
         self.uri = uri
 
     def __repr__(self):
         return f'{self.uri}'
 
-    def get(self, path, params=None):
-        res = requests.get(
+    def _request(self, method, path, **kwargs):
+        res = requests.request(
+            method=method,
             url=os.path.join(self.uri, path),
-            params=params,
-            headers={'content-type': 'application/json'}
+            headers={'content-type': 'application/json'},
+            **kwargs
         )
         if res.status_code != 200:
             raise RpcError(res)
 
         return res.json()
+
+    def get(self, path, params=None):
+        return self._request('GET', path, params=params)
+
+    def post(self, path, json=None):
+        return self._request('POST', path, json=json)

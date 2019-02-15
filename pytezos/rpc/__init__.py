@@ -1,5 +1,5 @@
 from pytezos.rpc.shell import Shell
-from pytezos.rpc.node import Node, TEZRPC_MAINNET, TZSCAN_ZERONET
+from pytezos.rpc.node import Node, public_nodes
 
-mainnet = Shell(Node(TEZRPC_MAINNET))
-zeronet = Shell(Node(TZSCAN_ZERONET))
+mainnet = Shell(Node(public_nodes['mainnet'][0]))
+zeronet = Shell(Node(public_nodes['zeronet'][0]))
