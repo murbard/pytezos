@@ -16,7 +16,7 @@ base58 = "^1.0.3"
 secp256k1 = "^0.13.2"
 requests = "^2.21.0"
 pendulum = "*"
-fastecdsa = "*"
+fastecdsa = "^1.7.1"
 
 [tool.poetry.dev-dependencies]
 parameterized = "^0.7.0"
