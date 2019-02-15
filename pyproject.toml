@@ -14,6 +14,9 @@ pysodium = "^0.7.1"
 pyblake2 = "^1.1.2"
 base58 = "^1.0.3"
 secp256k1 = "^0.13.2"
+requests = "^2.21.0"
+pendulum = "*"
+fastecdsa = "^1.7.1"
 
 [tool.poetry.dev-dependencies]
 parameterized = "^0.7.0"
