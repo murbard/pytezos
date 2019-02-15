@@ -8,7 +8,7 @@ class Context:
         self._block_id = block_id
         self._chain_id = chain_id
         self._node = node
-        self._path = f'chains/{chain_id}/blocks/{block_id}/context/raw/json'
+        self._path = f'chains/{chain_id}/blocks/{block_id}/context/raw/json?depth=1'
 
     def __repr__(self):
         return self._path
