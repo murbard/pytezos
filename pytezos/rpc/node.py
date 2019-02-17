@@ -1,11 +1,15 @@
 import requests
-import os
+from functools import lru_cache
 
 public_nodes = {
     'mainnet': ['https://rpc.tezrpc.me/', 'https://mainnet-node.tzscan.io/'],
     'zeronet': ['https://zeronet-node.tzscan.io/'],
     'alphanet': ['https://alphanet-node.tzscan.io/']
 }
+
+
+def urljoin(*args):
+    return "/".join(map(lambda x: str(x).strip('/'), args))
 
 
 class RpcError(ValueError):
@@ -21,15 +25,16 @@ class RpcError(ValueError):
 class Node:
 
     def __init__(self, uri=public_nodes['mainnet'][0]):
-        self.uri = uri
+        self._uri = uri
+        self._cache = dict()
 
     def __repr__(self):
-        return f'{self.uri}'
+        return f'{self._uri}'
 
     def _request(self, method, path, **kwargs):
         res = requests.request(
             method=method,
-            url=os.path.join(self.uri, path),
+            url=urljoin(self._uri, path),
             headers={'content-type': 'application/json'},
             **kwargs
         )
@@ -38,8 +43,67 @@ class Node:
 
         return res.json()
 
-    def get(self, path, params=None):
-        return self._request('GET', path, params=params)
+    def get(self, path, params=None, cache=False):
+        if cache and path in self._cache:
+            return self._cache[path]
+
+        res = self._request('GET', path, params=params)
+        if cache:
+            self._cache[path] = res
+
+        return res
 
     def post(self, path, json=None):
         return self._request('POST', path, json=json)
+
+
+class RpcQuery:
+
+    def __init__(self, path='', node=Node(), cache=False, child_class=None, properties=None):
+        self._node = node
+        self._path = path
+        self._cache = cache
+        self._child_class = child_class if child_class else RpcQuery
+
+        if isinstance(properties, dict):
+            self._properties = properties
+        elif isinstance(properties, list):
+            self._properties = {x: self._child_class for x in properties}
+        else:
+            self._properties = dict()
+
+    def __repr__(self):
+        return self._path
+
+    def __dir__(self):
+        return sorted(list(super(RpcQuery, self).__dir__()) + list(self._properties.keys()))
+
+    def __call__(self, *args, **kwargs):
+        return self._node.get(
+            path=self._path,
+            params=kwargs,
+            cache=self._cache
+        )
+
+    @lru_cache(maxsize=None)
+    def __getattr__(self, item):
+        if not item.startswith('_'):
+            child_class = self._properties.get(item, RpcQuery)
+            return child_class(
+                path=f'{self._path}/{item}',
+                node=self._node,
+                cache=self._cache
+            )
+        raise AttributeError(item)
+
+    @lru_cache(maxsize=None)
+    def __getitem__(self, item):
+        if isinstance(item, tuple):
+            path = f'{self._path}/{item[0]}/{item[1]}'
+        else:
+            path = f'{self._path}/{item}'
+        return self._child_class(
+            path=path,
+            node=self._node,
+            cache=self._cache
+        )

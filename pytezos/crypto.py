@@ -44,6 +44,7 @@ class Key(object):
             self._public_key, self._secret_key = pysodium.crypto_sign_seed_keypair(seed[:32])
             self.curve = b"ed"
             self.is_secret = True
+            del passphrase
             return
 
         self.curve = key[:2]  # "sp", "p2" "ed"
@@ -77,6 +78,7 @@ class Key(object):
             )
             key = pysodium.crypto_secretbox_open(
                 c=encrypted_sk, nonce=b'\000' * 24, k=encryption_key)
+            del passphrase
 
         if not self.is_secret:
             self._public_key = key

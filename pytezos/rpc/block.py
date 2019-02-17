@@ -1,101 +1,79 @@
-from pytezos.rpc.node import Node
-from pytezos.rpc.context import Context
+from functools import lru_cache
+
+from pytezos.rpc.node import RpcQuery, urljoin
 
 
-class BlockHeader:
+class Contract(RpcQuery):
 
-    def __init__(self, block_id='head', chain_id='main', node=Node()):
-        self._block_id = block_id
-        self._chain_id = chain_id
-        self._node = node
-        self._path = f'chains/{chain_id}/blocks/{block_id}/header'
-
-    def __repr__(self):
-        return self._path
-
-    def __call__(self, *args, **kwargs):
-        return self._node.get(self._path)
-
-    @property
-    def raw(self):
-        return self._node.get(f'{self._path}/raw')
-
-    @property
-    def shell(self):
-        return self._node.get(f'{self._path}/shell')
-
-    @property
-    def protocol_data(self):
-        return self._node.get(f'{self._path}/protocol_data')
-
-    @property
-    def protocol_data_raw(self):
-        return self._node.get(f'{self._path}/protocol_data/raw')
+    def __init__(self, *args, **kwargs):
+        super(Contract, self).__init__(properties=[
+            'balance', 'counter', 'delegatable', 'delegate', 'manager',
+            'manager_key', 'script', 'spendable', 'storage'
+        ], *args, **kwargs)
 
 
-class OperationsList:
+class BlockHeader(RpcQuery):
 
-    def __init__(self, block_id='head', chain_id='main', node=Node()):
-        self._block_id = block_id
-        self._chain_id = chain_id
-        self._node = node
-        self._path = f'chains/{chain_id}/blocks/{block_id}/operations'
+    def __init__(self, *args, **kwargs):
+        super(BlockHeader, self).__init__(properties=[
+            'shell', 'protocol_data', 'raw'
+        ], *args, **kwargs)
 
-    def __repr__(self):
-        return self._path
+
+class Operation(RpcQuery):
+
+    def __init__(self, *args, **kwargs):
+        super(Operation, self).__init__(*args, **kwargs)
+
+
+class Context(RpcQuery):
+
+    def __init__(self, *args, **kwargs):
+        super(Context, self).__init__(*args, **kwargs)
 
     def __call__(self, *args, **kwargs):
-        return self._node.get(self._path)
-
-    def __getitem__(self, item):
-        if isinstance(item, int):
-            return self._node.get(f'{self._path}/{item}')
-        elif isinstance(item, tuple):
-            return self._node.get(f'{self._path}/{item[0]}/{item[1]}')
-        raise KeyError
-
-
-class Block:
-    """
-    See https://tezos.gitlab.io/mainnet/whitedoc/proof_of_stake.html
-    """
-    __dyn_attrs__ = ['hash', 'metadata']
-
-    def __init__(self, block_id='head', chain_id='main', node=Node()):
-        self._block_id = block_id
-        self._chain_id = chain_id
-        self._node = node
-        self._path = f'chains/{chain_id}/blocks/{block_id}'
-
-    def __repr__(self):
-        return self._path
-
-    def __call__(self, *args, **kwargs):
-        return self._node.get(self._path)
-
-    def __dir__(self):
-        return sorted(super(Block, self).__dir__() + self.__dyn_attrs__)
-
-    def __getattr__(self, item):
-        if item in self.__dyn_attrs__:
-            return self._node.get(f'{self._path}/{item}')
-        raise AttributeError(item)
+        return self._node.get(f'{self._path}/raw/json?depth=1', cache=self._cache)
 
     @property
-    def header(self) -> BlockHeader:
-        return BlockHeader(self._block_id, self._chain_id, self._node)
+    @lru_cache(maxsize=None)
+    def contracts(self):
+        """
+        Attention: very slow method
+        :return: list of Contracts
+        """
+        return RpcQuery(
+            path=f'{self._path}/contracts',
+            node=self._node,
+            child_class=Contract
+        )
+
+
+class Block(RpcQuery):
+
+    def __init__(self, *args, **kwargs):
+        kwargs['cache'] = 'head' not in kwargs.get('path')
+        super(Block, self).__init__(properties={
+            'hash': RpcQuery,
+            'header': BlockHeader,
+            'context': Context,
+            'metadata': RpcQuery,
+            'operation_hashes': RpcQuery
+        }, *args, **kwargs)
 
     @property
-    def operations(self) -> OperationsList:
-        return OperationsList(self._block_id, self._chain_id, self._node)
+    @lru_cache(maxsize=None)
+    def operations(self):
+        return RpcQuery(
+            path=f'{self._path}/operations',
+            node=self._node,
+            child_class=Operation
+        )
 
-    @property
-    def context(self) -> Context:
-        return Context(self._block_id, self._chain_id, self._node)
-
-    def capture(self):
+    def freeze(self):
         """
         Returns fixed-hash block, useful for aliases, like head, head~1, etc.
         :return: Block instance with hash initialized
         """
-        return Block(self.hash, self._chain_id, self._node)
+        parent_path, _ = self._path.rsplit('/', maxsplit=1)
+        fixed_path = urljoin(parent_path, self.hash())
+        return Block(path=fixed_path, node=self._node)
