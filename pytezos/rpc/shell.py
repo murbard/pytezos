@@ -1,6 +1,5 @@
 from functools import lru_cache
 
-from pytezos.crypto import Key
 from pytezos.rpc.node import Node, RpcQuery
 from pytezos.rpc.chain import Chain
 from pytezos.rpc.block import Block, Context
@@ -37,11 +36,13 @@ class Shell(RpcQuery):
     def context(self) -> Context:
         return self.head.context
 
-    def get_public_key(self, pkh) -> Key:
+    def get_public_key(self, pkh) -> str:
         """
-        Wrapped public key of the baker
-        :param pkh: public key hash, base58 encoded, like 'tz1eKkWU5hGtfLUiqNpucHrXymm83z3DG9Sq'
-        :return: Key instance
+        Public key by the public key hash
+        :param pkh: public key hash, base58 encoded, i.e. 'tz1eKkWU5hGtfLUiqNpucHrXymm83z3DG9Sq'
+        :return: base58 encoded public key
         """
-        pk = self.context.contracts[pkh].manager_key()['key']
-        return Key(pk)
+        if pkh.startswith('KT1'):  # it is not pkh, but let's handle this
+            pkh = self.context.contracts[pkh].manager_key()['manager']
+
+        return self.context.contracts[pkh].manager_key()['key']

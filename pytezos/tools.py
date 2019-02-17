@@ -3,13 +3,32 @@ import simplejson as json
 from getpass import getpass
 from loguru import logger
 
+from pytezos.encoding import validate_pkh
 from pytezos.crypto import Key
 from pytezos.rpc import mainnet
 
 
+def is_pkh(v):
+    try:
+        validate_pkh(v)
+    except ValueError:
+        return False
+    return True
+
+
 class OTP:
 
-    def __init__(self, key: Key, interval=5, shell=mainnet):
+    def __init__(self, key, interval=5, shell=mainnet):
+        """
+        :param key: secret key (encrypted/unencrypted), public key or public key hash, all base58 encoded
+        :param interval: number of blocks to check (tolerance)
+        :param shell: Shell instance
+        """
+        if not isinstance(key, Key):
+            if is_pkh(key):
+                key = shell.get_public_key(key)
+            key = Key(key)
+
         self._key = key
         self._interval = interval
         self._shell = shell

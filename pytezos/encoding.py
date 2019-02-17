@@ -18,6 +18,7 @@ base58_encodings = [
     (b"tz1",   36,   tb([6, 161, 159]),            20,   u"ed25519 public key hash"),
     (b"tz2",   36,   tb([6, 161, 161]),            20,   u"secp256k1 public key hash"),
     (b"tz3",   36,   tb([6, 161, 164]),            20,   u"p256 public key hash"),
+    (b"KT1",   36,   tb([2, 90, 121]),             20,   u"Originated address"),
 
     (b"id",    30,   tb([153, 103]),               16,   u"cryptobox public key hash"),
 
@@ -84,3 +85,19 @@ def base58_encode(v: bytes, prefix: bytes) -> bytes:
         raise ValueError('Invalid encoding, prefix or length mismatch.')
 
     return base58.b58encode_check(encoding[2] + v)
+
+
+def _validate(v, prefixes: list):
+    v = scrub_input(v)
+    if any(map(lambda x: v.startswith(x), prefixes)):
+        base58_decode(v)
+    else:
+        raise ValueError('Unknown prefix.')
+
+
+def validate_pkh(v):
+    return _validate(v, prefixes=[b'tz1', b'tz2', b'tz3'])
+
+
+def validate_sig(v):
+    return _validate(v, prefixes=[b'edsig', b'spsig', b'p2sig', b'sig'])
