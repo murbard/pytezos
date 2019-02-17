@@ -59,28 +59,24 @@ class Node:
 
 class RpcQuery:
 
-    def __init__(self, path='', node=Node(), cache=False, sub_class=None):
+    def __init__(self, path='', node=Node(), cache=False, child_class=None, properties=None):
         self._node = node
         self._path = path
         self._cache = cache
+        self._child_class = child_class if child_class else RpcQuery
 
-        if isinstance(sub_class, dict):
-            self._sub_class = sub_class
-        elif isinstance(sub_class, list):
-            self._sub_class = {x: RpcQuery for x in sub_class}
-        elif sub_class is not None:
-            self._sub_class = {'_default': sub_class}
+        if isinstance(properties, dict):
+            self._properties = properties
+        elif isinstance(properties, list):
+            self._properties = {x: self._child_class for x in properties}
         else:
-            self._sub_class = dict()
-
-        if not self._sub_class.get('_default'):
-            self._sub_class['_default'] = RpcQuery
+            self._properties = dict()
 
     def __repr__(self):
         return self._path
 
     def __dir__(self):
-        return sorted(list(super(RpcQuery, self).__dir__()) + list(self._sub_class.keys()))
+        return sorted(list(super(RpcQuery, self).__dir__()) + list(self._properties.keys()))
 
     def __call__(self, *args, **kwargs):
         return self._node.get(
@@ -92,12 +88,12 @@ class RpcQuery:
     @lru_cache(maxsize=None)
     def __getattr__(self, item):
         if not item.startswith('_'):
-            if item in self._sub_class:
-                return self._sub_class[item](
-                    path=f'{self._path}/{item}',
-                    node=self._node,
-                    cache=self._cache
-                )
+            child_class = self._properties.get(item, RpcQuery)
+            return child_class(
+                path=f'{self._path}/{item}',
+                node=self._node,
+                cache=self._cache
+            )
         raise AttributeError(item)
 
     @lru_cache(maxsize=None)
@@ -106,7 +102,7 @@ class RpcQuery:
             path = f'{self._path}/{item[0]}/{item[1]}'
         else:
             path = f'{self._path}/{item}'
-        return self._sub_class['_default'](
+        return self._child_class(
             path=path,
             node=self._node,
             cache=self._cache

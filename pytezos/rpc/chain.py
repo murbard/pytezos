@@ -28,11 +28,8 @@ class Chain(RpcQuery):
         return RpcQuery(
             path=f'{self._path}/blocks',
             node=self._node,
-            sub_class={
-                'head': Block,
-                'genesis': Block,
-                '_default': Block
-            }
+            child_class=Block,
+            properties=['head', 'genesis']
         )
 
     @property

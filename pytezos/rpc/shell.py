@@ -1,5 +1,6 @@
 from functools import lru_cache
 
+from pytezos.crypto import Key
 from pytezos.rpc.node import Node, RpcQuery
 from pytezos.rpc.chain import Chain
 from pytezos.rpc.block import Block, Context
@@ -16,10 +17,8 @@ class Shell(RpcQuery):
         return RpcQuery(
             path='chains',
             node=self._node,
-            sub_class={
-                'main': Chain,
-                '_default': Chain
-            }
+            child_class=Chain,
+            properties=['main']
         )
 
     @property
@@ -37,3 +36,12 @@ class Shell(RpcQuery):
     @property
     def context(self) -> Context:
         return self.head.context
+
+    def get_public_key(self, pkh) -> Key:
+        """
+        Wrapped public key of the baker
+        :param pkh: public key hash, base58 encoded, like 'tz1eKkWU5hGtfLUiqNpucHrXymm83z3DG9Sq'
+        :return: Key instance
+        """
+        pk = self.context.contracts[pkh].manager_key()['key']
+        return Key(pk)

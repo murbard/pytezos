@@ -6,7 +6,7 @@ from pytezos.rpc.node import RpcQuery, urljoin
 class Contract(RpcQuery):
 
     def __init__(self, *args, **kwargs):
-        super(Contract, self).__init__(sub_class=[
+        super(Contract, self).__init__(properties=[
             'balance', 'counter', 'delegatable', 'delegate', 'manager',
             'manager_key', 'script', 'spendable', 'storage'
         ], *args, **kwargs)
@@ -15,8 +15,9 @@ class Contract(RpcQuery):
 class BlockHeader(RpcQuery):
 
     def __init__(self, *args, **kwargs):
-        super(BlockHeader, self).__init__(
-            sub_class=['shell', 'protocol_data', 'raw'], *args, **kwargs)
+        super(BlockHeader, self).__init__(properties=[
+            'shell', 'protocol_data', 'raw'
+        ], *args, **kwargs)
 
 
 class Operation(RpcQuery):
@@ -43,19 +44,20 @@ class Context(RpcQuery):
         return RpcQuery(
             path=f'{self._path}/contracts',
             node=self._node,
-            sub_class=Contract
+            child_class=Contract
         )
 
 
 class Block(RpcQuery):
 
     def __init__(self, *args, **kwargs):
-        kwargs['cache'] = 'head' not in kwargs['path']
-        super(Block, self).__init__(sub_class={
+        kwargs['cache'] = 'head' not in kwargs.get('path')
+        super(Block, self).__init__(properties={
             'hash': RpcQuery,
             'header': BlockHeader,
             'context': Context,
-            'metadata': RpcQuery
+            'metadata': RpcQuery,
+            'operation_hashes': RpcQuery
         }, *args, **kwargs)
 
     @property
@@ -64,7 +66,7 @@ class Block(RpcQuery):
         return RpcQuery(
             path=f'{self._path}/operations',
             node=self._node,
-            sub_class=Operation
+            child_class=Operation
         )
 
     def freeze(self):
