@@ -101,3 +101,11 @@ def validate_pkh(v):
 
 def validate_sig(v):
     return _validate(v, prefixes=[b'edsig', b'spsig', b'p2sig', b'sig'])
+
+
+def is_pkh(v) -> bool:
+    try:
+        validate_pkh(v)
+    except ValueError:
+        return False
+    return True

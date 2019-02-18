@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pytezos"
-version = "0.1.2"
+version = "0.1.3"
 description = "Python utils for Tezos"
 authors = ["Arthur Breitman, Baking Bad <257byte@gmail.com>"]
 license = "MIT"

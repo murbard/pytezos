@@ -3,17 +3,9 @@ import simplejson as json
 from getpass import getpass
 from loguru import logger
 
-from pytezos.encoding import validate_pkh
+from pytezos.encoding import is_pkh
 from pytezos.crypto import Key
 from pytezos.rpc import mainnet
-
-
-def is_pkh(v):
-    try:
-        validate_pkh(v)
-    except ValueError:
-        return False
-    return True
 
 
 class OTP:

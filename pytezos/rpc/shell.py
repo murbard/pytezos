@@ -43,6 +43,10 @@ class Shell(RpcQuery):
         :return: base58 encoded public key
         """
         if pkh.startswith('KT1'):  # it is not pkh, but let's handle this
-            pkh = self.context.contracts[pkh].manager_key()['manager']
+            pkh = self.context.contracts[pkh].manager_key().get('manager')
 
-        return self.context.contracts[pkh].manager_key()['key']
+        pk = self.context.contracts[pkh].manager_key().get('key')
+        if not pk:
+            raise ValueError('Public key is not revealed')
+
+        return pk
