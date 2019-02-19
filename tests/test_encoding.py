@@ -1,7 +1,7 @@
 from unittest import TestCase
 from parameterized import parameterized
 
-from pytezos.encoding import scrub_input, base58_encode, base58_decode
+from pytezos.encoding import scrub_input, base58_encode, base58_decode, is_pkh, is_sig
 
 
 class TestEncoding(TestCase):
@@ -44,3 +44,24 @@ class TestEncoding(TestCase):
     ])
     def test_scrub_input(self, input_data, expected):
         self.assertEqual(expected, scrub_input(input_data))
+
+    @parameterized.expand([
+        ('tz1eKkWU5hGtfLUiqNpucHrXymm83z3DG9Sq', True),
+        ('tz28YZoayJjVz2bRgGeVjxE8NonMiJ3r2Wdu', True),
+        ('tz3agP9LGe2cXmKQyYn6T68BHKjjktDbbSWX', True),
+        ('KT1ExvG3EjTrvDcAU7EqLNb77agPa5u6KvnY', False),
+        ('qwerty', False),
+        ('tz1eKkWU5hGtfLUiq', False)
+    ])
+    def test_is_pkh(self, value, expected):
+        self.assertEqual(expected, is_pkh(value))
+
+    @parameterized.expand([
+        ('edsigtzLBGCyadERX1QsYHKpwnxSxEYQeGLnJGsSkHEsyY8vB5GcNdnvzUZDdFevJK7YZQ2ujwVjvQZn62ahCEcy74AwtbA8HuN', True),
+        ('spsig1RriZtYADyRhyNoQMa6AiPuJJ7AUDcrxWZfgqexzgANqMv4nXs6qsXDoXcoChBgmCcn2t7Y3EkJaVRuAmNh2cDDxWTdmsz', True),
+        ('sigUdRdXYCXW14xqT8mFTMkX4wSmDMBmcW1Vuz1vanGWqYTmuBodueUHGPUsbxgn73AroNwpEBHwPdhXUswzmvCzquiqtcHC', True),
+        ('qwerty', False),
+        ('sigUdRdXYCXW14xqT8mFTMkX4wSmDMBmcW1Vuz1vanGWqYT', False),
+    ])
+    def test_is_sig(self, value, expected):
+        self.assertEqual(expected, is_sig(value))
