@@ -109,3 +109,11 @@ def is_pkh(v) -> bool:
     except ValueError:
         return False
     return True
+
+
+def is_sig(v) -> bool:
+    try:
+        validate_sig(v)
+    except ValueError:
+        return False
+    return True
