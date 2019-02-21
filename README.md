@@ -51,5 +51,7 @@ P256 signatures (tz3) will be implemented soon.
 
 ## Troubleshooting
 
-* If you get ```command 'gcc' failed with exit status 1``` while installing secp256k1 package, it's probably system libraries issue: https://github.com/ludbb/secp256k1-py#installation-with-compilation
-* If you get ```gmp.h: No such file or directory``` while installing fastecdsa package, then ```sudo apt-get install libgmp3-dev libmpfr-dev```
+If you get ```command 'gcc' failed with exit status 1``` or t ```gmp.h: No such file or directory``` while installing fastecdsa/sec256k1 package, then do:
+```
+$ sudo apt-get install libsodium-dev libsecp256k1-dev libgmp-dev
+```
