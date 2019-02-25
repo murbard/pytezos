@@ -1,31 +1,66 @@
-from datetime import datetime
 from functools import lru_cache
-from pendulum.parsing.exceptions import ParserError
-import pendulum
+from typing import List
 
 from pytezos.rpc.node import RpcQuery
-from pytezos.rpc.block import Block
+from pytezos.rpc.block import Block, BlockListList
+from pytezos.rpc.operation import Operation
 
 
-def to_timestamp(v):
-    try:
-        v = pendulum.parse(v)
-    except ParserError:
-        pass
-    if isinstance(v, datetime):
-        v = int(v.timestamp())
-    return v
+class OperationsDict(RpcQuery):
+
+    def _get_operations_list(self, key, kind=None):
+        operations = self.get(key)
+        if kind:
+            operations = filter(lambda x: x['contents'][0]['kind'] == kind, operations)
+        return list(map(lambda x: Operation(data=x), operations))
+
+    def applied(self, kind=None) -> List[Operation]:
+        """
+        :param kind: endorsement, seed_nonce_revelation, double_endorsement_evidence, double_baking_evidence,
+        activate_account, proposals, ballot, reveal, transaction, origination, delegation
+        :return:
+        """
+        return self._get_operations_list('applied', kind=kind)
+
+    def refused(self) -> List[Operation]:
+        return self._get_operations_list('refused')
+
+    def branch_delayed(self) -> List[Operation]:
+        return self._get_operations_list('branch_delayed')
+
+    def unprocessed(self) -> List[Operation]:
+        return self._get_operations_list('unprocessed')
+
+
+class Mempool(RpcQuery):
+
+    def __init__(self, *args, **kwargs):
+        super(Mempool, self).__init__(
+            properties={'pending_operations': OperationsDict},
+            *args, **kwargs)
+
+    @property
+    def filter(self, **kwargs):
+        """
+        minimal_fees, minimal_nanotez_per_gas_unit, minimal_nanotez_per_byte
+        :return:
+        """
+        if kwargs:
+            return self._node.post(f'{self._path}/filter', json=kwargs)
+        return self._node.get(f'{self._path}/filter')
 
 
 class Chain(RpcQuery):
 
     def __init__(self, *args, **kwargs):
-        super(Chain, self).__init__(*args, **kwargs)
+        super(Chain, self).__init__(
+            properties={'mempool': Mempool},
+            *args, **kwargs)
 
     @property
     @lru_cache(maxsize=None)
     def blocks(self):
-        return RpcQuery(
+        return BlockListList(
             path=f'{self._path}/blocks',
             node=self._node,
             child_class=Block,

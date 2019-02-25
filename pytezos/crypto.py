@@ -13,7 +13,7 @@ from pytezos.encoding import scrub_input, base58_decode, base58_encode
 
 
 def blake2b_32(v=b''):
-    return blake2b(v, digest_size=32)
+    return blake2b(scrub_input(v), digest_size=32)
 
 
 class Key(object):

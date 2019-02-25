@@ -1,8 +1,9 @@
 from functools import lru_cache
 
 from pytezos.rpc.node import Node, RpcQuery
-from pytezos.rpc.chain import Chain
-from pytezos.rpc.block import Block, Context
+from pytezos.rpc.chain import Chain, OperationsDict
+from pytezos.rpc.block import Block
+from pytezos.rpc.context import Context
 
 
 class Shell(RpcQuery):
@@ -35,6 +36,10 @@ class Shell(RpcQuery):
     @property
     def context(self) -> Context:
         return self.head.context
+
+    @property
+    def pending_operations(self) -> OperationsDict:
+        return self.main.mempool.pending_operations
 
     def get_public_key(self, pkh) -> str:
         """

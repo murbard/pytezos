@@ -48,6 +48,13 @@ base58_encodings = [
 
 def scrub_input(v) -> bytes:
     if isinstance(v, str) and not isinstance(v, bytes):
+        try:
+            _ = int(v, 16)
+        except ValueError:
+            pass
+        else:
+            v = f'0x{v}'
+
         if v.startswith('0x'):
             v = bytes.fromhex(v[2:])
         else:
@@ -114,6 +121,14 @@ def is_pkh(v) -> bool:
 def is_sig(v) -> bool:
     try:
         validate_sig(v)
+    except ValueError:
+        return False
+    return True
+
+
+def is_bh(v) -> bool:
+    try:
+        _validate(v, prefixes=[b'B'])
     except ValueError:
         return False
     return True

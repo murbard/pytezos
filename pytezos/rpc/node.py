@@ -1,5 +1,6 @@
 import requests
 from functools import lru_cache
+from hashlib import sha1
 
 public_nodes = {
     'mainnet': ['https://rpc.tezrpc.me/', 'https://mainnet-node.tzscan.io/'],
@@ -27,12 +28,13 @@ class Node:
     def __init__(self, uri=public_nodes['mainnet'][0]):
         self._uri = uri
         self._cache = dict()
+        self._session = requests.Session()
 
     def __repr__(self):
         return f'{self._uri}'
 
     def _request(self, method, path, **kwargs):
-        res = requests.request(
+        res = self._session.request(
             method=method,
             url=urljoin(self._uri, path),
             headers={'content-type': 'application/json'},
@@ -53,8 +55,18 @@ class Node:
 
         return res
 
-    def post(self, path, json=None):
-        return self._request('POST', path, json=json)
+    def post(self, path, json=None, cache=False):
+        key = None
+        if cache:
+            key = sha1((path + str(json)).encode()).hexdigest()
+            if key in self._cache:
+                return self._cache[key]
+
+        res = self._request('POST', path, json=json)
+        if cache:
+            self._cache[key] = res
+
+        return res
 
 
 class RpcQuery:
@@ -71,6 +83,10 @@ class RpcQuery:
             self._properties = {x: self._child_class for x in properties}
         else:
             self._properties = dict()
+
+    @property
+    def _parent_path(self):
+        return self._path.rsplit('/', maxsplit=1)[0]
 
     def __repr__(self):
         return self._path
@@ -98,12 +114,16 @@ class RpcQuery:
 
     @lru_cache(maxsize=None)
     def __getitem__(self, item):
-        if isinstance(item, tuple):
-            path = f'{self._path}/{item[0]}/{item[1]}'
-        else:
-            path = f'{self._path}/{item}'
         return self._child_class(
-            path=path,
+            path=f'{self._path}/{item}',
             node=self._node,
             cache=self._cache
         )
+
+    def get(self, key, default=None):
+        data = self()
+        if key in data:
+            return data[key]
+        if default is not None:
+            return default
+        raise ValueError(f'{key} is missing.')
