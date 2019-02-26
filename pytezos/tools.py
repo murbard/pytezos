@@ -29,7 +29,7 @@ class OTP:
         if not self._key.is_secret:
             raise ValueError('Cannot generate OTP without a secret key')
 
-        message = self._shell.head.hash()
+        message = self._shell.head.calculate_hash()
         logger.debug(f'block hash: {message}')
 
         return self._key.sign(message)

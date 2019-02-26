@@ -51,14 +51,11 @@ def scrub_input(v) -> bytes:
         try:
             _ = int(v, 16)
         except ValueError:
-            pass
-        else:
-            v = f'0x{v}'
-
-        if v.startswith('0x'):
-            v = bytes.fromhex(v[2:])
-        else:
             v = v.encode('ascii')
+        else:
+            if v.startswith('0x'):
+                v = v[2:]
+            v = bytes.fromhex(v)
 
     if not isinstance(v, bytes):
         raise TypeError(

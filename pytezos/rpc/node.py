@@ -71,11 +71,12 @@ class Node:
 
 class RpcQuery:
 
-    def __init__(self, path='', node=Node(), cache=False, child_class=None, properties=None):
+    def __init__(self, path='', node=Node(), cache=False, child_class=None, properties=None, **kwargs):
         self._node = node
         self._path = path
         self._cache = cache
         self._child_class = child_class if child_class else RpcQuery
+        self._kwargs = kwargs
 
         if isinstance(properties, dict):
             self._properties = properties
@@ -84,15 +85,12 @@ class RpcQuery:
         else:
             self._properties = dict()
 
-    @property
-    def _parent_path(self):
-        return self._path.rsplit('/', maxsplit=1)[0]
-
     def __repr__(self):
         return self._path
 
     def __dir__(self):
-        return sorted(list(super(RpcQuery, self).__dir__()) + list(self._properties.keys()))
+        return sorted(list(super(RpcQuery, self).__dir__())
+                      + list(self._properties.keys()))
 
     def __call__(self, *args, **kwargs):
         return self._node.get(
@@ -108,7 +106,8 @@ class RpcQuery:
             return child_class(
                 path=f'{self._path}/{item}',
                 node=self._node,
-                cache=self._cache
+                cache=self._cache,
+                **self._kwargs
             )
         raise AttributeError(item)
 
@@ -117,7 +116,8 @@ class RpcQuery:
         return self._child_class(
             path=f'{self._path}/{item}',
             node=self._node,
-            cache=self._cache
+            cache=self._cache,
+            **self._kwargs
         )
 
     def get(self, key, default=None):
@@ -126,4 +126,4 @@ class RpcQuery:
             return data[key]
         if default is not None:
             return default
-        raise ValueError(f'{key} is missing.')
+        raise KeyError(f'{key} is missing.')

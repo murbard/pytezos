@@ -7,8 +7,10 @@ class Contract(RpcQuery):
 
     def __init__(self, *args, **kwargs):
         super(Contract, self).__init__(
-            properties=['balance', 'counter', 'delegatable', 'delegate', 'manager', 'manager_key', 'script',
-                        'spendable', 'storage'],
+            properties=[
+                'balance', 'counter', 'delegatable', 'delegate', 'manager',
+                'manager_key', 'script', 'spendable', 'storage'
+            ],
             *args, **kwargs)
 
 

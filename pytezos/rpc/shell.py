@@ -1,12 +1,13 @@
 from functools import lru_cache
 
 from pytezos.rpc.node import Node, RpcQuery
-from pytezos.rpc.chain import Chain, OperationsDict
+from pytezos.rpc.chain import Chain, OperationsDict, Mempool
 from pytezos.rpc.block import Block
 from pytezos.rpc.context import Context
+from pytezos.rpc.helpers import HelpersMixin
 
 
-class Shell(RpcQuery):
+class Shell(RpcQuery, HelpersMixin):
 
     def __init__(self, node=Node()):
         super(Shell, self).__init__(node=node)
@@ -38,20 +39,9 @@ class Shell(RpcQuery):
         return self.head.context
 
     @property
+    def mempool(self) -> Mempool:
+        return self.main.mempool
+
+    @property
     def pending_operations(self) -> OperationsDict:
         return self.main.mempool.pending_operations
-
-    def get_public_key(self, pkh) -> str:
-        """
-        Public key by the public key hash
-        :param pkh: public key hash, base58 encoded, i.e. 'tz1eKkWU5hGtfLUiqNpucHrXymm83z3DG9Sq'
-        :return: base58 encoded public key
-        """
-        if pkh.startswith('KT1'):  # it is not pkh, but let's handle this
-            pkh = self.context.contracts[pkh].manager_key().get('manager')
-
-        pk = self.context.contracts[pkh].manager_key().get('key')
-        if not pk:
-            raise ValueError('Public key is not revealed')
-
-        return pk

@@ -1,9 +1,12 @@
 from functools import lru_cache
 from typing import List
+from binascii import hexlify
+import os
 
 from pytezos.rpc.node import RpcQuery
 from pytezos.rpc.block import Block, BlockListList
 from pytezos.rpc.operation import Operation
+from pytezos.encoding import base58_decode
 
 
 class OperationsDict(RpcQuery):
@@ -12,7 +15,9 @@ class OperationsDict(RpcQuery):
         operations = self.get(key)
         if kind:
             operations = filter(lambda x: x['contents'][0]['kind'] == kind, operations)
-        return list(map(lambda x: Operation(data=x), operations))
+        return list(map(
+            lambda x: Operation(data=x, node=self._node, **self._kwargs),
+            operations))
 
     def applied(self, kind=None) -> List[Operation]:
         """
@@ -53,6 +58,9 @@ class Mempool(RpcQuery):
 class Chain(RpcQuery):
 
     def __init__(self, *args, **kwargs):
+        kwargs.update(
+            chain_id=os.path.basename(kwargs.get('path', ''))
+        )
         super(Chain, self).__init__(
             properties={'mempool': Mempool},
             *args, **kwargs)

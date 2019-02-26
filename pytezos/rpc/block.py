@@ -1,14 +1,15 @@
 from datetime import datetime
 from functools import lru_cache
-from binascii import hexlify
 from pendulum.parsing.exceptions import ParserError
 import pendulum
+import os
 
 from pytezos.rpc.context import Context
 from pytezos.rpc.node import RpcQuery, urljoin
 from pytezos.rpc.operation import Operation, OperationListList
-from pytezos.crypto import blake2b_32
-from pytezos.encoding import base58_encode, base58_decode, is_bh
+from pytezos.rpc.helpers import HelpersMixin
+from pytezos.crypto import blake2b_32, Key
+from pytezos.encoding import base58_encode, is_bh
 
 
 def to_timestamp(v):
@@ -25,7 +26,7 @@ class BlockListList(RpcQuery):
 
     def __call__(self, length=1, head=None, min_date=None):
         if isinstance(head, str) and not is_bh(head):
-            head = self.__getitem__(head).hash()
+            head = self.__getitem__(head).calculate_hash()
 
         if min_date and not isinstance(min_date, int):
             min_date = to_timestamp(min_date)
@@ -61,46 +62,55 @@ class BlockListList(RpcQuery):
         return super(BlockListList, self).__getitem__(item)
 
 
-class BlockHeader(RpcQuery):
+class BlockHeader(RpcQuery, HelpersMixin):
 
     def __init__(self, *args, **kwargs):
         super(BlockHeader, self).__init__(
             properties=['shell', 'protocol_data', 'raw'],
             *args, **kwargs)
 
-    def unsigned(self):
+    def watermark(self):
+        return '01' + self.get_chain_watermark()
+
+    def unsigned_data(self):
         data = self.shell()
-        data['protocol_data'] = self.protocol_data.raw()[:-128]
+        data['protocol_data'] = self.protocol_data.signed_bytes()[:-128]
         return data
 
-    def forge(self):
-        data = self._node.post('chains/main/blocks/head/helpers/forge_block_header', json=self.unsigned())
-        return data['block']
+    def unsigned_bytes(self):
+        return self.watermark() + self.forge()
 
-    def unsigned_raw(self):
-        watermark = hexlify(base58_decode(self.get('chain_id').encode()))
-        return watermark + self.forge()
-
-    def hash(self):
+    def calculate_hash(self):
         hash_digest = blake2b_32(self.raw()).digest()
         return base58_encode(hash_digest, b'B').decode()
 
-    def pow_stamp(self):
+    def calculate_pow_stamp(self):
         hash_digest = blake2b_32(self.forge() + '0' * 128).digest()
         return int.from_bytes(hash_digest, byteorder='big')
 
+    def forge(self):
+        data = self._node.post(
+            path='chains/main/blocks/head/helpers/forge_block_header',
+            json=self.unsigned_data()
+        )
+        return data['block']
 
-class Block(RpcQuery):
+
+class Block(RpcQuery, HelpersMixin):
 
     def __init__(self, *args, **kwargs):
-        kwargs['cache'] = 'head' not in kwargs.get('path')
+        kwargs.update(
+            cache='head' not in kwargs.get('path', ''),
+            block_id=os.path.basename(kwargs.get('path', ''))
+        )
         super(Block, self).__init__(
             properties={
                 'hash': RpcQuery,
                 'header': BlockHeader,
                 'context': Context,
                 'metadata': RpcQuery
-            }, *args, **kwargs)
+            },
+            *args, **kwargs)
 
     @property
     @lru_cache(maxsize=None)
@@ -125,11 +135,17 @@ class Block(RpcQuery):
         Returns fixed-hash block, useful for aliases, like head, head~1, etc.
         :return: Block instance with hash initialized
         """
-        return Block(path=urljoin(self._parent_path, self.hash()), node=self._node)
+        return Block(
+            path=urljoin(os.path.dirname(self._path), self.hash()),
+            node=self._node
+        )
 
     @property
     def predecessor(self):
-        return Block(path=urljoin(self._parent_path, self.header.get('predecessor')), node=self._node)
+        return Block(
+            path=urljoin(os.path.dirname(self._path), self.header.get('predecessor')),
+            node=self._node
+        )
 
     def create_endorsement(self) -> Operation:
         header = self.header()
@@ -141,13 +157,6 @@ class Block(RpcQuery):
             }]
         })
 
-    def create_double_baking_evidence(self) -> Operation:
-        pass
-
-    def fitness(self):
-        fitness = self.predecessor.header.get('fitness') + 1
-        fitness += sum(map(
-            lambda x: len(x['contents']['metadata']['slots']),
-            self.operations(kind='endorsement')
-        ))
-        return hex(fitness)
+    def verify_signature(self):
+        pk = self.get_public_key(self.metadata.get('baker'))
+        Key(pk).verify(self.header.get('signature'), self.header.unsigned_bytes())
