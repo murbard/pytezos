@@ -1,7 +1,7 @@
 from unittest import TestCase
 from parameterized import parameterized
 
-from pytezos.encoding import scrub_input, base58_encode, base58_decode, is_pkh, is_sig
+from pytezos.encoding import scrub_input, base58_encode, base58_decode, is_pkh, is_sig, is_bh
 
 
 class TestEncoding(TestCase):
@@ -65,3 +65,10 @@ class TestEncoding(TestCase):
     ])
     def test_is_sig(self, value, expected):
         self.assertEqual(expected, is_sig(value))
+
+    @parameterized.expand([
+        ('BLrbVv8rUfkpDZZ6efByhgjyDgPUFeKAfTMq8mWPmjXb9c5m8LJ', True),
+        ('qwerty', False),
+    ])
+    def test_is_bh(self, value, expected):
+        self.assertEqual(expected, is_bh(value))

@@ -49,6 +49,14 @@ class TestCrypto(TestCase):
          'edsigtzLBGCyadERX1QsYHKpwnxSxEYQeGLnJGsSkHEsyY8vB5GcNdnvzUZDdFevJK7YZQ2ujwVjvQZn62ahCEcy74AwtbA8HuN'),
         ('sppk7aMNM3xh14haqEyaxNjSt7hXanCDyoWtRcxF8wbtya859ak6yZT', b'test',
          'spsig1RriZtYADyRhyNoQMa6AiPuJJ7AUDcrxWZfgqexzgANqMv4nXs6qsXDoXcoChBgmCcn2t7Y3EkJaVRuAmNh2cDDxWTdmsz'),
+        ('p2pk67wVncLFS1DQDm2gVR45sYCzQSXTtqn3bviNYXVCq6WRoqtxHXL',
+         '017a06a770000508440322bf4860a065d1c8747a08f7685be9c79da2b21d5930c12fff86b230081d223b000000005c752b3'
+         'a04bc5b950ff781580616c12a646af98285da66232b232661f179c98d6f8c8912ae00000011000000010000000008000000'
+         '00009b55bda7ad9debcd2657b76d444b14807c7b5dc13e06f754e2b43186d0fb22b3d3332c0000000000031048815b00',
+         'sigqWxz3GKFXg6G8ndSzJF8JD9j7m12kPWZj6bHLqdKw6XpxhVLwGm26hVqMdEfgPdoz8qoA5QkM9mvnMyMFmYny9sqjb5bE'),
+        ('p2pk66n1NmhPDEkcf9sXEKe9kBoTwBoTYxke1hx16aTRVq8MoXuwNqo',
+         '027a06a770ad828485977947451e23e99f5040ead0f09ef89f58be2583640edcb1e295d0cb000005085e',
+         'sigQVTY9CkYw8qL6Xa7QWestkLSdtPv6HZ4ToSMHDcRot3BwRGwZhSwXd9jJwKkDvvotTLSNWQdUqiDSfXuCNUfjbEaY2j6j')
     ])
     def test_verify_ext_signatures(self, pk, msg, sig):
         key = Key(pk)
