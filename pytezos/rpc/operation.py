@@ -65,7 +65,7 @@ class Operation(RpcQuery, HelpersMixin):
     def watermark(self):
         content = self.get('contents')[0]
         kind = content['kind']
-        if kind == ['endorsement', 'seed_nonce_revelation']:
+        if kind in ['endorsement', 'seed_nonce_revelation']:
             return '02' + self.get_chain_watermark()
         if kind in ['transaction', 'origination', 'delegation', 'reveal', 'ballot', 'proposals', 'activate_account']:
             return '03'
@@ -111,8 +111,8 @@ class Operation(RpcQuery, HelpersMixin):
         return self.watermark() + self.forge()
 
     def signed_bytes(self):
-        signature_raw = base58_decode(self.get('signature'))
-        return self.forge() + hexlify(signature_raw).decode()
+        signature_bytes = hexlify(base58_decode(self.get('signature'))).decode()
+        return self.forge() + signature_bytes
 
     def calculate_hash(self):
         hash_digest = blake2b_32(self.signed_bytes()).digest()

@@ -43,3 +43,7 @@ class HelpersMixin:
         assert isinstance(self, RpcQuery)
         return self._node.get(f'chains/{self.get_chain_id()}/blocks/{self.get_block_id(branch)}'
                               f'/header').get('protocol')
+
+    @staticmethod
+    def get_level(cycle: int, index=0) -> int:
+        return cycle * 4096 + (index % 4096) + 1

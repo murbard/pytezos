@@ -1,12 +1,10 @@
 from functools import lru_cache
 from typing import List
-from binascii import hexlify
 import os
 
 from pytezos.rpc.node import RpcQuery
 from pytezos.rpc.block import Block, BlockListList
 from pytezos.rpc.operation import Operation
-from pytezos.encoding import base58_decode
 
 
 class OperationsDict(RpcQuery):

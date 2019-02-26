@@ -55,7 +55,7 @@ class BlockListList(RpcQuery):
                 if isinstance(item.stop, int) and item.stop < 0:
                     length -= abs(item.stop)
             else:
-                length = header['length'] - item.start
+                length = header['level'] - item.start
 
             return self.__call__(length=length, head=header['hash'])
 
