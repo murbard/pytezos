@@ -21,7 +21,7 @@ $ sudo apt install libsodium-dev libsecp256k1-dev libgmp-dev
 ## Installation
 
 ```
-$ pip install git+https://github.com/baking-bad/pytezos
+$ pip install git+https://github.com/murbard/pytezos
 ```
 
 ## Usage
