@@ -5,6 +5,7 @@ from pytezos.rpc.chain import Chain, OperationsDict, Mempool
 from pytezos.rpc.block import Block
 from pytezos.rpc.context import Context
 from pytezos.rpc.helpers import HelpersMixin
+from pytezos.rpc.protocol import Protocol
 
 
 class Shell(RpcQuery, HelpersMixin):
@@ -27,6 +28,10 @@ class Shell(RpcQuery, HelpersMixin):
         return self.chains.main
 
     @property
+    def test(self) -> Chain:
+        return self.chains.test
+
+    @property
     def blocks(self):
         return self.main.blocks
 
@@ -45,3 +50,11 @@ class Shell(RpcQuery, HelpersMixin):
     @property
     def pending_operations(self) -> OperationsDict:
         return self.main.mempool.pending_operations
+
+    @property
+    def protocols(self):
+        return RpcQuery(
+            path='protocols',
+            node=self._node,
+            child_class=Protocol
+        )
