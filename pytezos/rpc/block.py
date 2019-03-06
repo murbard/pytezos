@@ -130,6 +130,17 @@ class Block(RpcQuery, HelpersMixin):
             child_class=RpcQuery
         )
 
+    @property
+    def votes(self):
+        return RpcQuery(
+            path=f'{self.path}/votes',
+            node=self._node,
+            properties=[
+                'ballot_list', 'ballots', 'current_period_kind', 'current_proposal', 'current_quorum',
+                'listings', 'proposals'
+            ]
+        )
+
     def freeze(self):
         """
         Returns fixed-hash block, useful for aliases, like head, head~1, etc.
