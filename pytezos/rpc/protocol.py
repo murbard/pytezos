@@ -75,7 +75,7 @@ def files_to_proto(files: List[Tuple[str, str]]) -> dict:
             components[name] = {'name': name, key: data}
 
     proto = {
-        'expected_env_version': 0,
+        'expected_env_version': 0,  # TODO: this is V1
         'components': list(components.values())
     }
     return proto
@@ -83,8 +83,12 @@ def files_to_proto(files: List[Tuple[str, str]]) -> dict:
 
 def files_to_tar(files: List[Tuple[str, str]], path=None):
     fileobj = io.BytesIO() if path is None else None
+    nameparts = os.path.basename(path).split('.')
+    mode = 'w'
+    if len(nameparts) == 3:
+        mode = f'w:{nameparts[-1]}'
 
-    with tarfile.open(name=path, fileobj=fileobj, mode='w') as tar:
+    with tarfile.open(name=path, fileobj=fileobj, mode=mode) as tar:
         for filename, text in files:
             file = io.BytesIO(text.encode())
             ti = tarfile.TarInfo(filename)
@@ -114,11 +118,14 @@ def proto_to_bytes(proto: dict) -> bytes:
 
     for component in proto.get('components', []):
         res += netstruct.pack(b'I$', component['name'].encode())
+
         if component.get('interface'):
             res += b'\xff' + netstruct.pack(b'I$', bytes.fromhex(component['interface']))
         else:
             res += b'\x00'
-        res += netstruct.pack(b'I$', bytes.fromhex(component['implementation']))
+
+        # we should also handle patch case
+        res += netstruct.pack(b'I$', bytes.fromhex(component.get('implementation', '')))
 
     res = netstruct.pack(b'hI$', proto['expected_env_version'], res)
     return res
@@ -162,7 +169,11 @@ class Protocol(RpcQuery):
 
         return Protocol(data=files_to_proto(files))
 
-    def index(self):
+    def index(self) -> dict:
+        """
+        Generates TEZOS_PROTOCOL file
+        :return: dict with protocol hash and modules
+        """
         proto = self()
         data = {
             'hash': self.calculate_hash(),
@@ -171,48 +182,58 @@ class Protocol(RpcQuery):
         return data
 
     def export_tar(self, path=None):
+        """
+        Creates a tarball and dumps to a file or returns bytes
+        :param path: Path to the tarball [optional]. You can add .bz2 or .gz extension to make it compressed
+        :return: bytes if path is None or nothing
+        """
         files = proto_to_files(self())
         files.append(('TEZOS_PROTOCOL', json.dumps(self.index())))
         return files_to_tar(files, path)
 
-    def make_patch(self, proto, context_lines=3):
+    def diff(self, proto, context_lines=3):
         """
         Calculates file diff between two protocol versions
         :param proto: an instance of Protocol
+        :param context_lines: number of context lines before and after the change
         :return: patch in proto format
         """
         assert isinstance(proto, Protocol)
 
-        a = dict(iter(self))
-        b = dict(iter(proto))
-        filenames = set(a.keys()).union(set(b.keys()))
-
+        files = list()
         dmp = diff_match_patch()
         dmp.Patch_Margin = context_lines
 
-        files = list()
-        for filename in filenames:
-            patches = dmp.patch_make(a.get(filename, ''), b.get(filename, ''))
-            text = dmp.patch_toText(patches)
-            files.append((filename, text))
+        yours = dict(iter(self))
+        theirs = proto_to_files(proto())
+
+        for filename, text in theirs:
+            patches = dmp.patch_make(yours.get(filename, ''), text)
+            files.append((filename, dmp.patch_toText(patches)))
 
         return Protocol(data=files_to_proto(files))
 
-    def apply_patch(self, patch):
+    def patch(self, patch):
+        """
+
+        :param patch:
+        :return:
+        """
         assert isinstance(patch, Protocol)
 
-        a = dict(iter(self))
-        b = dict(iter(patch))
-        filenames = set(a.keys()).union(set(b.keys()))
-
+        files = list()
         dmp = diff_match_patch()
 
-        files = list()
-        for filename in filenames:
-            patches = dmp.patch_fromText(b.get(filename, ''))
+        yours = dict(iter(self))
+        theirs = proto_to_files(patch())
+
+        for filename, text in theirs:
+            patches = dmp.patch_fromText(text)
             if patches:
-                text = dmp.patch_apply(patches, a.get(filename, ''))
-                files.append((filename, text))
+                result, _ = dmp.patch_apply(patches, yours.get(filename, ''))
+            else:
+                result = yours[filename]  # must exist
+            files.append((filename, result))
 
         return Protocol(data=files_to_proto(files))
 

@@ -62,6 +62,10 @@ class Operation(RpcQuery, HelpersMixin):
             return self._data
         return super(Operation, self).__call__(*args, **kwargs)
 
+    @classmethod
+    def from_data(cls, data: dict):
+        return Operation(data)
+
     def watermark(self):
         content = self.get('contents')[0]
         kind = content['kind']
