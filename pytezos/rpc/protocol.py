@@ -4,16 +4,21 @@ import requests
 import io
 import netstruct
 import simplejson as json
+import patch as pypatch
+from tempfile import TemporaryFile, TemporaryDirectory
 from functools import lru_cache
 from binascii import hexlify
 from collections import OrderedDict
 from typing import List, Tuple
-from tempfile import mkstemp, mkdtemp
-from diff_match_patch import diff_match_patch
+from difflib import unified_diff
+from tqdm import tqdm
+from loguru import logger
 
 from pytezos.rpc.node import RpcQuery
 from pytezos.crypto import blake2b_32
 from pytezos.encoding import base58_encode
+
+pypatch.warning = logger.warning
 
 
 def dir_to_files(path) -> List[Tuple[str, str]]:
@@ -42,22 +47,21 @@ def tar_to_files(path=None, raw=None) -> List[Tuple[str, str]]:
 
     fileobj = io.BytesIO(raw) if raw else None
     with tarfile.open(name=path, fileobj=fileobj) as tar:
-        folder = mkdtemp()
-        tar.extractall(folder)
+        with TemporaryDirectory() as tmp_dir:
+            tar.extractall(tmp_dir)
+            files = dir_to_files(tmp_dir)
 
-    return dir_to_files(folder)
+    return files
 
 
 def url_to_files(url) -> List[Tuple[str, str]]:
     res = requests.get(url, stream=True)
-    file, path = mkstemp()
-    try:
-        for data in res.iter_content():
-            file.write(data)
-    finally:
-        file.close()
+    with TemporaryFile() as tmp_file:
+        for data in tqdm(res.iter_content()):
+            tmp_file.write(data)
+        files = tar_to_files(tmp_file.name)
 
-    return tar_to_files(path)
+    return files
 
 
 def files_to_proto(files: List[Tuple[str, str]]) -> dict:
@@ -81,14 +85,14 @@ def files_to_proto(files: List[Tuple[str, str]]) -> dict:
     return proto
 
 
-def files_to_tar(files: List[Tuple[str, str]], path=None):
-    fileobj = io.BytesIO() if path is None else None
-    nameparts = os.path.basename(path).split('.')
+def files_to_tar(files: List[Tuple[str, str]], output_path=None):
+    fileobj = io.BytesIO() if output_path is None else None
+    nameparts = os.path.basename(output_path).split('.')
     mode = 'w'
     if len(nameparts) == 3:
         mode = f'w:{nameparts[-1]}'
 
-    with tarfile.open(name=path, fileobj=fileobj, mode=mode) as tar:
+    with tarfile.open(name=output_path, fileobj=fileobj, mode=mode) as tar:
         for filename, text in files:
             file = io.BytesIO(text.encode())
             ti = tarfile.TarInfo(filename)
@@ -181,15 +185,15 @@ class Protocol(RpcQuery):
         }
         return data
 
-    def export_tar(self, path=None):
+    def export_tar(self, output_path=None):
         """
         Creates a tarball and dumps to a file or returns bytes
-        :param path: Path to the tarball [optional]. You can add .bz2 or .gz extension to make it compressed
+        :param output_path: Path to the tarball [optional]. You can add .bz2 or .gz extension to make it compressed
         :return: bytes if path is None or nothing
         """
         files = proto_to_files(self())
         files.append(('TEZOS_PROTOCOL', json.dumps(self.index())))
-        return files_to_tar(files, path)
+        return files_to_tar(files, output_path)
 
     def diff(self, proto, context_lines=3):
         """
@@ -201,39 +205,51 @@ class Protocol(RpcQuery):
         assert isinstance(proto, Protocol)
 
         files = list()
-        dmp = diff_match_patch()
-        dmp.Patch_Margin = context_lines
+        yours = proto_to_files(self())
+        theirs = dict(iter(proto))
 
-        yours = dict(iter(self))
-        theirs = proto_to_files(proto())
-
-        for filename, text in theirs:
-            patches = dmp.patch_make(yours.get(filename, ''), text)
-            files.append((filename, dmp.patch_toText(patches)))
+        for filename, text in yours:
+            their_text = theirs.get(filename, '')
+            diff_lines = unified_diff(
+                a=their_text.split('\n'),
+                b=text.split('\n'),
+                n=context_lines,
+                fromfile=filename,
+                tofile=filename,
+                lineterm=''
+            )
+            files.append((filename, '\n'.join(diff_lines)))
 
         return Protocol(data=files_to_proto(files))
 
-    def patch(self, patch):
+    def apply(self, patch):
         """
-
-        :param patch:
-        :return:
+        Applies unified diff and returns full-fledged protocol
+        :param patch: an instance of Protocol containing diff of files
+        :return: Protocol instance
         """
         assert isinstance(patch, Protocol)
 
         files = list()
-        dmp = diff_match_patch()
-
-        yours = dict(iter(self))
         theirs = proto_to_files(patch())
 
-        for filename, text in theirs:
-            patches = dmp.patch_fromText(text)
-            if patches:
-                result, _ = dmp.patch_apply(patches, yours.get(filename, ''))
-            else:
-                result = yours[filename]  # must exist
-            files.append((filename, result))
+        with TemporaryDirectory() as your_dir:
+            for filename, text in self:
+                with open(os.path.join(your_dir, filename), 'w') as f:
+                    f.write(text + '\n')  # append newline (patch-apply workaround)
+
+            for filename, text in theirs:
+                if text:
+                    patch_set = pypatch.fromstring(text.encode())
+                    if not patch:
+                        raise ValueError('Failed to load unified diff.')
+                    if not patch_set.apply(root=your_dir):
+                        raise ValueError(f'Failed to patch {filename}')
+
+                with open(os.path.join(your_dir, filename), 'r') as f:
+                    result = f.read()
+
+                files.append((filename, result[:-1]))  # remove newline (patch-apply workaround)
 
         return Protocol(data=files_to_proto(files))
 

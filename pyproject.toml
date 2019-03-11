@@ -18,8 +18,9 @@ requests = "^2.21.0"
 pendulum = "*"
 fastecdsa = "^1.7.1"
 loguru = "*"
-diff-match-patch = "*"
 netstruct = "*"
+tqdm = "*"
+patch = "*"
 
 [tool.poetry.dev-dependencies]
 parameterized = "^0.7.0"

@@ -82,7 +82,7 @@ class SearchChain(Chain):
         )
         return level
 
-    def find_proposal_votes_levels(self, proposal_id) -> Generator[int]:
+    def find_proposal_votes_levels(self, proposal_id) -> Generator:
         for level, _ in find_state_changes(
                 *self.get_voting_period(),
                 get=lambda x: self.blocks[x].votes.roll_count(proposal_id),
@@ -97,7 +97,7 @@ class SearchChain(Chain):
 
         return Operation.from_data(operations[0])
 
-    def find_proposal_votes_operations(self, proposal_id) -> Generator[Operation]:
+    def find_proposal_votes_operations(self, proposal_id) -> Generator:
         for level in self.find_proposal_votes_levels(proposal_id):
             for operation in self.blocks[level].operations.votes():
                 yield Operation.from_data(operation)
