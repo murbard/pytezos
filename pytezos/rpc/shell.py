@@ -58,3 +58,9 @@ class Shell(RpcQuery, HelpersMixin):
             node=self._node,
             child_class=Protocol
         )
+
+    def level(self) -> int:
+        return self.head.level()
+
+    def cycle(self) -> int:
+        return self.head.cycle()

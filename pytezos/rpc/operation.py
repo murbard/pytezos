@@ -7,6 +7,40 @@ from pytezos.rpc.node import RpcQuery
 from pytezos.rpc.helpers import HelpersMixin
 
 
+def get_pass_by_kind(kind) -> int:
+    if kind == 'endorsement':
+        return 0
+    if kind in {'proposals', 'ballot'}:
+        return 1
+    if kind in {'seed_nonce_revelation', 'double_endorsement_evidence',
+                'double_baking_evidence', 'activate_account'}:
+        return 2
+    if kind in {'reveal', 'transaction', 'origination', 'delegation'}:
+        return 3
+    raise NotImplementedError(kind)
+
+
+def filter_operations(operations, kind=None, recursive=True):
+    if isinstance(kind, str):
+        kind = {kind}
+    elif isinstance(kind, list):
+        kind = set(kind)
+
+    def multiple_content(op):
+        # manager operations can be spawned by a smart contract
+        return any(map(lambda ct: ct['kind'] in kind, op['contents']))
+
+    def single_content(op):
+        return op['contents'][0]['kind'] in kind
+
+    if get_pass_by_kind(kind) == 3 and recursive:
+        f = multiple_content
+    else:
+        f = single_content
+
+    return filter(f, operations)
+
+
 class OperationListList(RpcQuery):
 
     def __iter__(self):
@@ -14,14 +48,19 @@ class OperationListList(RpcQuery):
             for operation in operation_group:
                 yield operation
 
-    def __call__(self, kind=None):
+    def __call__(self, kind=None, recursive_search=True):
         """
         :param kind: endorsement, seed_nonce_revelation, double_endorsement_evidence, double_baking_evidence,
         activate_account, proposals, ballot, reveal, transaction, origination, delegation
-        :return: flat list of operations filtered by kind
+        :return: flat list of operations filtered by kind (recursive search)
         """
         if kind:
-            return list(filter(lambda x: x['contents'][0]['kind'] == kind, iter(self)))
+            validation_pass = get_pass_by_kind(kind)
+            return list(filter_operations(
+                operations=self[validation_pass](),
+                kind=kind,
+                recursive=recursive_search
+            ))
         return super(OperationListList, self).__call__()
 
     @lru_cache(maxsize=None)
@@ -44,6 +83,39 @@ class OperationListList(RpcQuery):
 
     def flat(self):
         return list(iter(self))
+
+    @property
+    def endorsements(self):
+        """
+        The first list contains the endorsements (kind `endorsement`)
+        :return: RPCQuery instance
+        """
+        return self[0]
+
+    @property
+    def votes(self):
+        """
+        The second list contains all the operations regarding votes and proposals (kind `proposals`, `ballot`)
+        :return: RPCQuery instance
+        """
+        return self[1]
+
+    @property
+    def anonymous(self):
+        """
+        The third list contains anonymous operations (kind `seed_nonce_revelation`, `double_endorsement_evidence`,
+            `double_baking_evidence`, `activate_account`)
+        :return: RPCQuery instance
+        """
+        return self[2]
+
+    @property
+    def managers(self):
+        """
+        The last one contains the manager operations (`reveal`, `transaction`, `origination`, `delegation`)
+        :return: RPCQuery instance
+        """
+        return self[3]
 
 
 class Operation(RpcQuery, HelpersMixin):
@@ -75,10 +147,10 @@ class Operation(RpcQuery, HelpersMixin):
             return '03'
         raise NotImplementedError(kind)
 
-    def signer_pkh(self):
+    def source(self):
         content = self.get('contents')[0]
         kind = content['kind']
-        if kind in ['endorsement', 'seed_nonce_revelation']:
+        if kind in ['endorsement']:
             return content['metadata']['delegate']
         if kind == 'activate_account':
             return content['pkh']
@@ -152,5 +224,5 @@ class Operation(RpcQuery, HelpersMixin):
         return data
 
     def verify_signature(self):
-        pk = self.get_public_key(self.signer_pkh())
+        pk = self.get_public_key(self.source())
         Key(pk).verify(self.get('signature'), self.unsigned_bytes())

@@ -4,7 +4,7 @@ import os
 
 from pytezos.rpc.node import RpcQuery
 from pytezos.rpc.block import Block, BlockListList
-from pytezos.rpc.operation import Operation
+from pytezos.rpc.operation import Operation, filter_operations
 
 
 class OperationsDict(RpcQuery):
@@ -12,10 +12,11 @@ class OperationsDict(RpcQuery):
     def _get_operations_list(self, key, kind=None):
         operations = self.get(key)
         if kind:
-            operations = filter(lambda x: x['contents'][0]['kind'] == kind, operations)
+            operations = filter_operations(operations, kind=kind)
         return list(map(
             lambda x: Operation(data=x, node=self._node, **self._kwargs),
-            operations))
+            operations
+        ))
 
     def applied(self, kind=None) -> List[Operation]:
         """
@@ -70,7 +71,8 @@ class Chain(RpcQuery):
             path=f'{self._path}/blocks',
             node=self._node,
             child_class=Block,
-            properties=['head', 'genesis']
+            properties=['head', 'genesis'],
+            **self._kwargs
         )
 
     @property

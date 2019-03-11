@@ -32,5 +32,6 @@ class Context(RpcQuery):
         return RpcQuery(
             path=f'{self._path}/contracts',
             node=self._node,
-            child_class=Contract
+            child_class=Contract,
+            **self._kwargs
         )
