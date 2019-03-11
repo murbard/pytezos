@@ -1,12 +1,12 @@
 [tool.poetry]
 name = "pytezos"
-version = "1.1.0"
+version = "1.1.1"
 description = "Python utils for Tezos"
 authors = ["Arthur Breitman, Michael Zaikin <baking-bad.org>"]
 license = "MIT"
 readme = "README.md"
 repository = "https://github.com/baking-bad/pytezos"
-keywords = ['tezos', 'rpc', 'signature', 'crypto']
+keywords = ['tezos', 'crypto', 'blockchain', 'xtz']
 
 [tool.poetry.dependencies]
 python = "^3.5"
