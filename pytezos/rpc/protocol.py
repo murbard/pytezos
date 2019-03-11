@@ -5,7 +5,7 @@ import io
 import netstruct
 import simplejson as json
 import patch as pypatch
-from tempfile import TemporaryFile, TemporaryDirectory
+from tempfile import TemporaryDirectory
 from functools import lru_cache
 from binascii import hexlify
 from collections import OrderedDict
@@ -56,12 +56,12 @@ def tar_to_files(path=None, raw=None) -> List[Tuple[str, str]]:
 
 def url_to_files(url) -> List[Tuple[str, str]]:
     res = requests.get(url, stream=True)
-    with TemporaryFile() as tmp_file:
-        for data in tqdm(res.iter_content()):
-            tmp_file.write(data)
-        files = tar_to_files(tmp_file.name)
+    raw = b''
 
-    return files
+    for data in tqdm(res.iter_content()):
+        raw += data
+
+    return tar_to_files(raw=raw)
 
 
 def files_to_proto(files: List[Tuple[str, str]]) -> dict:
@@ -236,7 +236,7 @@ class Protocol(RpcQuery):
         with TemporaryDirectory() as your_dir:
             for filename, text in self:
                 with open(os.path.join(your_dir, filename), 'w') as f:
-                    f.write(text + '\n')  # append newline (patch-apply workaround)
+                    f.write(text)  # append newline (patch-apply workaround)
 
             for filename, text in theirs:
                 if text:
@@ -249,7 +249,7 @@ class Protocol(RpcQuery):
                 with open(os.path.join(your_dir, filename), 'r') as f:
                     result = f.read()
 
-                files.append((filename, result[:-1]))  # remove newline (patch-apply workaround)
+                files.append((filename, result))  # remove newline (patch-apply workaround)
 
         return Protocol(data=files_to_proto(files))
 
