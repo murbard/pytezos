@@ -4,21 +4,17 @@ import requests
 import io
 import netstruct
 import simplejson as json
-import patch as pypatch
 from tempfile import TemporaryDirectory
 from functools import lru_cache
 from binascii import hexlify
 from collections import OrderedDict
 from typing import List, Tuple
-from difflib import unified_diff
 from tqdm import tqdm
-from loguru import logger
 
 from pytezos.rpc.node import RpcQuery
 from pytezos.crypto import blake2b_32
 from pytezos.encoding import base58_encode
-
-pypatch.warning = logger.warning
+from pytezos.tools.diff import make_patch, apply_patch, generate_html
 
 
 def dir_to_files(path) -> List[Tuple[str, str]]:
@@ -195,30 +191,33 @@ class Protocol(RpcQuery):
         files.append(('TEZOS_PROTOCOL', json.dumps(self.index())))
         return files_to_tar(files, output_path)
 
-    def diff(self, proto, context_lines=3):
+    def export_html(self, output_path=None):
+        """
+        Generates github-like side-by-side diff viewe, powered by diff2html.js
+        :param output_path: will write to this file if specified
+        :return: html string if path is not specified
+        """
+        return generate_html(list(iter(self)), output_path=output_path)
+
+    def diff(self, proto, context_size=3):
         """
         Calculates file diff between two protocol versions
         :param proto: an instance of Protocol
-        :param context_lines: number of context lines before and after the change
+        :param context_size: number of context lines before and after the change
         :return: patch in proto format
         """
-        assert isinstance(proto, Protocol)
-
         files = list()
-        yours = proto_to_files(self())
-        theirs = dict(iter(proto))
+        yours = dict(iter(self))
+        theirs = proto_to_files(proto())
 
-        for filename, text in yours:
-            their_text = theirs.get(filename, '')
-            diff_lines = unified_diff(
-                a=their_text.split('\n'),
-                b=text.split('\n'),
-                n=context_lines,
-                fromfile=filename,
-                tofile=filename,
-                lineterm=''
+        for filename, their_text in theirs:
+            patch = make_patch(
+                a=yours.get(filename, ''),
+                b=their_text,
+                filename=filename,
+                context_size=context_size
             )
-            files.append((filename, '\n'.join(diff_lines)))
+            files.append((filename, patch))
 
         return Protocol(data=files_to_proto(files))
 
@@ -228,28 +227,15 @@ class Protocol(RpcQuery):
         :param patch: an instance of Protocol containing diff of files
         :return: Protocol instance
         """
-        assert isinstance(patch, Protocol)
-
         files = list()
-        theirs = proto_to_files(patch())
+        yours = dict(iter(self))
+        diff = proto_to_files(patch())
 
-        with TemporaryDirectory() as your_dir:
-            for filename, text in self:
-                with open(os.path.join(your_dir, filename), 'w') as f:
-                    f.write(text)  # append newline (patch-apply workaround)
-
-            for filename, text in theirs:
-                if text:
-                    patch_set = pypatch.fromstring(text.encode())
-                    if not patch:
-                        raise ValueError('Failed to load unified diff.')
-                    if not patch_set.apply(root=your_dir):
-                        raise ValueError(f'Failed to patch {filename}')
-
-                with open(os.path.join(your_dir, filename), 'r') as f:
-                    result = f.read()
-
-                files.append((filename, result))  # remove newline (patch-apply workaround)
+        for filename, diff_text in diff:
+            text = yours.get(filename, '')
+            if diff_text:
+                text = apply_patch(text, diff_text)
+            files.append((filename, text))
 
         return Protocol(data=files_to_proto(files))
 
