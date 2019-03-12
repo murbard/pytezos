@@ -69,13 +69,11 @@ def apply_patch(source, patch, revert=False):
     return target
 
 
-def generate_html(patches: list, output_path=None):
+def generate_html(diffs: list, output_path=None):
     with open(os.path.join(os.path.dirname(__file__), 'diff.html'), 'r') as f:
         template = f.read()
 
-    text = '\n'.join(filter(lambda x: x, patches))
-    html = template.replace('{{text}}', json.dumps(text))
-
+    html = template.replace('{{text}}', json.dumps('\n'.join(diffs)))
     if output_path:
         with open(output_path, 'w') as f:
             f.write(html)

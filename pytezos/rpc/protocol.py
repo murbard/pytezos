@@ -197,7 +197,8 @@ class Protocol(RpcQuery):
         :param output_path: will write to this file if specified
         :return: html string if path is not specified
         """
-        return generate_html(list(iter(self)), output_path=output_path)
+        diffs = [text for filename, text in self if text]
+        return generate_html(diffs, output_path=output_path)
 
     def diff(self, proto, context_size=3):
         """
