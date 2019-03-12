@@ -1,12 +1,12 @@
 [tool.poetry]
 name = "pytezos"
-version = "1.1.0"
+version = "1.1.1"
 description = "Python utils for Tezos"
-authors = ["Arthur Breitman, Baking Bad <257byte@gmail.com>"]
+authors = ["Arthur Breitman, Michael Zaikin <baking-bad.org>"]
 license = "MIT"
 readme = "README.md"
 repository = "https://github.com/baking-bad/pytezos"
-keywords = ['tezos', 'rpc', 'signature', 'crypto']
+keywords = ['tezos', 'crypto', 'blockchain', 'xtz']
 
 [tool.poetry.dependencies]
 python = "^3.5"
@@ -18,6 +18,8 @@ requests = "^2.21.0"
 pendulum = "*"
 fastecdsa = "^1.7.1"
 loguru = "*"
+netstruct = "*"
+tqdm = "*"
 
 [tool.poetry.dev-dependencies]
 parameterized = "^0.7.0"

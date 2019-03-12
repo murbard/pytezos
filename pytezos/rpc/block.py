@@ -7,6 +7,7 @@ import os
 from pytezos.rpc.context import Context
 from pytezos.rpc.node import RpcQuery, urljoin
 from pytezos.rpc.operation import Operation, OperationListList
+from pytezos.rpc.votes import Votes
 from pytezos.rpc.helpers import HelpersMixin
 from pytezos.crypto import blake2b_32, Key
 from pytezos.encoding import base58_encode, is_bh
@@ -118,7 +119,8 @@ class Block(RpcQuery, HelpersMixin):
         return OperationListList(
             path=f'{self._path}/operations',
             node=self._node,
-            child_class=Operation
+            child_class=Operation,
+            **self._kwargs
         )
 
     @property
@@ -127,7 +129,16 @@ class Block(RpcQuery, HelpersMixin):
         return OperationListList(
             path=f'{self._path}/operation_hashes',
             node=self._node,
-            child_class=RpcQuery
+            child_class=RpcQuery,
+            **self._kwargs
+        )
+
+    @property
+    def votes(self):
+        return Votes(
+            path=f'{self._path}/votes',
+            node=self._node,
+            **self._kwargs
         )
 
     def freeze(self):
@@ -137,15 +148,23 @@ class Block(RpcQuery, HelpersMixin):
         """
         return Block(
             path=urljoin(os.path.dirname(self._path), self.hash()),
-            node=self._node
+            node=self._node,
+            **self._kwargs
         )
 
     @property
     def predecessor(self):
         return Block(
             path=urljoin(os.path.dirname(self._path), self.header.get('predecessor')),
-            node=self._node
+            node=self._node,
+            **self._kwargs
         )
+
+    def level(self) -> int:
+        return self.metadata.get('level')['level']
+
+    def cycle(self) -> int:
+        return self.metadata.get('level')['cycle']
 
     def create_endorsement(self) -> Operation:
         header = self.header()
