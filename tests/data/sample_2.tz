@@ -1,0 +1,146 @@
+parameter
+  (or :parameter
+     (unit %Pay)
+     (option %Manage (pair :proposition (key_hash %destination) (mutez %amount))));
+storage
+  (pair :storage
+     (set %owners address)
+     (pair (map %actions address (pair :proposition (key_hash %destination) (mutez %amount)))
+           (pair (nat %owners_length) (nat %min_agree))));
+code { DUP ;
+       DIP { CDR @storage_slash_1 } ;
+       CAR @parameter_slash_2 ;
+       DUP @parameter ;
+       IF_LEFT
+         { DROP ; { DIP { DUP @storage } ; SWAP } ; NIL operation ; PAIR }
+         { RENAME @action_slash_18 ;
+           SOURCE @owner ;
+           { DIP { { DIP { { DIP { DUP @storage } ; SWAP } } ; SWAP } } ;
+             SWAP } ;
+           CAR %owners ;
+           { DIP { DUP @owner } ; SWAP } ;
+           MEM ;
+           NOT ;
+           IF { UNIT ; FAILWITH } { UNIT } ;
+           DROP ;
+           PUSH mutez 0 ;
+           AMOUNT ;
+           COMPARE ;
+           NEQ ;
+           IF { PUSH string "Don't send money while managing multisig" ; FAILWITH }
+              { UNIT } ;
+           DROP ;
+           { DIP { { DIP { { DIP { DUP @storage } ; SWAP } } ; SWAP } } ;
+             SWAP } ;
+           DUP ;
+           CAR %owners ;
+           SWAP ;
+           CDR ;
+           CDR ;
+           { DIP { { DIP { { DIP { { DIP { { DIP { DUP @storage } ; SWAP } } ; SWAP } } ;
+                             SWAP } } ;
+                     SWAP } } ;
+             SWAP } ;
+           { CDR ; CAR %actions } ;
+           { DIP { { DIP { { DIP { { DIP { DUP @action } ; SWAP } } ; SWAP } } ;
+                     SWAP } } ;
+             SWAP } ;
+           { DIP { { DIP { { DIP { { DIP { DUP @owner } ; SWAP } } ; SWAP } } ;
+                     SWAP } } ;
+             SWAP } ;
+           UPDATE ;
+           PAIR %actions ;
+           SWAP ;
+           PAIR @storage %owners ;
+           DUP @storage ;
+           NIL operation ;
+           PAIR @do_nothing ;
+           { DIP { { DIP { { DIP { DUP @action } ; SWAP } } ; SWAP } } ;
+             SWAP } ;
+           IF_NONE
+             { DUP @do_nothing }
+             { DUP @p ;
+               BALANCE ;
+               { DIP { DUP @p } ; SWAP } ;
+               CDR %amount ;
+               COMPARE ;
+               GT ;
+               IF { PUSH string "Balance to low for withdrawal" ; FAILWITH } { UNIT } ;
+               DIP { DROP } ;
+               DROP ;
+               { DIP { { DIP { DUP @storage } ; SWAP } } ; SWAP } ;
+               { DIP { DUP @p } ; SWAP } ;
+               PAIR ;
+               DUP ;
+               CDR @storage ;
+               DUP @storage ;
+               { CDR ; CDR ; CDR %min_agree } ;
+               PUSH nat 0 ;
+               { DIP { { DIP { DUP @storage } ; SWAP } } ; SWAP } ;
+               { CDR ; CAR %actions } ;
+               ITER { RENAME @___p_prim__cpt_slash_12 ;
+                      DIP { DUP } ;
+                      PAIR ;
+                      DUP ;
+                      CDR @cpt ;
+                      { DIP { DUP } ; SWAP } ;
+                      CAR ;
+                      CDR @p_prim_ ;
+                      { DIP { { DIP { { DIP { { DIP { { DIP { { DIP { DUP } ; SWAP } } ; SWAP } } ; SWAP } } ;
+                                        SWAP } } ;
+                                SWAP } } ;
+                        SWAP } ;
+                      CAR @p ;
+                      PAIR ;
+                      DUP ;
+                      CAR @p1 ;
+                      SWAP ;
+                      CDR @p2 ;
+                      DUP ;
+                      CDR %amount ;
+                      { DIP { { DIP { DUP } ; SWAP } } ; SWAP } ;
+                      CDR %amount ;
+                      COMPARE ;
+                      EQ ;
+                      SWAP ;
+                      CAR %destination ;
+                      { DIP { { DIP { DUP } ; SWAP } } ; SWAP } ;
+                      DIP { DIP { DIP { DROP } } } ;
+                      CAR %destination ;
+                      COMPARE ;
+                      EQ ;
+                      AND ;
+                      IF { PUSH nat 1 ; { DIP { DUP @cpt } ; SWAP } ; ADD }
+                         { DUP @cpt } ;
+                      DIP { DROP ; DROP ; DROP } } ;
+               DIP { DIP { DROP ; DROP } } ;
+               RENAME @nb_agree ;
+               COMPARE ;
+               GE ;
+               IF { DUP @p ;
+                    CAR %destination ;
+                    IMPLICIT_ACCOUNT @c_dest ;
+                    { DIP { DUP @p } ; SWAP } ;
+                    CDR %amount ;
+                    UNIT ;
+                    TRANSFER_TOKENS @op ;
+                    { DIP { { DIP { { DIP { DUP @storage } ; SWAP } } ; SWAP } } ;
+                      SWAP } ;
+                    DUP ;
+                    CAR %owners ;
+                    SWAP ;
+                    CDR ;
+                    CDR ;
+                    PUSH (map address (pair :proposition (key_hash %destination) (mutez %amount))) {} ;
+                    PAIR %actions ;
+                    SWAP ;
+                    PAIR %owners ;
+                    NIL operation ;
+                    { DIP { { DIP { DUP @op } ; SWAP } } ; SWAP } ;
+                    DIP { DIP { DIP { DROP } } } ;
+                    CONS ;
+                    PAIR }
+                  { { DIP { DUP @do_nothing } ; SWAP } } ;
+               DIP { DROP } } ;
+           DIP { DROP ; DROP ; DROP ; DROP } } ;
+       DIP { DROP ; DROP } }
