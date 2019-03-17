@@ -19,9 +19,9 @@ class TestMichelsonParser(TestCase):
         self.maxDiff = None
 
     @parameterized.expand([
-        ('sample_0.tz', 'sample_0.json'),
-        ('sample_1.tz', 'sample_1.json'),
-        ('sample_2.tz', 'sample_2.json'),
+        ('script/sample_0.tz', 'script/sample_0.json'),
+        ('script/sample_1.tz', 'script/sample_1.json'),
+        ('script/sample_2.tz', 'script/sample_2.json'),
     ])
     def test_parser(self, source_name, expected_name):
         source = get_data(source_name)
