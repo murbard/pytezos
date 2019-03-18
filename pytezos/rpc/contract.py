@@ -1,5 +1,6 @@
 import pendulum
 from decimal import Decimal
+from functools import lru_cache
 
 from pytezos.rpc.node import RpcQuery
 from pytezos.michelson import MichelsonParser
@@ -15,92 +16,148 @@ def flatten(items, itemtype):
         return itemtype([items])
 
 
-def parse_item(value, prim):
+def decode_item(value, prim):
     if prim in ['int', 'nat']:
         return int(value)
     if prim == 'timestamp':
         return pendulum.parse(value)
     if prim == 'mutez':
         return Decimal(value) / 10 ** 6
+    if prim == 'bool':
+        return value == 'True'
     return value
 
 
-def parse_data(node):
+def encode_item(value, prim):
+    return {prim: value}
+
+
+def get_annot(x, prefix, default=None):
+    return next((a[1:] for a in x.get('annots', []) if a[0] == prefix), default)
+
+
+def make_dict(**kwargs) -> dict:
+    return {k: v for k, v in kwargs.items() if v}
+
+
+def make_storage_schema(code) -> tuple:
+    decode_map = dict()
+
+    def parse_code(node, path='0', nested_pair=False):
+        if node['prim'] == 'storage':
+            return parse_code(node['args'][0])
+
+        decode_map[path] = dict(prim=node['prim'])
+        is_pair = node['prim'] == 'pair'
+        typename = get_annot(node, ':')
+
+        args = [
+            parse_code(arg, path=path + str(i), nested_pair=is_pair)
+            for i, arg in enumerate(node.get('args', []))
+        ]
+
+        if is_pair:
+            if typename or not nested_pair:
+                args = flatten(args, list)
+                props = list(map(lambda x: x.get('name'), args))
+                if all(props):
+                    decode_map[path]['props'] = props
+            else:
+                return args
+
+        return make_dict(
+            prim=node['prim'],
+            level=len(path),
+            args=args,
+            name=get_annot(node, '%', typename),
+        )
+
+    encode_map = parse_code(code)
+    return decode_map, encode_map
+
+
+def decode_storage(node, schema: dict, path='0'):
+    info = schema.get(path, {})
     if isinstance(node, dict):
-        args = map(parse_data, node.get('args', []))
+        args = (
+            decode_storage(arg, schema, path + str(i))
+            for i, arg in enumerate(node.get('args', []))
+        )
         if node.get('prim') == 'Pair':
             res = flatten(tuple(args), tuple)
+            if info.get('props'):
+                res = dict(zip(info['props'], res))
         elif node.get('prim') == 'Elt':
             res = list(args)
         else:
-            res = next(v for _, v in node.items())
+            res = decode_item(next(v for _, v in node.items()), info['prim'])
     elif isinstance(node, list):
-        res = list(map(parse_data, node))
+        if info['prim'] == 'map':
+            res = {
+                decode_storage(item['args'][0], schema, path + '0'):
+                    decode_storage(item['args'][1], schema, path + '1')
+                for item in node
+            }
+        elif info['prim'] == 'set':
+            res = {
+                decode_storage(item, schema, path + '0')
+                for item in node
+            }
+        elif info['prim'] == 'list':
+            res = [
+                decode_storage(item, schema, path + '0')
+                for item in node
+            ]
+        else:
+            raise NotImplementedError(node, info)
     else:
-        raise NotImplementedError(node)
+        raise NotImplementedError(node, info)
 
     return res
 
 
-def parse_schema(node, path='0', parent=None):
-    if node['prim'] == 'storage':
-        return parse_schema(node['args'][0], parent=node)
-
-    typename = next((a[1:] for a in node.get('annots', []) if a[0] == ':'), None)
-    args = [
-        parse_schema(arg, path=path + str(i), parent=node)
-        for i, arg in enumerate(node.get('args', []))
-    ]
-    if node['prim'] == 'pair':
-        if typename or parent is None or parent['prim'] != 'pair':
-            args = flatten(args, list)
-        else:
-            return args
-
-    res = dict(
-        prim=node['prim'],
-        path=path
-    )
-    if args:
-        res['args'] = args
-
-    fieldname = next((a[1:] for a in node.get('annots', []) if a[0] == '%'), typename)
-    if fieldname:
-        res['fieldname'] = fieldname
-
-    return res
+def make_pair(args):
+    pair = dict(prim='Pair')
+    step = args[1]['level'] - args[0]['level']
+    if step == 0:
+        pair['args'] = list(map(lambda x: x['value'], args[:2]))
+    elif step == 1:
+        pair['args'] = [args[0]['value'], make_pair(args[1:])]
+    else:
+        pair['args'] = [make_pair(args[:step]), make_pair(args[step:])]
+    return pair
 
 
-def apply_schema(data, schema):
-    if schema['prim'] == 'storage':
-        return apply_schema(data, schema['args'][0])
-
-    if schema['prim'] == 'big_map':
-        return {}
-
+def encode_storage(data, schema):
     if schema['prim'] == 'pair':
-        values = [
-            (arg.get('fieldname'), apply_schema(data[i], arg))
-            for i, arg in enumerate(schema['args'])
+        values = data
+        if isinstance(values, dict):
+            values = [values[arg['name']] for arg in schema['args']]
+
+        args = [
+            dict(level=schema['args'][i]['level'], value=encode_storage(item, schema['args'][i]))
+            for i, item in enumerate(values)
         ]
-        if all(map(lambda x: x[0], values)):
-            return dict(values)
-        else:
-            return tuple(map(lambda x: x[1], values))
+        res = make_pair(args)
+    elif schema['prim'] == 'map':
+        res = [
+            dict(
+                prim='Elt',
+                args=[encode_storage(key, schema['args'][0]), encode_storage(value, schema['args'][1])]
+            )
+            for key, value in data.items()
+        ]
+    elif schema['prim'] == 'set':
+        res = [
+            encode_storage(item, schema['args'][0])
+            for item in data
+        ]
+    elif schema['prim'] == 'big_map':
+        res = []
+    else:
+        res = encode_item(data, schema['prim'])
 
-    if schema['prim'] == 'map':
-        return {
-            apply_schema(value[0], schema['args'][0]): apply_schema(value[1], schema['args'][1])
-            for value in data
-        }
-
-    if schema['prim'] == 'set':
-        return {
-            apply_schema(value, schema['args'][0])
-            for value in data
-        }
-
-    return parse_item(data, schema['prim'])
+    return res
 
 
 class Contract(RpcQuery):
@@ -112,6 +169,12 @@ class Contract(RpcQuery):
                 'manager_key', 'script', 'spendable', 'storage'
             ],
             *args, **kwargs)
+
+    @lru_cache(maxsize=None)
+    def _get_schema(self):
+        code = self.script.get('code')
+        storage_section = next(s for s in code if s['prim'] == 'storage')
+        return make_storage_schema(storage_section)
 
     @classmethod
     def from_json(cls, json):
@@ -125,15 +188,7 @@ class Contract(RpcQuery):
     def from_file(cls, path):
         pass
 
-    def raw_data(self):
-        return parse_data(self.storage())
-
-    def raw_schema(self):
-        return parse_schema(self.script.get('code')[1])
-
     def data(self):
         script = self.get('script')
-        data = parse_data(script['storage'])
-        schema = parse_schema(script['code'][1])
-        return apply_schema(data, schema)
-
+        schema = self._get_schema()[0]
+        return decode_storage(script['storage'], schema)
