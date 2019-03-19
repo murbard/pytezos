@@ -3,8 +3,8 @@ import simplejson as json
 from unittest import TestCase
 from parameterized import parameterized
 
-from pytezos.michelson import MichelsonParser
-from pytezos.rpc.contract import parse_schema, decode_data
+from pytezos.michelson.grammar import MichelsonParser
+from pytezos.michelson.schema import parse_schema, decode_data, encode_data
 
 
 def get_data(filename):
@@ -35,3 +35,5 @@ class TestMichelsonParser(TestCase):
         storage = next(s for s in script['code'] if s['prim'] == 'storage')
         schema = parse_schema(storage)
         data = decode_data(script['storage'], schema)
+        res = encode_data(data, schema)
+        self.assertDictEqual(script['storage'], res)
