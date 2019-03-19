@@ -1,6 +1,5 @@
 import pendulum
 from decimal import Decimal
-from functools import lru_cache
 from collections import namedtuple
 
 from pytezos.rpc.node import RpcQuery
@@ -8,6 +7,7 @@ from pytezos.encoding import base58_encode
 from pytezos.michelson import MichelsonParser
 
 Schema = namedtuple('Schema', ['type_map', 'collapsed_tree'])
+michelson_parser = MichelsonParser()
 
 
 def flatten(items, itemtype):
@@ -29,13 +29,17 @@ def decode_literal(node, prim):
     if prim in ['int', 'nat']:
         return int(value)
     if prim == 'timestamp':
-        return pendulum.parse(value)
+        if raw_type == 'int':
+            return pendulum.from_timestamp(value)
+        else:
+            return pendulum.parse(value)
     if prim == 'mutez':
         return Decimal(value) / 10 ** 6
     if prim == 'bool':
         return value == 'True'
     if prim == 'address' and raw_type == 'bytes':
-        return base58_encode(bytes.fromhex(value), b'KT1')
+        prefix = {'00': b'tz1', '01': b'tz2', '02': b'tz3'}  # TODO: check
+        return base58_encode(bytes.fromhex(value[2:]), prefix[value[:2]])
     return value
 
 
@@ -227,44 +231,52 @@ def encode_data(data, schema: Schema):
 
 class Contract(RpcQuery):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, code=None, *args, **kwargs):
         super(Contract, self).__init__(
             properties=[
                 'balance', 'counter', 'delegatable', 'delegate', 'manager',
                 'manager_key', 'script', 'spendable', 'storage'
             ],
             *args, **kwargs)
+        self._code = code
 
-    @lru_cache(maxsize=None)
+    def _get_code(self):
+        if self._code:
+            return self._code
+        return self.get('script')['code']
+
+    def _get_section(self, section):
+        code = self._get_code()
+        return next(s for s in code if s['prim'] == section)
+
     def _get_schema(self, section):
-        code = self.script.get('code')
-        return parse_schema(next(s for s in code if s['prim'] == section))
+        return parse_schema(self._get_section(section))
 
     @classmethod
-    def from_json(cls, json):
-        pass
+    def from_code(cls, code):
+        return Contract(code=code)
 
     @classmethod
     def from_string(cls, text):
-        pass
+        code = michelson_parser.parse(text)
+        return cls.from_code(code)
 
     @classmethod
     def from_file(cls, path):
-        pass
+        with open(path) as f:
+            return cls.from_string(f.read())
 
     def decode_storage(self, annotations=True, literals=True):
         script = self.get('script')
-        schema = self._get_schema('storage')
         return decode_data(
             data=script['storage'],
-            schema=schema,
+            schema=self._get_schema('storage'),
             annotations=annotations,
             literals=literals
         )
 
     def encode_storage(self, data):
-        schema = self._get_schema('storage')
         return encode_data(
             data=data,
-            schema=schema
+            schema=self._get_schema('storage')
         )
