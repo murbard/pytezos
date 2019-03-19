@@ -1,9 +1,13 @@
 import pendulum
 from decimal import Decimal
 from functools import lru_cache
+from collections import namedtuple
 
 from pytezos.rpc.node import RpcQuery
+from pytezos.encoding import base58_encode
 from pytezos.michelson import MichelsonParser
+
+Schema = namedtuple('Schema', ['type_map', 'collapsed_tree'])
 
 
 def flatten(items, itemtype):
@@ -16,7 +20,12 @@ def flatten(items, itemtype):
         return itemtype([items])
 
 
-def decode_item(value, prim):
+def make_dict(**kwargs) -> dict:
+    return {k: v for k, v in kwargs.items() if v}
+
+
+def decode_literal(node, prim):
+    raw_type, value = next(iter(node.items()))
     if prim in ['int', 'nat']:
         return int(value)
     if prim == 'timestamp':
@@ -25,139 +34,195 @@ def decode_item(value, prim):
         return Decimal(value) / 10 ** 6
     if prim == 'bool':
         return value == 'True'
+    if prim == 'address' and raw_type == 'bytes':
+        return base58_encode(bytes.fromhex(value), b'KT1')
     return value
 
 
-def encode_item(value, prim):
+def encode_literal(value, prim):
+    if not isinstance(value, str):
+        if prim in ['int', 'nat']:
+            value = str(value)
+        elif prim == 'timestamp':
+            if isinstance(value, int):
+                value = pendulum.from_timestamp(value)
+            if isinstance(value, pendulum.DateTime):
+                value = value.strftime('%Y-%m-%dT%H:%M:%SZ')
+        elif prim == 'mutez':
+            if isinstance(value, Decimal):
+                value = int(value * 10 ** 6)
+            if isinstance(value, int):
+                value = str(value)
+        elif prim == 'bool':
+            value = True if value else False
+        else:
+            value = str(value)
+
     return {prim: value}
 
 
-def get_annot(x, prefix, default=None):
-    return next((a[1:] for a in x.get('annots', []) if a[0] == prefix), default)
+def parse_schema(code) -> Schema:
+    type_map = dict()
 
+    def get_annotation(x, prefix, default=None):
+        return next((a[1:] for a in x.get('annots', []) if a[0] == prefix), default)
 
-def make_dict(**kwargs) -> dict:
-    return {k: v for k, v in kwargs.items() if v}
+    def parse_node(node, path='0', nested=None):
+        if node['prim'] in ['storage', 'parameter']:
+            return parse_node(node['args'][0])
 
-
-def make_storage_schema(code) -> tuple:
-    decode_map = dict()
-
-    def parse_code(node, path='0', nested_pair=False):
-        if node['prim'] == 'storage':
-            return parse_code(node['args'][0])
-
-        decode_map[path] = dict(prim=node['prim'])
-        is_pair = node['prim'] == 'pair'
-        typename = get_annot(node, ':')
+        type_map[path] = dict(prim=node['prim'])
+        typename = get_annotation(node, ':')
 
         args = [
-            parse_code(arg, path=path + str(i), nested_pair=is_pair)
+            parse_node(arg, path=path + str(i), nested=node['prim'])
             for i, arg in enumerate(node.get('args', []))
         ]
 
-        if is_pair:
-            if typename or not nested_pair:
-                args = flatten(args, list)
+        if node['prim'] in ['pair', 'or']:
+            if typename or nested != node['prim']:
+                args = flatten(args, list)  # TODO: pair/or conflicts?
                 props = list(map(lambda x: x.get('name'), args))
                 if all(props):
-                    decode_map[path]['props'] = props
+                    type_map[path]['props'] = props
             else:
                 return args
 
         return make_dict(
             prim=node['prim'],
-            level=len(path),
+            path=path,
             args=args,
-            name=get_annot(node, '%', typename),
+            name=get_annotation(node, '%', typename),
         )
 
-    encode_map = parse_code(code)
-    return decode_map, encode_map
+    collapsed_tree = parse_node(code)
+    return Schema(type_map, collapsed_tree)
 
 
-def decode_storage(node, schema: dict, path='0'):
-    info = schema.get(path, {})
-    if isinstance(node, dict):
-        args = (
-            decode_storage(arg, schema, path + str(i))
-            for i, arg in enumerate(node.get('args', []))
-        )
-        if node.get('prim') == 'Pair':
-            res = flatten(tuple(args), tuple)
-            if info.get('props'):
-                res = dict(zip(info['props'], res))
-        elif node.get('prim') == 'Elt':
-            res = list(args)
-        else:
-            res = decode_item(next(v for _, v in node.items()), info['prim'])
-    elif isinstance(node, list):
-        if info['prim'] == 'map':
-            res = {
-                decode_storage(item['args'][0], schema, path + '0'):
-                    decode_storage(item['args'][1], schema, path + '1')
-                for item in node
-            }
-        elif info['prim'] == 'set':
-            res = {
-                decode_storage(item, schema, path + '0')
-                for item in node
-            }
-        elif info['prim'] == 'list':
-            res = [
-                decode_storage(item, schema, path + '0')
-                for item in node
-            ]
-        else:
-            raise NotImplementedError(node, info)
-    else:
-        raise NotImplementedError(node, info)
-
-    return res
-
-
-def make_pair(args):
-    pair = dict(prim='Pair')
-    step = args[1]['level'] - args[0]['level']
-    if step == 0:
-        pair['args'] = list(map(lambda x: x['value'], args[:2]))
-    elif step == 1:
-        pair['args'] = [args[0]['value'], make_pair(args[1:])]
-    else:
-        pair['args'] = [make_pair(args[:step]), make_pair(args[step:])]
-    return pair
-
-
-def encode_storage(data, schema):
-    if schema['prim'] == 'pair':
-        values = data
-        if isinstance(values, dict):
-            values = [values[arg['name']] for arg in schema['args']]
-
-        args = [
-            dict(level=schema['args'][i]['level'], value=encode_storage(item, schema['args'][i]))
-            for i, item in enumerate(values)
-        ]
-        res = make_pair(args)
-    elif schema['prim'] == 'map':
-        res = [
-            dict(
-                prim='Elt',
-                args=[encode_storage(key, schema['args'][0]), encode_storage(value, schema['args'][1])]
+def decode_data(data, schema: Schema, annotations=True, literals=True):
+    def decode_node(node, path='0'):
+        type_info = schema.type_map.get(path, {})
+        if isinstance(node, dict):
+            args = (
+                decode_node(arg, path + str(i))
+                for i, arg in enumerate(node.get('args', []))
             )
-            for key, value in data.items()
-        ]
-    elif schema['prim'] == 'set':
-        res = [
-            encode_storage(item, schema['args'][0])
-            for item in data
-        ]
-    elif schema['prim'] == 'big_map':
-        res = []
-    else:
-        res = encode_item(data, schema['prim'])
+            if node.get('prim') == 'Pair':
+                res = flatten(tuple(args), tuple)
+                if type_info.get('props') and annotations:
+                    res = dict(zip(type_info['props'], res))
+            elif node.get('prim') == 'Elt':
+                res = list(args)
+            elif node.get('prim') == 'Left':
+                res = next(iter(args))
+            elif node.get('prim') == 'Right':
+                res = decode_node(node['args'][0], path + '1')
+            elif node.get('prim') == 'Some':
+                res = next(iter(args))
+            elif node.get('prim') == 'None':
+                res = None
+            elif literals:
+                res = decode_literal(node, type_info['prim'])
+            else:
+                _, res = next(iter(node.items()))
 
-    return res
+        elif isinstance(node, list):
+            if type_info['prim'] in ['map', 'big_map']:
+                res = dict(decode_node(item, path) for item in node)
+            else:
+                args = (decode_node(item, path + '0') for item in node)
+                if type_info['prim'] == 'set':
+                    res = set(args)
+                elif type_info['prim'] == 'list':
+                    res = list(args)
+                else:
+                    raise ValueError(node, type_info)
+        else:
+            raise ValueError(node, type_info)
+
+        return res
+
+    return decode_node(data)
+
+
+def build_value_map(data, schema: Schema) -> dict:
+    value_map = dict()
+
+    def parse_value(node, node_info, is_element=False):
+        if node_info['prim'] == 'pair':
+            values = node
+            if isinstance(node, dict):  # props
+                values = [node[arg['name']] for arg in node_info['args']]
+            for i, arg_info in enumerate(node_info['args']):
+                parse_value(values[i], arg_info, is_element)
+
+        elif node_info['prim'] in ['map', 'big_map']:
+            for key, value in node.items():
+                parse_value(key, node_info['args'][0], True)
+                parse_value(value, node_info['args'][1], True)
+
+        elif node_info['prim'] in ['set', 'list']:
+            for value in node:
+                parse_value(value, node_info['args'][0], True)
+
+        elif node_info['prim'] == 'or':
+            pass  # TODO
+
+        elif node_info['prim'] == 'contract':
+            pass
+
+        elif is_element:
+            value_map[node_info['path']] = value_map.get(node_info['path'], []) + [node]
+        else:
+            value_map[node_info['path']] = node
+
+    parse_value(data, schema.collapsed_tree)
+    return value_map
+
+
+def encode_data(data, schema: Schema):
+    value_map = build_value_map(data, schema)
+
+    def encode_node(path='0', index=None):
+        def get_value(suffix=''):
+            v = value_map.get(path + suffix)
+            if index is not None:
+                return v[index]
+            return v
+
+        type_info = schema.type_map[path]
+        if type_info['prim'] == 'pair':
+            return dict(
+                prim='Pair',
+                args=list(map(lambda x: encode_node(path + x, index), '01'))
+            )
+        elif type_info['prim'] in ['map', 'big_map']:
+            return [
+                dict(
+                    prim='Elt',
+                    args=[encode_node(path + '0', i), encode_node(path + '1', i)]
+                )
+                for i in range(len(get_value('0')))
+            ]
+        elif type_info['prim'] in ['set', 'list']:
+            return [
+                encode_node(path + '0', i)
+                for i in range(len(get_value('0')))
+            ]
+        elif type_info['prim'] == 'or':
+            pass
+        elif type_info['prim'] == 'optional':
+            if get_value('0') is None:
+                return dict(prim='None')
+            else:
+                return dict(
+                    prim='Some',
+                    args=[encode_node(path + '0', index)]
+                )
+
+        return encode_literal(get_value(), type_info['prim'])
+
+    return encode_node()
 
 
 class Contract(RpcQuery):
@@ -171,10 +236,9 @@ class Contract(RpcQuery):
             *args, **kwargs)
 
     @lru_cache(maxsize=None)
-    def _get_schema(self):
+    def _get_schema(self, section):
         code = self.script.get('code')
-        storage_section = next(s for s in code if s['prim'] == 'storage')
-        return make_storage_schema(storage_section)
+        return parse_schema(next(s for s in code if s['prim'] == section))
 
     @classmethod
     def from_json(cls, json):
@@ -188,7 +252,19 @@ class Contract(RpcQuery):
     def from_file(cls, path):
         pass
 
-    def data(self):
+    def decode_storage(self, annotations=True, literals=True):
         script = self.get('script')
-        schema = self._get_schema()[0]
-        return decode_storage(script['storage'], schema)
+        schema = self._get_schema('storage')
+        return decode_data(
+            data=script['storage'],
+            schema=schema,
+            annotations=annotations,
+            literals=literals
+        )
+
+    def encode_storage(self, data):
+        schema = self._get_schema('storage')
+        return encode_data(
+            data=data,
+            schema=schema
+        )

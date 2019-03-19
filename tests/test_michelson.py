@@ -4,6 +4,7 @@ from unittest import TestCase
 from parameterized import parameterized
 
 from pytezos.michelson import MichelsonParser
+from pytezos.rpc.contract import parse_schema, decode_data
 
 
 def get_data(filename):
@@ -28,3 +29,9 @@ class TestMichelsonParser(TestCase):
         res = self.parser.parse(source)
         expected = json.loads(get_data(expected_name))
         self.assertListEqual(expected, res)
+
+    def test_schema_parsing(self):
+        script = json.loads(get_data('storage/sample_0.json'))
+        storage = next(s for s in script['code'] if s['prim'] == 'storage')
+        schema = parse_schema(storage)
+        data = decode_data(script['storage'], schema)
