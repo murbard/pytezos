@@ -21,6 +21,7 @@ loguru = "*"
 netstruct = "*"
 tqdm = "*"
 ply = "*"
+simplejson = "*"
 
 [tool.poetry.dev-dependencies]
 parameterized = "^0.7.0"
