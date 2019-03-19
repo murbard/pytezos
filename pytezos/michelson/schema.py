@@ -41,28 +41,27 @@ def decode_literal(node, prim):
 
 
 def encode_literal(value, prim, raw=False):
-    raw_type = 'string'
-    if not isinstance(value, str):
-        if prim in ['int', 'nat']:
+    if prim in ['int', 'nat']:
+        raw_type = 'int'
+        value = str(value)
+    elif prim == 'timestamp':
+        raw_type = 'string'
+        if isinstance(value, int):
+            value = pendulum.from_timestamp(value)
+        if isinstance(value, pendulum.DateTime):
+            value = value.strftime('%Y-%m-%dT%H:%M:%SZ')
+    elif prim == 'mutez':
+        raw_type = 'int'
+        if isinstance(value, Decimal):
+            value = int(value * 10 ** 6)
+        if isinstance(value, int):
             value = str(value)
-            raw_type = 'int'
-        elif prim == 'timestamp':
-            if isinstance(value, int):
-                value = pendulum.from_timestamp(value)
-            if isinstance(value, pendulum.DateTime):
-                value = value.strftime('%Y-%m-%dT%H:%M:%SZ')
-            raw_type = 'string'
-        elif prim == 'mutez':
-            if isinstance(value, Decimal):
-                value = int(value * 10 ** 6)
-            if isinstance(value, int):
-                value = str(value)
-            raw_type = 'int'
-        elif prim == 'bool':
-            value = 'True' if value else 'False'
-            raw_type = 'prim'
-        else:
-            value = str(value)
+    elif prim == 'bool':
+        raw_type = 'prim'
+        value = 'True' if value else 'False'
+    else:
+        raw_type = 'string'
+        value = str(value)
 
     return {raw_type: value}
 
