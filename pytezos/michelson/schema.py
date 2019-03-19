@@ -188,13 +188,17 @@ def build_value_map(data, schema: Schema) -> dict:
 def encode_data(data, schema: Schema, raw_literals=False):
     value_map = build_value_map(data, schema)
 
-    def encode_node(path='0', index=None):
-        def get_value(suffix=''):
-            v = value_map.get(path + suffix)
-            if index is not None:
-                return v[index]
-            return v
+    def get_value(path, index=None):
+        value = value_map.get(path)
+        if index is not None:
+            return value[index]
+        return value
 
+    def get_length(path) -> int:
+        values = get_value(path)
+        return len(values) if values else 0
+
+    def encode_node(path='0', index=None):
         type_info = schema.type_map[path]
         if type_info['prim'] == 'pair':
             return dict(
@@ -207,17 +211,17 @@ def encode_data(data, schema: Schema, raw_literals=False):
                     prim='Elt',
                     args=[encode_node(path + '0', i), encode_node(path + '1', i)]
                 )
-                for i in range(len(get_value('0')))
+                for i in range(get_length(path + '0'))
             ]
         elif type_info['prim'] in ['set', 'list']:
             return [
                 encode_node(path + '0', i)
-                for i in range(len(get_value('0')))
+                for i in range(get_length(path + '0'))
             ]
         elif type_info['prim'] == 'or':
             pass
         elif type_info['prim'] == 'optional':
-            if get_value('0') is None:
+            if get_value(path + '0', index) is None:
                 return dict(prim='None')
             else:
                 return dict(
@@ -226,7 +230,7 @@ def encode_data(data, schema: Schema, raw_literals=False):
                 )
 
         return encode_literal(
-            value=get_value(),
+            value=get_value(path, index),
             prim=type_info['prim'],
             raw=raw_literals
         )

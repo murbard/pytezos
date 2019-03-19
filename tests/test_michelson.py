@@ -30,8 +30,12 @@ class TestMichelsonParser(TestCase):
         expected = json.loads(get_data(expected_name))
         self.assertListEqual(expected, res)
 
-    def test_schema_parsing(self):
-        script = json.loads(get_data('storage/sample_0.json'))
+    @parameterized.expand([
+        ('storage/sample_0.json',),
+        ('storage/sample_1.json',),
+    ])
+    def test_schema_parsing(self, source_name):
+        script = json.loads(get_data(source_name))
         storage = next(s for s in script['code'] if s['prim'] == 'storage')
         schema = parse_schema(storage)
         data = decode_data(script['storage'], schema)
