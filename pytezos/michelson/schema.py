@@ -22,11 +22,11 @@ def make_dict(**kwargs) -> dict:
 
 
 def decode_literal(node, prim):
-    raw_type, value = next(iter(node.items()))
+    core_type, value = next(iter(node.items()))
     if prim in ['int', 'nat']:
         return int(value)
     if prim == 'timestamp':
-        if raw_type == 'int':
+        if core_type == 'int':
             return pendulum.from_timestamp(int(value))
         else:
             return pendulum.parse(value)
@@ -34,36 +34,36 @@ def decode_literal(node, prim):
         return Decimal(value) / 10 ** 6
     if prim == 'bool':
         return value == 'True'
-    if prim == 'address' and raw_type == 'bytes':
+    if prim == 'address' and core_type == 'bytes':
         prefix = {'0000': b'tz1', '0001': b'tz2', '0002': b'tz3'}  # TODO: check
         return base58_encode(bytes.fromhex(value[4:]), prefix[value[:4]])
     return value
 
 
-def encode_literal(value, prim, raw=False):
+def encode_literal(value, prim, binary=False):
     if prim in ['int', 'nat']:
-        raw_type = 'int'
+        core_type = 'int'
         value = str(value)
     elif prim == 'timestamp':
-        raw_type = 'string'
+        core_type = 'string'
         if isinstance(value, int):
             value = pendulum.from_timestamp(value)
         if isinstance(value, pendulum.DateTime):
             value = value.strftime('%Y-%m-%dT%H:%M:%SZ')
     elif prim == 'mutez':
-        raw_type = 'int'
+        core_type = 'int'
         if isinstance(value, Decimal):
             value = int(value * 10 ** 6)
         if isinstance(value, int):
             value = str(value)
     elif prim == 'bool':
-        raw_type = 'prim'
+        core_type = 'prim'
         value = 'True' if value else 'False'
     else:
-        raw_type = 'string'
+        core_type = 'string'
         value = str(value)
 
-    return {raw_type: value}
+    return {core_type: value}
 
 
 def parse_schema(code) -> Schema:
@@ -90,6 +90,8 @@ def parse_schema(code) -> Schema:
                 props = list(map(lambda x: x.get('name'), args))
                 if all(props):
                     type_map[path]['props'] = props
+                if typename:
+                    type_map[path]['name'] = typename
             else:
                 return args
 
@@ -116,10 +118,17 @@ def decode_data(data, schema: Schema, annotations=True, literals=True):
                 res = flatten(tuple(args), tuple)
                 if type_info.get('props') and annotations:
                     res = dict(zip(type_info['props'], res))
+
+            elif node.get('prim') in ['Left', 'Right']:
+                index = {'Left': 0, 'Right': 1}[node['prim']]
+                value = decode_node(node['args'][0], path + str(index))
+                if type_info.get('props') and annotations:
+                    res = {type_info['props'][index]: value}
+                else:
+                    res = {index: value}
+
             elif node.get('prim') == 'Elt':
                 res = list(args)
-            elif node.get('prim') == 'Left':
-                res = next(iter(args))
             elif node.get('prim') == 'Right':
                 res = decode_node(node['args'][0], path + '1')
             elif node.get('prim') == 'Some':
@@ -171,10 +180,22 @@ def build_value_map(data, schema: Schema) -> dict:
                 parse_value(value, node_info['args'][0], True)
 
         elif node_info['prim'] == 'or':
-            pass  # TODO
+            key, value = next(iter(node.items()))
+            if isinstance(key, str):
+                key, arg_info = next(
+                    (i, arg)
+                    for i, arg in enumerate(node_info['args'])
+                    if arg['name'] == key
+                )
+            else:
+                arg_info = node_info['args'][key]
+            parse_value(value, arg_info, is_element)
 
         elif node_info['prim'] == 'contract':
-            pass
+            parse_value(node, node_info['args'][0], is_element)
+
+        elif node_info['prim'] == 'option':
+            parse_value(node, node_info['args'][0], is_element)
 
         elif is_element:
             value_map[node_info['path']] = value_map.get(node_info['path'], []) + [node]
@@ -185,7 +206,7 @@ def build_value_map(data, schema: Schema) -> dict:
     return value_map
 
 
-def encode_data(data, schema: Schema, raw_literals=False):
+def encode_data(data, schema: Schema, binary=False):
     value_map = build_value_map(data, schema)
 
     def get_value(path, index=None):
@@ -219,20 +240,29 @@ def encode_data(data, schema: Schema, raw_literals=False):
                 for i in range(get_length(path + '0'))
             ]
         elif type_info['prim'] == 'or':
-            pass
-        elif type_info['prim'] == 'optional':
-            if get_value(path + '0', index) is None:
+            for i in [0, 1]:
+                arg = encode_node(path + str(i), index)
+                if arg is not None:
+                    return dict(
+                        prim={0: 'Left', 1: 'Right'}[i],
+                        args=[arg]
+                    )
+            raise KeyError(type_info)
+        elif type_info['prim'] == 'option':
+            arg = encode_node(path + '0', index)
+            if arg is None:
                 return dict(prim='None')
             else:
-                return dict(
-                    prim='Some',
-                    args=[encode_node(path + '0', index)]
-                )
+                return dict(prim='Some', args=[arg])
+
+        value = get_value(path, index)
+        if value is None:
+            return None  # dead branch
 
         return encode_literal(
-            value=get_value(path, index),
+            value=value,
             prim=type_info['prim'],
-            raw=raw_literals
+            binary=binary
         )
 
     return encode_node()

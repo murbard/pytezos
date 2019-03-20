@@ -34,10 +34,21 @@ class TestMichelsonParser(TestCase):
         ('storage/sample_0.json',),
         ('storage/sample_1.json',),
     ])
-    def test_schema_parsing(self, source_name):
+    def test_storage_parsing(self, source_name):
         script = json.loads(get_data(source_name))
         storage = next(s for s in script['code'] if s['prim'] == 'storage')
         schema = parse_schema(storage)
         data = decode_data(script['storage'], schema)
         res = encode_data(data, schema)
         self.assertDictEqual(script['storage'], res)
+
+    @parameterized.expand([
+        ('parameter/code_0.json', 'parameter/parameters_0.json'),
+    ])
+    def test_parameter_parsing(self, code_name, parameters_name):
+        code = json.loads(get_data(code_name))
+        parameters = json.loads(get_data(parameters_name))
+        schema = parse_schema(code)
+        data = decode_data(parameters, schema)
+        res = encode_data(data, schema)
+        self.assertDictEqual(parameters, res)
