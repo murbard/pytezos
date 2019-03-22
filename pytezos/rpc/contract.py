@@ -43,7 +43,7 @@ class Contract(RpcQuery):
             return cls.from_string(f.read())
 
     def decode_storage(self, data=None, annotations=True, literals=True):
-        if data in None:
+        if data is None:
             data = self.get('script')['storage']
 
         return decode_data(
@@ -57,4 +57,12 @@ class Contract(RpcQuery):
         return encode_data(
             data=data,
             schema=self._get_schema('storage')
+        )
+
+    def decode_parameters(self, data, annotations=True, literals=True):
+        return decode_data(
+            data=data,
+            schema=self._get_schema('parameter'),
+            annotations=annotations,
+            literals=literals
         )

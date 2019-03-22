@@ -69,11 +69,25 @@ def apply_patch(source, patch, revert=False):
     return target
 
 
-def generate_html(diffs: list, output_path=None):
-    with open(os.path.join(os.path.dirname(__file__), 'diff.html'), 'r') as f:
-        template = f.read()
+def read_template(filename):
+    with open(os.path.join(os.path.dirname(__file__), 'templates', filename)) as f:
+        return f.read()
 
-    html = template.replace('{{text}}', json.dumps('\n'.join(diffs)))
+
+def generate_unidiff_html(diffs: list, output_path=None):
+    html = read_template('unidiff.html')
+    html = html.replace('{{text}}', json.dumps('\n'.join(diffs)))
+    if output_path:
+        with open(output_path, 'w') as f:
+            f.write(html)
+    else:
+        return html
+
+
+def generate_jsondiff_html(left: dict, right: dict, output_path=None):
+    html = read_template('jsondiff.html')
+    html = html.replace('{{left}}', json.dumps(left))
+    html = html.replace('{{right}}', json.dumps(right))
     if output_path:
         with open(output_path, 'w') as f:
             f.write(html)
