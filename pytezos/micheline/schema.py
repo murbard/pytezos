@@ -1,6 +1,7 @@
 import pendulum
 from decimal import Decimal
 from collections import namedtuple
+from typing import Callable
 
 from pytezos.encoding import base58_encode
 
@@ -35,8 +36,8 @@ def decode_literal(node, prim):
     if prim == 'bool':
         return value == 'True'
     if prim == 'address' and core_type == 'bytes':
-        prefix = {'0000': b'tz1', '0001': b'tz2', '0002': b'tz3'}  # TODO: check
-        return base58_encode(bytes.fromhex(value[4:]), prefix[value[:4]])
+        prefix = {'0000': b'tz1', '0001': b'tz2', '0002': b'tz3'}  # TODO: check it's ttr
+        return base58_encode(bytes.fromhex(value[4:]), prefix[value[:4]]).decode()
     return value
 
 
@@ -59,6 +60,8 @@ def encode_literal(value, prim, binary=False):
     elif prim == 'bool':
         core_type = 'prim'
         value = 'True' if value else 'False'
+    elif prim == 'bytes':
+        core_type = 'bytes'
     else:
         core_type = 'string'
         value = str(value)
@@ -66,7 +69,7 @@ def encode_literal(value, prim, binary=False):
     return {core_type: value}
 
 
-def parse_schema(code) -> Schema:
+def build_schema(code) -> Schema:
     type_map = dict()
 
     def get_annotation(x, prefix, default=None):
@@ -106,7 +109,7 @@ def parse_schema(code) -> Schema:
     return Schema(type_map, collapsed_tree)
 
 
-def decode_data(data, schema: Schema, annotations=True, literals=True):
+def decode_data(data, schema: Schema, annotations=True, literals=True, root='0'):
     def decode_node(node, path='0'):
         type_info = schema.type_map.get(path, {})
         if isinstance(node, dict):
@@ -156,11 +159,20 @@ def decode_data(data, schema: Schema, annotations=True, literals=True):
 
         return res
 
-    return decode_node(data)
+    return decode_node(data, root)
 
 
-def build_value_map(data, schema: Schema) -> dict:
+def build_value_map(data, schema: Schema, root='0') -> dict:
     value_map = dict()
+
+    def find_root(node):
+        if node['path'] == root:
+            return node
+        for arg in node.get('args', []):
+            res = find_root(arg)
+            if res:
+                return res
+        return None
 
     def parse_value(node, node_info, is_element=False):
         if node_info['prim'] == 'pair':
@@ -202,12 +214,13 @@ def build_value_map(data, schema: Schema) -> dict:
         else:
             value_map[node_info['path']] = node
 
-    parse_value(data, schema.collapsed_tree)
+    root_node = find_root(schema.collapsed_tree)
+    parse_value(data, root_node)
     return value_map
 
 
-def encode_data(data, schema: Schema, binary=False):
-    value_map = build_value_map(data, schema)
+def encode_data(data, schema: Schema, binary=False, root='0'):
+    value_map = build_value_map(data, schema, root=root)
 
     def get_value(path, index=None):
         value = value_map.get(path)
@@ -265,4 +278,4 @@ def encode_data(data, schema: Schema, binary=False):
             binary=binary
         )
 
-    return encode_node()
+    return encode_node(root)

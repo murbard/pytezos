@@ -1,8 +1,10 @@
-from pytezos.rpc.node import RpcQuery
-from pytezos.michelson.grammar import MichelsonParser
-from pytezos.michelson.schema import parse_schema, decode_data, encode_data
+from functools import lru_cache
 
-michelson_parser = MichelsonParser()
+from pytezos.rpc.node import RpcQuery
+from pytezos.micheline.grammar import MichelineParser
+from pytezos.micheline.schema import build_schema, decode_data, encode_data
+
+micheline_parser = MichelineParser()
 
 
 class Contract(RpcQuery):
@@ -25,8 +27,9 @@ class Contract(RpcQuery):
         code = self._get_code()
         return next(s for s in code if s['prim'] == section)
 
+    @lru_cache(maxsize=None)
     def _get_schema(self, section):
-        return parse_schema(self._get_section(section))
+        return build_schema(self._get_section(section))
 
     @classmethod
     def from_code(cls, code):
@@ -34,7 +37,7 @@ class Contract(RpcQuery):
 
     @classmethod
     def from_string(cls, text):
-        code = michelson_parser.parse(text)
+        code = micheline_parser.parse(text)
         return cls.from_code(code)
 
     @classmethod
@@ -66,3 +69,15 @@ class Contract(RpcQuery):
             annotations=annotations,
             literals=literals
         )
+
+    def big_map_get(self, key):
+        schema = self._get_schema('storage')
+        root = next(k for k, v in schema.type_map.items() if v['prim'] == 'big_map')
+        key_path, val_path = root + '0', root + '1'
+
+        query = dict(
+            key=encode_data(key, schema, root=key_path),
+            type=schema.type_map[key_path]
+        )
+        value = self._node.post(f'{self._path}/big_map_get', json=query)
+        return decode_data(value, schema, root=val_path)

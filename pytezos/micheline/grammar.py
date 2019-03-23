@@ -5,7 +5,7 @@ import re
 # Inspired by https://github.com/jansorg/tezos-intellij/blob/master/grammar/michelson.bnf
 
 
-class MichelsonLexer(Lexer):
+class SimpleMichelsonLexer(Lexer):
     tokens = (
         'PRIM', 'INT', 'BYTE', 'STR',
         'LEFT_CURLY', 'RIGHT_CURLY', 'LEFT_PAREN', 'RIGHT_PAREN', 'SEMI',
@@ -26,12 +26,12 @@ class MichelsonLexer(Lexer):
     t_ignore = ' \r\n\t\f'
 
     def __init__(self):
-        super(MichelsonLexer, self).__init__()
+        super(SimpleMichelsonLexer, self).__init__()
         self.lexer = lex(module=self, reflags=re.DOTALL)
 
 
-class MichelsonParser(object):
-    tokens = MichelsonLexer.tokens
+class MichelineParser(object):
+    tokens = SimpleMichelsonLexer.tokens
 
     def p_instr(self, p):
         '''instr : expr
@@ -130,12 +130,12 @@ class MichelsonParser(object):
         '''empty :'''
 
     def __init__(self, debug=False, write_tables=False):
-        self.lexer = MichelsonLexer()
+        self.lexer = SimpleMichelsonLexer()
         self.parser = yacc(
             module=self,
             debug=debug,
             write_tables=write_tables,
         )
 
-    def parse(self, text):
-        return self.parser.parse(text)
+    def parse(self, code):
+        return self.parser.parse(code)

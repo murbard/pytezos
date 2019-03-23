@@ -3,8 +3,8 @@ import simplejson as json
 from unittest import TestCase
 from parameterized import parameterized
 
-from pytezos.michelson.grammar import MichelsonParser
-from pytezos.michelson.schema import parse_schema, decode_data, encode_data
+from pytezos.micheline.grammar import MichelineParser
+from pytezos.micheline.schema import build_schema, decode_data, encode_data
 
 
 def get_data(filename):
@@ -13,10 +13,10 @@ def get_data(filename):
         return f.read()
 
 
-class TestMichelsonParser(TestCase):
+class TestMichelineParser(TestCase):
 
     def setUp(self):
-        self.parser = MichelsonParser()
+        self.parser = MichelineParser()
         self.maxDiff = None
 
     @parameterized.expand([
@@ -37,7 +37,7 @@ class TestMichelsonParser(TestCase):
     def test_storage_parsing(self, source_name):
         script = json.loads(get_data(source_name))
         storage = next(s for s in script['code'] if s['prim'] == 'storage')
-        schema = parse_schema(storage)
+        schema = build_schema(storage)
         data = decode_data(script['storage'], schema)
         res = encode_data(data, schema)
         self.assertDictEqual(script['storage'], res)
@@ -48,7 +48,7 @@ class TestMichelsonParser(TestCase):
     def test_parameter_parsing(self, code_name, parameters_name):
         code = json.loads(get_data(code_name))
         parameters = json.loads(get_data(parameters_name))
-        schema = parse_schema(code)
+        schema = build_schema(code)
         data = decode_data(parameters, schema)
         res = encode_data(data, schema)
         self.assertDictEqual(parameters, res)
