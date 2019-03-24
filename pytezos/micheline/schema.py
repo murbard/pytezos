@@ -1,7 +1,6 @@
 import pendulum
 from decimal import Decimal
 from collections import namedtuple
-from typing import Callable
 
 from pytezos.encoding import base58_encode
 
@@ -183,11 +182,13 @@ def build_value_map(data, schema: Schema, root='0') -> dict:
                 parse_value(values[i], arg_info, is_element)
 
         elif node_info['prim'] in ['map', 'big_map']:
+            value_map[node_info['path']] = len(node)
             for key, value in node.items():
                 parse_value(key, node_info['args'][0], True)
                 parse_value(value, node_info['args'][1], True)
 
         elif node_info['prim'] in ['set', 'list']:
+            value_map[node_info['path']] = len(node)
             for value in node:
                 parse_value(value, node_info['args'][0], True)
 
@@ -223,14 +224,12 @@ def encode_data(data, schema: Schema, binary=False, root='0'):
     value_map = build_value_map(data, schema, root=root)
 
     def get_value(path, index=None):
-        value = value_map.get(path)
+        if path not in value_map:
+            raise KeyError(path)
+        value = value_map[path]
         if index is not None:
             return value[index]
         return value
-
-    def get_length(path) -> int:
-        values = get_value(path)
-        return len(values) if values else 0
 
     def encode_node(path='0', index=None):
         type_info = schema.type_map[path]
@@ -245,22 +244,22 @@ def encode_data(data, schema: Schema, binary=False, root='0'):
                     prim='Elt',
                     args=[encode_node(path + '0', i), encode_node(path + '1', i)]
                 )
-                for i in range(get_length(path + '0'))
+                for i in range(get_value(path))
             ]
         elif type_info['prim'] in ['set', 'list']:
             return [
                 encode_node(path + '0', i)
-                for i in range(get_length(path + '0'))
+                for i in range(get_value(path))
             ]
         elif type_info['prim'] == 'or':
             for i in [0, 1]:
-                arg = encode_node(path + str(i), index)
-                if arg is not None:
+                try:
                     return dict(
                         prim={0: 'Left', 1: 'Right'}[i],
-                        args=[arg]
+                        args=[encode_node(path + str(i), index)]
                     )
-            raise KeyError(type_info)
+                except KeyError:
+                    continue
         elif type_info['prim'] == 'option':
             arg = encode_node(path + '0', index)
             if arg is None:
@@ -268,14 +267,33 @@ def encode_data(data, schema: Schema, binary=False, root='0'):
             else:
                 return dict(prim='Some', args=[arg])
 
-        value = get_value(path, index)
-        if value is None:
-            return None  # dead branch
-
         return encode_literal(
-            value=value,
+            value=get_value(path, index),
             prim=type_info['prim'],
             binary=binary
         )
 
     return encode_node(root)
+
+
+def decode_schema(schema: Schema):
+    def decode_node(node):
+        if node['prim'] == 'or':
+            return {
+                arg.get('name', str(i)): decode_node(arg)
+                for i, arg in enumerate(node['args'])
+            }
+        if node['prim'] == 'pair':
+            args = list(map(lambda x: (x.get('name'), decode_node(x)), node['args']))
+            names, values = zip(*args)
+            return dict(args) if all(names) else values
+        if node['prim'] == 'set':
+            return {decode_node(node['args'][0])}
+        if node['prim'] == 'list':
+            return [decode_node(node['args'][0])]
+        if node['prim'] in {'map', 'big_map'}:
+            return {decode_node(node['args'][0]): decode_node(node['args'][1])}
+
+        return f'#{node["prim"]}'
+
+    return decode_node(schema.collapsed_tree)
