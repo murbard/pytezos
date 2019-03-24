@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pytezos"
-version = "1.1.1"
+version = "1.2.1"
 description = "Python utils for Tezos"
 authors = ["Arthur Breitman, Michael Zaikin <baking-bad.org>"]
 license = "MIT"
@@ -20,6 +20,8 @@ fastecdsa = "^1.7.1"
 loguru = "*"
 netstruct = "*"
 tqdm = "*"
+ply = "*"
+simplejson = "*"
 
 [tool.poetry.dev-dependencies]
 parameterized = "^0.7.0"

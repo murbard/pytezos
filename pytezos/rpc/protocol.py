@@ -14,7 +14,7 @@ from tqdm import tqdm
 from pytezos.rpc.node import RpcQuery
 from pytezos.crypto import blake2b_32
 from pytezos.encoding import base58_encode
-from pytezos.tools.diff import make_patch, apply_patch, generate_html
+from pytezos.tools.diff import make_patch, apply_patch, generate_unidiff_html
 
 
 def dir_to_files(path) -> List[Tuple[str, str]]:
@@ -198,7 +198,7 @@ class Protocol(RpcQuery):
         :return: html string if path is not specified
         """
         diffs = [text for filename, text in self if text]
-        return generate_html(diffs, output_path=output_path)
+        return generate_unidiff_html(diffs, output_path=output_path)
 
     def diff(self, proto, context_size=3):
         """

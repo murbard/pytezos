@@ -1,5 +1,6 @@
 from binascii import hexlify
 from functools import lru_cache
+from typing import List
 
 from pytezos.crypto import Key, blake2b_32
 from pytezos.encoding import base58_decode, base58_encode
@@ -7,61 +8,49 @@ from pytezos.rpc.node import RpcQuery
 from pytezos.rpc.helpers import HelpersMixin
 
 
-def get_pass_by_kind(kind) -> int:
-    if kind == 'endorsement':
-        return 0
-    if kind in {'proposals', 'ballot'}:
-        return 1
-    if kind in {'seed_nonce_revelation', 'double_endorsement_evidence',
-                'double_baking_evidence', 'activate_account'}:
-        return 2
-    if kind in {'reveal', 'transaction', 'origination', 'delegation'}:
-        return 3
-    raise NotImplementedError(kind)
-
-
-def filter_operations(operations, kind=None, recursive=True):
+def filter_contents(entity, kind):
     if isinstance(kind, str):
         kind = {kind}
     elif isinstance(kind, list):
         kind = set(kind)
 
-    def multiple_content(op):
-        # manager operations can be spawned by a smart contract
-        return any(map(lambda ct: ct['kind'] in kind, op['contents']))
+    def iter_contents(op):
+        for content in op['contents']:
+            internal = content.get('metadata', {}).get('internal_operation_results', [])
 
-    def single_content(op):
-        return op['contents'][0]['kind'] in kind
+            if not kind or content['kind'] in kind:
+                if internal:
+                    del content['metadata']['internal_operation_results']
+                yield content
 
-    if get_pass_by_kind(kind) == 3 and recursive:
-        f = multiple_content
-    else:
-        f = single_content
+            for result in internal:
+                if not kind or result['kind'] in kind:
+                    yield result
 
-    return filter(f, operations)
+    if isinstance(entity, dict):
+        return list(iter_contents(entity))
+
+    if isinstance(entity, list):
+        contents = list()
+        if len(entity) and isinstance(entity[0], list):
+            for op_list in entity:
+                for op in op_list:
+                    contents.extend(iter_contents(op))
+        else:
+            for op in entity:
+                contents.extend(iter_contents(op))
+        return contents
+
+    raise ValueError(entity, kind)
+
+
+class OperationList(RpcQuery):
+
+    def contents(self, kind=None):
+        return filter_contents(self(), kind)
 
 
 class OperationListList(RpcQuery):
-
-    def __iter__(self):
-        for operation_group in self():
-            for operation in operation_group:
-                yield operation
-
-    def __call__(self, kind=None, recursive_search=True):
-        """
-        :param kind: endorsement, seed_nonce_revelation, double_endorsement_evidence, double_baking_evidence,
-        activate_account, proposals, ballot, reveal, transaction, origination, delegation
-        :return: flat list of operations filtered by kind (recursive search)
-        """
-        if kind:
-            validation_pass = get_pass_by_kind(kind)
-            return list(filter_operations(
-                operations=self[validation_pass](),
-                kind=kind,
-                recursive=recursive_search
-            ))
-        return super(OperationListList, self).__call__()
 
     @lru_cache(maxsize=None)
     def __getitem__(self, item):
@@ -72,7 +61,7 @@ class OperationListList(RpcQuery):
                 cache=self._cache
             )
         elif isinstance(item, int):
-            return RpcQuery(
+            return OperationList(
                 path=f'{self._path}/{item}',
                 node=self._node,
                 cache=self._cache,
@@ -80,9 +69,6 @@ class OperationListList(RpcQuery):
             )
         else:
             raise NotImplementedError(item)
-
-    def flat(self):
-        return list(iter(self))
 
     @property
     def endorsements(self):
@@ -116,6 +102,9 @@ class OperationListList(RpcQuery):
         :return: RPCQuery instance
         """
         return self[3]
+
+    def contents(self, kind=None) -> List[dict]:
+        return filter_contents(self(), kind)
 
 
 class Operation(RpcQuery, HelpersMixin):
@@ -226,3 +215,6 @@ class Operation(RpcQuery, HelpersMixin):
     def verify_signature(self):
         pk = self.get_public_key(self.source())
         Key(pk).verify(self.get('signature'), self.unsigned_bytes())
+
+    def contents(self, kind=None):
+        return filter_contents(self(), kind)

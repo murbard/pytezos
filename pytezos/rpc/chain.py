@@ -4,15 +4,24 @@ import os
 
 from pytezos.rpc.node import RpcQuery
 from pytezos.rpc.block import Block, BlockListList
-from pytezos.rpc.operation import Operation, filter_operations
+from pytezos.rpc.operation import Operation
 
 
 class OperationsDict(RpcQuery):
 
     def _get_operations_list(self, key, kind=None):
         operations = self.get(key)
+
         if kind:
-            operations = filter_operations(operations, kind=kind)
+            if isinstance(kind, str):
+                kind = {kind}
+            elif isinstance(kind, list):
+                kind = set(kind)
+
+            operations = filter(
+                lambda op: any(map(
+                    lambda x: x['kind'] in kind, op['contents'])), operations)
+
         return list(map(
             lambda x: Operation(data=x, node=self._node, **self._kwargs),
             operations
