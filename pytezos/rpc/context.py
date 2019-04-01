@@ -1,17 +1,7 @@
 from functools import lru_cache
 
+from pytezos.rpc.contract import Contract
 from pytezos.rpc.node import RpcQuery
-
-
-class Contract(RpcQuery):
-
-    def __init__(self, *args, **kwargs):
-        super(Contract, self).__init__(
-            properties=[
-                'balance', 'counter', 'delegatable', 'delegate', 'manager',
-                'manager_key', 'script', 'spendable', 'storage'
-            ],
-            *args, **kwargs)
 
 
 class Context(RpcQuery):
@@ -32,5 +22,6 @@ class Context(RpcQuery):
         return RpcQuery(
             path=f'{self._path}/contracts',
             node=self._node,
-            child_class=Contract
+            child_class=Contract,
+            **self._kwargs
         )

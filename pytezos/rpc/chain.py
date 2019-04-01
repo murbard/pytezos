@@ -11,11 +11,21 @@ class OperationsDict(RpcQuery):
 
     def _get_operations_list(self, key, kind=None):
         operations = self.get(key)
+
         if kind:
-            operations = filter(lambda x: x['contents'][0]['kind'] == kind, operations)
+            if isinstance(kind, str):
+                kind = {kind}
+            elif isinstance(kind, list):
+                kind = set(kind)
+
+            operations = filter(
+                lambda op: any(map(
+                    lambda x: x['kind'] in kind, op['contents'])), operations)
+
         return list(map(
             lambda x: Operation(data=x, node=self._node, **self._kwargs),
-            operations))
+            operations
+        ))
 
     def applied(self, kind=None) -> List[Operation]:
         """
@@ -70,7 +80,8 @@ class Chain(RpcQuery):
             path=f'{self._path}/blocks',
             node=self._node,
             child_class=Block,
-            properties=['head', 'genesis']
+            properties=['head', 'genesis'],
+            **self._kwargs
         )
 
     @property
