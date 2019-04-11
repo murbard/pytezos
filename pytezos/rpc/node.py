@@ -3,9 +3,9 @@ from functools import lru_cache
 from hashlib import sha1
 
 public_nodes = {
-    'mainnet': ['https://rpc.tezrpc.me/', 'https://mainnet-node.tzscan.io/'],
-    'zeronet': ['https://zeronet-node.tzscan.io/'],
-    'alphanet': ['https://alphanet-node.tzscan.io/']
+    'mainnet': ['http://localhost:8732/', 'https://rpc.tezrpc.me/', 'https://mainnet-node.tzscan.io/'],
+    'zeronet': ['http://localhost:8732/', 'https://zeronet-node.tzscan.io/'],
+    'alphanet': ['http://localhost:8732/', 'https://alphanet-node.tzscan.io/']
 }
 
 
