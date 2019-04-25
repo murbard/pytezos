@@ -178,4 +178,4 @@ class Block(RpcQuery, HelpersMixin):
 
     def verify_signature(self):
         pk = self.get_public_key(self.metadata.get('baker'))
-        Key(pk).verify(self.header.get('signature'), self.header.unsigned_bytes())
+        Key.from_key(pk).verify(self.header.get('signature'), self.header.unsigned_bytes())

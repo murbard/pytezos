@@ -27,9 +27,9 @@ class Keychain:
 
         if prefix == 'encrypted':
             password = getpass(f'Please, enter passphrase for `{name}`:\n')
-            key = Key(key, passphrase=password)
+            key = Key.from_key(key, passphrase=password)
         else:
-            key = Key(key)
+            key = Key.from_key(key)
 
         return key
 

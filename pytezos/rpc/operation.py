@@ -192,7 +192,7 @@ class Operation(RpcQuery, HelpersMixin):
 
     def sign(self, key):
         if isinstance(key, str):
-            key = Key(key)
+            key = Key.from_key(key)
         if not isinstance(key, Key):
             raise ValueError('Base58 encoded secret key or Key instance required.')
 
@@ -214,7 +214,7 @@ class Operation(RpcQuery, HelpersMixin):
 
     def verify_signature(self):
         pk = self.get_public_key(self.source())
-        Key(pk).verify(self.get('signature'), self.unsigned_bytes())
+        Key.from_key(pk).verify(self.get('signature'), self.unsigned_bytes())
 
     def contents(self, kind=None):
         return filter_contents(self(), kind)
