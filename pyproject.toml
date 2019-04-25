@@ -22,6 +22,7 @@ netstruct = "*"
 tqdm = "*"
 ply = "*"
 simplejson = "*"
+mnemonic = "*"
 
 [tool.poetry.dev-dependencies]
 parameterized = "^0.7.0"

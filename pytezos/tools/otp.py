@@ -16,7 +16,7 @@ class OTP:
         if not isinstance(key, Key):
             if is_pkh(key):
                 key = shell.get_public_key(key)
-            key = Key(key)
+            key = Key.from_key(key)
 
         self._key = key
         self._interval = interval
