@@ -88,6 +88,7 @@ def build_schema(code) -> Schema:
 
         type_map[path] = dict(prim=node['prim'])
         typename = get_annotation(node, ':')
+        name = get_annotation(node, '%', typename)
 
         args = [
             parse_node(arg, path=path + str(i), parent_prim=node['prim'])
@@ -104,12 +105,14 @@ def build_schema(code) -> Schema:
                     type_map[path]['props'] = props
             else:
                 return res
+        elif node['prim'] == 'option' and not name:
+            name = args[0].get('name')
 
         return make_dict(
             prim=node['prim'],
             path=path,
             args=args,
-            name=get_annotation(node, '%', typename),
+            name=name,
         )
 
     collapsed_tree = parse_node(code)
@@ -304,6 +307,8 @@ def decode_schema(schema: Schema):
             return [decode_node(node['args'][0])]
         if node['prim'] in {'map', 'big_map'}:
             return {decode_node(node['args'][0]): decode_node(node['args'][1])}
+        if node['prim'] == 'option':
+            return decode_node(node['args'][0])
 
         return f'#{node["prim"]}'
 
