@@ -1,82 +1,13 @@
-from datetime import datetime
-from functools import lru_cache
-from pendulum.parsing.exceptions import ParserError
-import pendulum
 import os
+from functools import lru_cache
 
+from pytezos.crypto import blake2b_32, Key
+from pytezos.encoding import base58_encode
 from pytezos.rpc.context import Context
+from pytezos.rpc.helpers import HelpersMixin
 from pytezos.rpc.node import RpcQuery, urljoin
 from pytezos.rpc.operation import Operation, OperationListList
 from pytezos.rpc.votes import Votes
-from pytezos.rpc.helpers import HelpersMixin
-from pytezos.crypto import blake2b_32, Key
-from pytezos.encoding import base58_encode, is_bh
-
-
-def to_timestamp(v):
-    try:
-        v = pendulum.parse(v)
-    except ParserError:
-        pass
-    if isinstance(v, datetime):
-        v = int(v.timestamp())
-    return v
-
-
-class BlockListListQuery(RpcQuery):
-
-    def __call__(self, length=1, head=None, min_date=None):
-        """
-        Lists known heads of the blockchain sorted with decreasing fitness.
-        Optional arguments allows to returns the list of predecessors for known heads
-        or the list of predecessors for a given list of blocks.
-        :param length: The requested number of predecessors to returns (per requested head).
-        :param head: An empty argument requests blocks from the current heads.
-        A non empty list allow to request specific fragment of the chain.
-        :param min_date: When `min_date` is provided, heads with a timestamp before `min_date` are filtered out
-        :return:
-        """
-        if isinstance(head, str) and not is_bh(head):
-            head = self.__getitem__(head).calculate_hash()
-
-        if min_date and not isinstance(min_date, int):
-            min_date = to_timestamp(min_date)
-
-        return super(BlockListListQuery, self).__call__(
-            length=length, head=head, min_date=min_date)
-
-    def __getitem__(self, block_id):
-        """
-        Advanced indexing
-        :param block_id: integer
-        :return:
-        """
-        if isinstance(block_id, slice):
-            if not isinstance(block_id.start, int):
-                raise NotImplementedError('Slice start should be an integer.')
-
-            if block_id.stop is None:
-                block_level = 'head'
-            elif isinstance(block_id.stop, int):
-                if block_id.stop < 0:
-                    block_level = f'head~{abs(block_id.stop)}'
-                else:
-                    block_level = block_id.stop
-            else:
-                raise NotImplementedError('Slice stop can be an integer or None.')
-
-            header = self.__getitem__(block_level).header()
-
-            if block_id.start < 0:
-                length = abs(block_id.start)
-                if isinstance(block_id.stop, int) and block_id.stop < 0:
-                    length -= abs(block_id.stop)
-            else:
-                length = header['level'] - block_id.start
-
-            return self.__call__(length=length, head=header['hash'])
-
-        return super(BlockListListQuery, self).__getitem__(block_id)
 
 
 class BlockHeader(RpcQuery, HelpersMixin):
