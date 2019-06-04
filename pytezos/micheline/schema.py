@@ -119,6 +119,19 @@ def build_schema(code) -> Schema:
     return Schema(type_map, collapsed_tree)
 
 
+def get_json_path(schema: Schema, path):
+    type_info = schema.type_map[path[0]]
+    json_path = list()
+    for i in path[1:]:
+        index = int(i)
+        if type_info.get('props'):
+            json_path.append(type_info['props'][index])
+        else:
+            json_path.append(i)
+        type_info = schema.type_map[type_info['children'][index]]
+    return '/'.join(json_path)
+
+
 def decode_data(data, schema: Schema, annotations=True, literals=True, root='0'):
     def decode_node(node, path='0'):
         type_info = schema.type_map.get(path, {})

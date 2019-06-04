@@ -1,82 +1,42 @@
-from functools import lru_cache
-from typing import List
 import os
 
 from pytezos.rpc.node import RpcQuery
-from pytezos.rpc.block import Block, BlockListList
-from pytezos.rpc.operation import Operation
+from pytezos.rpc.block import Block, BlockListListQuery
+from pytezos.rpc.operation import OperationsDict
 
 
-class OperationsDict(RpcQuery):
+class MempoolFilterQuery(RpcQuery):
 
-    def _get_operations_list(self, key, kind=None):
-        operations = self.get(key)
-
-        if kind:
-            if isinstance(kind, str):
-                kind = {kind}
-            elif isinstance(kind, list):
-                kind = set(kind)
-
-            operations = filter(
-                lambda op: any(map(
-                    lambda x: x['kind'] in kind, op['contents'])), operations)
-
-        return list(map(
-            lambda x: Operation(data=x, node=self._node, **self._kwargs),
-            operations
-        ))
-
-    def applied(self, kind=None) -> List[Operation]:
+    def post(self, configuration):
         """
-        :param kind: endorsement, seed_nonce_revelation, double_endorsement_evidence, double_baking_evidence,
-        activate_account, proposals, ballot, reveal, transaction, origination, delegation
-        :return:
+        :param configuration: a JSON dictionary, known keys are `minimal_fees`, `minimal_nanotez_per_gas_unit`,
+        `minimal_nanotez_per_byte`
         """
-        return self._get_operations_list('applied', kind=kind)
-
-    def refused(self) -> List[Operation]:
-        return self._get_operations_list('refused')
-
-    def branch_delayed(self) -> List[Operation]:
-        return self._get_operations_list('branch_delayed')
-
-    def unprocessed(self) -> List[Operation]:
-        return self._get_operations_list('unprocessed')
+        return self._node.post(
+            path=self._path,
+            json=configuration
+        )
 
 
-class Mempool(RpcQuery):
+class InvalidBlockQuery(RpcQuery):
 
-    def __init__(self, *args, **kwargs):
-        super(Mempool, self).__init__(
-            properties={'pending_operations': OperationsDict},
-            *args, **kwargs)
-
-    @property
-    def filter(self, **kwargs):
-        """
-        minimal_fees, minimal_nanotez_per_gas_unit, minimal_nanotez_per_byte
-        :return:
-        """
-        if kwargs:
-            return self._node.post(f'{self._path}/filter', json=kwargs)
-        return self._node.get(f'{self._path}/filter')
+    def delete(self):
+        return self._node.delete(self._path)
 
 
-class Chain(RpcQuery):
+class ChainQuery(RpcQuery):
 
     def __init__(self, *args, **kwargs):
         kwargs.update(
             chain_id=os.path.basename(kwargs.get('path', ''))
         )
-        super(Chain, self).__init__(
-            properties={'mempool': Mempool},
+        super(ChainQuery, self).__init__(
+            properties=['chain_id', 'checkpoint'],
             *args, **kwargs)
 
     @property
-    @lru_cache(maxsize=None)
     def blocks(self):
-        return BlockListList(
+        return BlockListListQuery(
             path=f'{self._path}/blocks',
             node=self._node,
             child_class=Block,
@@ -85,9 +45,32 @@ class Chain(RpcQuery):
         )
 
     @property
-    def head(self) -> Block:
-        return self.blocks.head
+    def invalid_blocks(self):
+        return RpcQuery(
+            path=f'{self._path}/invalid_blocks',
+            node=self._node,
+            child_class=InvalidBlockQuery,
+            **self._kwargs
+        )
 
     @property
-    def genesis(self) -> Block:
-        return self.blocks.genesis
+    def mempool(self):
+        return RpcQuery(
+            path=f'{self._path}/mempool',
+            node=self._node,
+            properties={
+                'pending_operations': OperationsDict,
+                'filter': MempoolFilterQuery
+            },
+            **self._kwargs
+        )
+
+
+class ChainsQuery(RpcQuery):
+
+    def __init__(self, *args, **kwargs):
+        super(ChainsQuery, self).__init__(
+            child_class=ChainQuery,
+            properties=['main', 'test'],
+            *args, **kwargs
+        )
