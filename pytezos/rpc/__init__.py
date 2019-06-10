@@ -1,19 +1,26 @@
-from pytezos.rpc.shell import Shell
-from pytezos.rpc.node import Node
+from pytezos.rpc.shell import *
+from pytezos.rpc.protocol import *
+from pytezos.rpc.helpers import *
+from pytezos.rpc.node import RpcNode
 
-local_mainnet = Shell(Node('https://127.0.0.1:8732/'))
-local_alphanet = Shell(Node('https://127.0.0.1:8732/'))
-local_zeronet = Shell(Node('https://127.0.0.1:8732/'))
 
-tzscan_mainnet = Shell(Node('https://mainnet-node.tzscan.io/'))
-tzscan_alphanet = Shell(Node('https://alphanet-node.tzscan.io/'))
-tzscan_zeronet = Shell(Node('https://zeronet-node.tzscan.io/'))
+def create_shell(uri):
+    return ShellQuery(node=RpcNode(uri))
 
-tzbeta_mainnet = Shell(Node('https://rpc.tzbeta.net/'))
-tzbeta_alphanet = Shell(Node('https://rpcalpha.tzbeta.net/'))
 
-tezbox_mainnet = Shell(Node('https://rpc.tezrpc.me/'))
-tezbox_alphanet = Shell(Node('https://alphanet.tezrpc.me/'))
+local_mainnet = create_shell('https://127.0.0.1:8732/')
+local_alphanet = create_shell('https://127.0.0.1:8732/')
+local_zeronet = create_shell('https://127.0.0.1:8732/')
+
+tzscan_mainnet = create_shell('https://mainnet-node.tzscan.io/')
+tzscan_alphanet = create_shell('https://alphanet-node.tzscan.io/')
+tzscan_zeronet = create_shell('https://zeronet-node.tzscan.io/')
+
+tzbeta_mainnet = create_shell('https://rpc.tzbeta.net/')
+tzbeta_alphanet = create_shell('https://rpcalpha.tzbeta.net/')
+
+tezbox_mainnet = create_shell('https://rpc.tezrpc.me/')
+tezbox_alphanet = create_shell('https://alphanet.tezrpc.me/')
 
 mainnet = tzscan_mainnet
 alphanet = tzscan_alphanet

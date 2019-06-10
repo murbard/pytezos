@@ -1,13 +1,12 @@
 from functools import lru_cache
 
-from pytezos.rpc.node import RpcQuery
 from pytezos.micheline.grammar import MichelineParser
 from pytezos.micheline.schema import build_schema, decode_data, encode_data, decode_schema
 
 micheline_parser = MichelineParser()
 
 
-class Contract(RpcQuery):
+class Contract:
 
     def __init__(self, code=None, *args, **kwargs):
         super(Contract, self).__init__(
