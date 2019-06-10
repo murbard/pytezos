@@ -11,7 +11,7 @@ class OTP:
         """
         :param key: secret key (encrypted/unencrypted), public key or public key hash, all base58 encoded
         :param interval: number of blocks to check (tolerance)
-        :param shell: Shell instance
+        :param shell: ShellQuery instance
         """
         if not isinstance(key, Key):
             if is_pkh(key):

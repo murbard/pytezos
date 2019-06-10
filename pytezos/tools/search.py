@@ -3,8 +3,7 @@ from loguru import logger
 import simplejson as json
 
 from pytezos.rpc.node import RpcError
-from pytezos.rpc.chain import Chain
-from pytezos.rpc.operation import Operation, filter_contents
+from pytezos.rpc import mainnet
 
 
 def find_state_change_intervals(head: int, tail: int, get: Callable, equals: Callable,
@@ -60,18 +59,13 @@ def find_state_changes(head: int, tail: int, get: Callable, equals: Callable,
             yield change
 
 
-class SearchChain(Chain):
+class SearchEngine:
 
-    @classmethod
-    def from_chain(cls, chain: Chain):
-        return SearchChain(
-            path=chain._path,
-            node=chain._node,
-            **chain._kwargs
-        )
+    def __init__(self, shell=mainnet):
+        self._shell = shell
 
     def get_voting_period(self):
-        level_info = self.head.metadata.get('level')
+        level_info = self._shell.head.metadata.get('level')
         head = level_info['level']
         tail = head - level_info['voting_period_position']
         return head, tail
@@ -79,7 +73,7 @@ class SearchChain(Chain):
     def find_proposal_inject_level(self, proposal_id) -> int:
         level, _ = find_state_change(
             *self.get_voting_period(),
-            get=lambda x: self.blocks[x].votes.roll_count(proposal_id),
+            get=lambda x: self._shell.blocks[x].votes.get_roll_count(proposal_id),
             equals=lambda x, y: x == y,
             pred_value=0
         )
@@ -88,17 +82,17 @@ class SearchChain(Chain):
     def find_proposal_votes_levels(self, proposal_id) -> Generator:
         for level, _ in find_state_changes(
                 *self.get_voting_period(),
-                get=lambda x: self.blocks[x].votes.roll_count(proposal_id),
+                get=lambda x: self._shell.blocks[x].votes.get_roll_count(proposal_id),
                 equals=lambda x, y: x == y):
             yield level
 
-    def find_proposal_inject_operation(self, proposal_id) -> Operation:
+    def find_proposal_inject_operation(self, proposal_id):
         level = self.find_proposal_inject_level(proposal_id)
         operations = self.blocks[level].operations.votes()
         if not operations:
             raise ValueError('Injection operation not found.')
 
-        return Operation.from_data(operations[0])
+        return operations[0]
 
     def find_proposal_votes_operations(self, proposal_id) -> Generator:
         for level in self.find_proposal_votes_levels(proposal_id):
