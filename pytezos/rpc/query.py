@@ -166,8 +166,7 @@ class RpcQuery:
     @property
     def _parent(self):
         dir_path = os.path.dirname(self._path)
-        if os.path.basename(self._path) == '{}':
-            params = self._params[:-2]
-        else:
-            params = self._params
-        return self._spawn_query(path=dir_path, params=params)
+        return self._spawn_query(
+            path=dir_path,
+            params=self._params[:dir_path.count('{}')]
+        )

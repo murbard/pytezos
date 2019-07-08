@@ -4,7 +4,7 @@ from datetime import datetime
 
 from pytezos.rpc.query import RpcQuery, get_attr_docstring
 from pytezos.encoding import is_bh
-from pytezos.entities.block import BlockHeader
+from pytezos.entities.block import BlockHeader, Block
 
 
 def to_timestamp(v):
@@ -113,6 +113,10 @@ class BlockQuery(RpcQuery, path='/chains/{}/blocks/{}'):
         """
         return self._parent[self.header()['predecessor']]
 
+    @property
+    def baker(self):
+        return self.context.contracts[self.metadata()['baker']]
+
     def get_level(self) -> int:
         """
         Level for this block from metadata.
@@ -127,6 +131,13 @@ class BlockQuery(RpcQuery, path='/chains/{}/blocks/{}'):
         """
         return self.metadata()['level']['cycle']
 
+    def decode(self):
+        """
+        TODO
+        :return:
+        """
+        return Block(self())
+
 
 class BlockHeaderQuery(RpcQuery, path='/chains/{}/blocks/{}/header'):
 
@@ -135,7 +146,7 @@ class BlockHeaderQuery(RpcQuery, path='/chains/{}/blocks/{}/header'):
         Converts JSON interpretation into the block header entity.
         :return: `BlockHeader` instance
         """
-        return self()
+        return BlockHeader(self())
 
 
 class ContractQuery(RpcQuery, path='/chains/{}/blocks/{}/context/contracts/{}'):
@@ -219,7 +230,7 @@ class OperationListListQuery(RpcQuery, path=['/chains/{}/blocks/{}/operation_has
 class OperationQuery(RpcQuery, path='/chains/{}/blocks/{}/operations/{}/{}'):
 
     def decode(self):
-        return []
+        return self()
 
 
 class ProposalQuery(RpcQuery, path='/chains/{}/blocks/{}/votes/proposals/{}'):
