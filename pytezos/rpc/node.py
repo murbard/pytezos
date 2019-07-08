@@ -24,7 +24,6 @@ class RpcNode:
         self._uri = uri
         self._cache = dict()
         self._session = requests.Session()
-        logging.basicConfig(level=logging.DEBUG)
 
     def __repr__(self):
         return f'Node address\n{self._uri}\n\nCached items\n' + '\n'.join(self._cache.keys())

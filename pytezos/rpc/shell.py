@@ -220,7 +220,7 @@ class NetworkLogQuery(RpcQuery, path=['/network/peers/{}/log', '/network/points/
 
 class ProtocolQuery(RpcQuery, path='/chains/protocols/{}'):
 
-    def parse(self) -> Protocol:
+    def decode(self) -> Protocol:
         """
         Converts JSON interpretation into the protocol entity.
         :return: `Protocol` instance

@@ -65,7 +65,7 @@ class SearchEngine:
         self._shell = shell
 
     def get_voting_period(self):
-        level_info = self._shell.head.metadata.get('level')
+        level_info = self._shell.head.metadata()['level']
         head = level_info['level']
         tail = head - level_info['voting_period_position']
         return head, tail
@@ -88,7 +88,7 @@ class SearchEngine:
 
     def find_proposal_inject_operation(self, proposal_id):
         level = self.find_proposal_inject_level(proposal_id)
-        operations = self.blocks[level].operations.votes()
+        operations = self._shell.blocks[level].operations.votes()
         if not operations:
             raise ValueError('Injection operation not found.')
 
@@ -96,18 +96,18 @@ class SearchEngine:
 
     def find_proposal_votes_operations(self, proposal_id) -> Generator:
         for level in self.find_proposal_votes_levels(proposal_id):
-            for operation in self.blocks[level].operations.votes():
-                yield Operation.from_data(operation)
+            for operation in self._shell.blocks[level].operations.votes():
+                yield operation
 
     def find_contract_origination_level(self, contract_id) -> int:
         def get_counter(x):
             try:
-                return self.blocks[x].context.contracts[contract_id].counter()
+                return self._shell.blocks[x].context.contracts[contract_id].counter()
             except RpcError:
                 return None
 
         level, _ = find_state_change(
-            head=self.head.level(),
+            head=self._shell.head.get_level(),
             tail=0,
             get=get_counter,
             equals=lambda x, y: x == y,
@@ -115,18 +115,19 @@ class SearchEngine:
         )
         return level
 
-    def find_contract_origination_operation(self, contract_id) -> Operation:
+    def find_contract_origination_operation(self, contract_id):
         level = self.find_contract_origination_level(contract_id)
-        operations = self.blocks[level].operations.managers()
+        operations = self._shell.blocks[level].operations.managers()
 
-        for operation in operations:
-            for content in filter_contents(operation, kind='origination'):
-                if content.get('metadata'):
-                    result = content['metadata']['operation_result']
-                else:
-                    result = content['result']
-                if contract_id in result['originated_contracts']:
-                    return Operation.from_data(operation)
+        # TODO: flat operations
+        # for operation in operations:
+        #     for content in filter_contents(operation, kind='origination'):
+        #         if content.get('metadata'):
+        #             result = content['metadata']['operation_result']
+        #         else:
+        #             result = content['result']
+        #         if contract_id in result['originated_contracts']:
+        #             return operation
 
         raise ValueError('Origination operation not found.')
 
@@ -135,15 +136,15 @@ class SearchEngine:
             origination_level = self.find_contract_origination_level(contract_id)
 
         for level, _ in find_state_changes(
-                head=self.head.level(),
+                head=self._shell.head.get_level(),
                 tail=origination_level,
-                get=lambda x: hash(json.dumps(self.blocks[x].context.contracts[contract_id].storage())),
+                get=lambda x: hash(json.dumps(self._shell.blocks[x].context.contracts[contract_id].storage())),
                 equals=lambda x, y: x == y,
                 step=720):
             yield level
 
     def find_storage_change_operations(self, contract_id, origination_level=None) -> Generator:
         for level in self.find_storage_change_levels(contract_id, origination_level):
-            for operation in self.blocks[level].operations.managers():
+            for operation in self._shell.blocks[level].operations.managers():
                 if any(map(lambda x: x.get('destination') == contract_id, operation['contents'])):
-                    yield Operation.from_data(operation)
+                    yield operation
