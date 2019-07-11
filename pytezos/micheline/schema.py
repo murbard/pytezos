@@ -5,16 +5,24 @@ from collections import namedtuple
 from pytezos.encoding import base58_encode
 
 Schema = namedtuple('Schema', ['type_map', 'collapsed_tree'])
+Nested = namedtuple('Nested', ['prim', 'args'])
+Route = namedtuple('Route', ['path', 'value'])
 
 
-def flatten(items, itemtype):
-    if isinstance(items, itemtype):
-        if len(items) == 0:
-            return itemtype()
-        first, rest = items[0], items[1:]
-        return flatten(first, itemtype) + flatten(rest, itemtype)
-    else:
-        return itemtype([items])
+def get_flat_nested(nested: Nested):
+    flat_args = list()
+    for arg in nested.args:
+        if isinstance(arg, Nested) and arg.prim == nested.prim:
+            flat_args.extend(get_flat_nested(arg))
+        else:
+            flat_args.append(arg)
+    return flat_args
+
+
+def get_route_terminal(route: Route):
+    if isinstance(route.value, Route):
+        return get_route_terminal(route.value)
+    return route
 
 
 def make_dict(**kwargs) -> dict:
@@ -74,34 +82,37 @@ def build_schema(code) -> Schema:
     def get_annotation(x, prefix, default=None):
         return next((a[1:] for a in x.get('annots', []) if a[0] == prefix), default)
 
-    def parse_node(node, path='0', nested=None):
+    def parse_node(node, path='0', parent_prim=None):
         if node['prim'] in ['storage', 'parameter']:
             return parse_node(node['args'][0])
 
         type_map[path] = dict(prim=node['prim'])
         typename = get_annotation(node, ':')
+        name = get_annotation(node, '%', typename)
 
         args = [
-            parse_node(arg, path=path + str(i), nested=node['prim'])
+            parse_node(arg, path=path + str(i), parent_prim=node['prim'])
             for i, arg in enumerate(node.get('args', []))
         ]
 
         if node['prim'] in ['pair', 'or']:
-            if typename or nested != node['prim']:
-                args = flatten(args, list)  # TODO: pair/or conflicts?
+            res = Nested(node['prim'], args)
+            if typename or parent_prim != node['prim']:
+                args = get_flat_nested(res)
+                type_map[path]['children'] = list(map(lambda x: x['path'], args))
                 props = list(map(lambda x: x.get('name'), args))
                 if all(props):
                     type_map[path]['props'] = props
-                if typename:
-                    type_map[path]['name'] = typename
             else:
-                return args
+                return res
+        elif node['prim'] == 'option' and not name:
+            name = args[0].get('name')
 
         return make_dict(
             prim=node['prim'],
             path=path,
             args=args,
-            name=get_annotation(node, '%', typename),
+            name=name,
         )
 
     collapsed_tree = parse_node(code)
@@ -117,22 +128,25 @@ def decode_data(data, schema: Schema, annotations=True, literals=True, root='0')
                 for i, arg in enumerate(node.get('args', []))
             )
             if node.get('prim') == 'Pair':
-                res = flatten(tuple(args), tuple)
-                if type_info.get('props') and annotations:
-                    res = dict(zip(type_info['props'], res))
+                res = Nested(type_info['prim'], list(args))
+                if type_info.get('children'):
+                    res = tuple(get_flat_nested(res))
+                    if type_info.get('props') and annotations:
+                        res = dict(zip(type_info['props'], res))
 
             elif node.get('prim') in ['Left', 'Right']:
-                index = {'Left': 0, 'Right': 1}[node['prim']]
-                value = decode_node(node['args'][0], path + str(index))
-                if type_info.get('props') and annotations:
-                    res = {type_info['props'][index]: value}
-                else:
-                    res = {index: value}
+                arg_path = path + {'Left': '0', 'Right': '1'}[node['prim']]
+                res = Route(arg_path, decode_node(node['args'][0], arg_path))
+                if type_info.get('children'):
+                    terminal = get_route_terminal(res)
+                    if type_info.get('props') and annotations:
+                        index = type_info['children'].index(terminal.path)
+                        res = {type_info['props'][index]: terminal.value}
+                    else:
+                        res = terminal.value
 
             elif node.get('prim') == 'Elt':
                 res = list(args)
-            elif node.get('prim') == 'Right':
-                res = decode_node(node['args'][0], path + '1')
             elif node.get('prim') == 'Some':
                 res = next(iter(args))
             elif node.get('prim') == 'None':
@@ -293,6 +307,8 @@ def decode_schema(schema: Schema):
             return [decode_node(node['args'][0])]
         if node['prim'] in {'map', 'big_map'}:
             return {decode_node(node['args'][0]): decode_node(node['args'][1])}
+        if node['prim'] == 'option':
+            return decode_node(node['args'][0])
 
         return f'#{node["prim"]}'
 
