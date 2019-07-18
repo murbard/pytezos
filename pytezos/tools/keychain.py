@@ -5,23 +5,27 @@ from getpass import getpass
 from pytezos.crypto import Key
 
 
+class FaucetKey(Key):
+    pass
+
+
 class Keychain:
 
-    def __init__(self, path='~/.tezos-client/secret_keys'):
+    def __init__(self, path='~/.pytezos/secret_keys'):
         self._path = os.path.expanduser(path)
         self._secret_keys = list()
         self._last_modified = 0
 
-    def reload(self):
-        last_modified = os.path.getmtime(self._path)
-        if last_modified > self._last_modified:
-            self._last_modified = last_modified
-            with open(self._path, 'r') as f:
-                self._secret_keys = json.load(f)
+    def generate_key(self, alias='default', curve=b'ed'):
+        pass
+
+    def import_faucet_key(self, path='~/Downloads/tz1*.json', alias='default'):
+        pass
+
+    def import_tezos_client_keys(self, path='~/.tezos-client/secret_keys'):
+        pass
 
     def get_key(self, name) -> Key:
-        self.reload()
-
         value = next(item['value'] for item in self._secret_keys if item['name'] == name)
         prefix, key = value.split(':', maxsplit=1)
 
@@ -34,8 +38,6 @@ class Keychain:
         return key
 
     def list_keys(self) -> list:
-        self.reload()
-
         def format_item(item: dict):
             prefix, key = item['value'].split(':')
             return dict(

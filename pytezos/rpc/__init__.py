@@ -8,20 +8,22 @@ def create_shell(uri):
     return ShellQuery(node=RpcNode(uri))
 
 
-local_mainnet = create_shell('https://127.0.0.1:8732/')
-local_alphanet = create_shell('https://127.0.0.1:8732/')
-local_zeronet = create_shell('https://127.0.0.1:8732/')
+mainnet_local = create_shell('https://127.0.0.1:8732/')
+alphanet_local = create_shell('https://127.0.0.1:8732/')
+zeronet_local = create_shell('https://127.0.0.1:8732/')
 
-tzscan_mainnet = create_shell('https://mainnet-node.tzscan.io/')
-tzscan_alphanet = create_shell('https://alphanet-node.tzscan.io/')
-tzscan_zeronet = create_shell('https://zeronet-node.tzscan.io/')
+mainnet_tzscan = create_shell('https://mainnet-node.tzscan.io/')
+alphanet_tzscan = create_shell('https://alphanet-node.tzscan.io/')
+zeronet_tzscan = create_shell('https://zeronet-node.tzscan.io/')
 
-tzbeta_mainnet = create_shell('https://rpc.tzbeta.net/')
-tzbeta_alphanet = create_shell('https://rpcalpha.tzbeta.net/')
+mainnet_tzbeta = create_shell('https://rpc.tzbeta.net/')
+alphanet_tzbeta = create_shell('https://rpcalpha.tzbeta.net/')
 
-tezbox_mainnet = create_shell('https://rpc.tezrpc.me/')
-tezbox_alphanet = create_shell('https://alphanet.tezrpc.me/')
+mainnet_tezbox = create_shell('https://rpc.tezrpc.me/')
+alphanet_tezbox = create_shell('https://alphanet.tezrpc.me/')
 
-mainnet = tzscan_mainnet
-alphanet = tzscan_alphanet
-zeronet = tzscan_zeronet
+cryptonomic_alphanet = create_shell('https://tezos-dev.cryptonomic-infra.tech/')
+
+mainnet = mainnet_tzscan
+alphanet = cryptonomic_alphanet
+zeronet = zeronet_tzscan

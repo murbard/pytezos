@@ -1,7 +1,6 @@
 import requests
 from hashlib import sha1
 from urllib.parse import urlencode
-import logging
 
 
 def urljoin(*args):
@@ -43,7 +42,9 @@ class RpcNode:
     def get(self, path, params=None, caching=False, cache_key=None):
         if caching:
             if not cache_key:
-                cache_key = path + f'?{urlencode(params)}' if params else ''
+                cache_key = path
+                if params:
+                    cache_key += f'?{urlencode(params)}'
             if cache_key in self._cache:
                 return self._cache[cache_key]
 

@@ -107,8 +107,8 @@ ops[0].forge()
 ops[0].preapply()
 >>> [{'contents': [{'kind': 'endorsement',
     'level': 329864,
-    'metadata': {'balance_updates': [{'kind': 'contract',
-       'contract': 'tz3RDC3Jdn4j15J7bBHZd29EUee9gVB1CxD9',
+    'metadata': {'balance_updates': [{'kind': michelson,
+       michelson: 'tz3RDC3Jdn4j15J7bBHZd29EUee9gVB1CxD9',
        'change': '-128000000'},
       {'kind': 'freezer',
        'category': 'deposits',

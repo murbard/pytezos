@@ -30,7 +30,7 @@ class SimpleMichelsonLexer(Lexer):
         self.lexer = lex(module=self, reflags=re.DOTALL)
 
 
-class MichelineParser(object):
+class MichelsonParser(object):
     tokens = SimpleMichelsonLexer.tokens
 
     def p_instr(self, p):

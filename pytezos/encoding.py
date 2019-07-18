@@ -129,3 +129,11 @@ def is_bh(v) -> bool:
     except ValueError:
         return False
     return True
+
+
+def is_ogh(v) -> bool:
+    try:
+        _validate(v, prefixes=[b'o'])
+    except ValueError:
+        return False
+    return True

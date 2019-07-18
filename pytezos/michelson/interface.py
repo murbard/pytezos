@@ -231,7 +231,7 @@ def build_value_map(data, schema: Schema, root='0') -> dict:
                 arg_info = node_info['args'][key]
             parse_value(value, arg_info, is_element)
 
-        elif node_info['prim'] == 'contract':
+        elif node_info['prim'] == 'michelson':
             parse_value(node, node_info['args'][0], is_element)
 
         elif node_info['prim'] == 'option':

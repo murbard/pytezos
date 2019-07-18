@@ -1,14 +1,14 @@
+import io
 import os
 import tarfile
-import requests
-import io
 import netstruct
+import requests
 import simplejson as json
-from tempfile import TemporaryDirectory
+from tqdm import tqdm
 from binascii import hexlify
 from collections import OrderedDict
+from tempfile import TemporaryDirectory
 from typing import List, Tuple
-from tqdm import tqdm
 
 from pytezos.crypto import blake2b_32
 from pytezos.encoding import base58_encode
@@ -129,7 +129,7 @@ def proto_to_bytes(proto: dict) -> bytes:
     return res
 
 
-class Protocol:
+class Proto:
 
     def __init__(self, proto):
         self._proto = proto
@@ -156,7 +156,7 @@ class Protocol:
         else:
             raise ValueError(uri)
 
-        return Protocol(files_to_proto(files))
+        return Proto(files_to_proto(files))
 
     def index(self) -> dict:
         """
@@ -164,7 +164,7 @@ class Protocol:
         :return: dict with protocol hash and modules
         """
         data = {
-            'hash': self.calculate_hash(),
+            'hash': self.hash(),
             'modules': list(map(lambda x: x['name'], self._proto.get('components', [])))
         }
         return data
@@ -208,9 +208,9 @@ class Protocol:
             )
             files.append((filename, patch))
 
-        return Protocol(files_to_proto(files))
+        return Proto(files_to_proto(files))
 
-    def apply(self, patch):
+    def patch(self, patch):
         """
         Applies unified diff and returns full-fledged protocol
         :param patch: an instance of Protocol containing diff of files
@@ -226,8 +226,8 @@ class Protocol:
                 text = apply_patch(text, diff_text)
             files.append((filename, text))
 
-        return Protocol(files_to_proto(files))
+        return Proto(files_to_proto(files))
 
-    def calculate_hash(self):
+    def hash(self):
         hash_digest = blake2b_32(proto_to_bytes(self._proto)).digest()
         return base58_encode(hash_digest, b'P').decode()

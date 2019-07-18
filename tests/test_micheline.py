@@ -3,8 +3,8 @@ import simplejson as json
 from unittest import TestCase
 from parameterized import parameterized
 
-from pytezos.micheline.grammar import MichelineParser
-from pytezos.micheline.schema import build_schema, decode_data, encode_data
+from pytezos.michelson.grammar import MichelsonParser
+from pytezos.michelson.interface import build_schema, decode_data, encode_data
 
 
 def get_data(filename):
@@ -16,7 +16,7 @@ def get_data(filename):
 class TestMichelineParser(TestCase):
 
     def setUp(self):
-        self.parser = MichelineParser()
+        self.parser = MichelsonParser()
         self.maxDiff = None
 
     @parameterized.expand([

@@ -5,7 +5,6 @@ from binascii import hexlify
 
 from pytezos.encoding import base58_decode
 from pytezos.rpc.query import RpcQuery, get_attr_docstring
-from pytezos.entities.protocol import Protocol
 
 
 class ShellQuery(RpcQuery, path=''):
@@ -216,13 +215,3 @@ class NetworkItems(RpcQuery, path=['/network/peers', '/network/points']):
 
 class NetworkLogQuery(RpcQuery, path=['/network/peers/{}/log', '/network/points/{}/log']):
     pass
-
-
-class ProtocolQuery(RpcQuery, path='/chains/protocols/{}'):
-
-    def decode(self) -> Protocol:
-        """
-        Converts JSON interpretation into the protocol entity.
-        :return: `Protocol` instance
-        """
-        return Protocol(self())

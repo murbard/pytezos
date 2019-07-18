@@ -3,8 +3,7 @@ from pendulum.parsing.exceptions import ParserError
 from datetime import datetime
 
 from pytezos.rpc.query import RpcQuery, get_attr_docstring
-from pytezos.encoding import is_bh
-from pytezos.entities.block import BlockHeader, Block
+from pytezos.encoding import is_bh, is_ogh
 
 
 def to_timestamp(v):
@@ -131,22 +130,21 @@ class BlockQuery(RpcQuery, path='/chains/{}/blocks/{}'):
         """
         return self.metadata()['level']['cycle']
 
-    def decode(self):
-        """
-        TODO
-        :return:
-        """
-        return Block(self())
+    @property
+    def endorsements(self):
+        return self.operations[0]
 
+    @property
+    def votes(self):
+        return self.operations[1]
 
-class BlockHeaderQuery(RpcQuery, path='/chains/{}/blocks/{}/header'):
+    @property
+    def evidences(self):
+        return self.operations[2]
 
-    def decode(self):
-        """
-        Converts JSON interpretation into the block header entity.
-        :return: `BlockHeader` instance
-        """
-        return BlockHeader(self())
+    @property
+    def transactions(self):
+        return self.operations[3]
 
 
 class ContractQuery(RpcQuery, path='/chains/{}/blocks/{}/context/contracts/{}'):
@@ -178,7 +176,7 @@ class BigMapGetQuery(RpcQuery, path='/chains/{}/blocks/{}/context/contracts/{}/b
 
     def post(self, key, key_type, key_prim):
         """
-        Access the value associated with a key in the big map storage  of the contract.
+        Access the value associated with a key in the big map storage  of the michelson.
         :param key:
         :param key_type: Provided key encoding, e.g. "string", "bytes" for hex-encoded string, "int"
         :param key_prim: Expected high-level data type, e.g. "address", "nat", "mutez" (see storage section in code)
@@ -207,30 +205,38 @@ class ContextSeedQuery(RpcQuery, path='/chains/{}/blocks/{}/context/seed'):
         return self._post()
 
 
-class OperationListListQuery(RpcQuery, path=['/chains/{}/blocks/{}/operation_hashes',
-                                             '/chains/{}/blocks/{}/operations']):
+class OperationListListQuery(RpcQuery, path=['/chains/{}/blocks/{}/operations']):
 
-    @property
-    def endorsements(self):
-        return self[0]
+    def __getitem__(self, item):
+        if isinstance(item, tuple):
+            return self[item[0]][item[1]]
 
-    @property
-    def votes(self):
-        return self[1]
+        if isinstance(item, str) and is_ogh(item):
+            operation_hashes = self._parent.operation_hashes()
 
-    @property
-    def anonymous(self):
-        return self[2]
+            def find_index():
+                for i, validation_pass in enumerate(operation_hashes):
+                    for j, og_hash in enumerate(validation_pass):
+                        if og_hash == item:
+                            return i, j
+                raise StopIteration('Operation group hash not found')
 
-    @property
-    def managers(self):
-        return self[3]
+            return self[find_index()]
+
+        return super(OperationListListQuery, self).__getitem__(item)
 
 
-class OperationQuery(RpcQuery, path='/chains/{}/blocks/{}/operations/{}/{}'):
+class OperationQuery(RpcQuery, path=['/chains/{}/blocks/{}/operations/{}/{}']):
 
-    def decode(self):
-        return self()
+    def unsigned(self):
+        data = self()
+        return {
+            'branch': data['branch'],
+            'contents': [
+                {k: v for k, v in content.items() if k != 'metadata'}
+                for content in data['contents']
+            ]
+        }
 
 
 class ProposalQuery(RpcQuery, path='/chains/{}/blocks/{}/votes/proposals/{}'):

@@ -9,7 +9,7 @@ repository = "https://github.com/baking-bad/pytezos"
 keywords = ['tezos', 'crypto', 'blockchain', 'xtz']
 
 [tool.poetry.dependencies]
-python = "^3.5"
+python = "^3.6"
 pysodium = "^0.7.1"
 pyblake2 = "^1.1.2"
 base58 = "^1.0.3"

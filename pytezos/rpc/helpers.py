@@ -176,8 +176,8 @@ class ScriptsPackDataQuery(RpcQuery, path='/chains/{}/blocks/{}/helpers/scripts/
         Computes the serialized version of some data expression using the same algorithm as script instruction PACK.
         :param expression: Json input:
         {
-            "data": <micheline expression>,
-            "type": <micheline expression>,
+            "data": <michelson expression>,
+            "type": <michelson expression>,
             "gas": <bignum>  // optional
         }
         :return: Packed data (hex encoded)
@@ -192,9 +192,9 @@ class ScriptsRunCodeQuery(RpcQuery, path='/chains/{}/blocks/{}/helpers/scripts/r
         Run a piece of code in the current context.
         :param invocation: Json input:
         {
-            "script": <micheline expression>,
-            "storage": <micheline expression>,
-            "input": <micheline expression>,
+            "script": <michelson expression>,
+            "storage": <michelson expression>,
+            "input": <michelson expression>,
             "amount": <mutez>,
             "source": <account address>,  // optional
             "payer": <account address>,  // optional
@@ -228,9 +228,9 @@ class ScriptsTraceCodeQuery(RpcQuery, path='/chains/{}/blocks/{}/helpers/scripts
         Run a piece of code in the current context, keeping a trace
         :param invocation: Json input:
         {
-            "script": <micheline expression>,
-            "storage": <micheline expression>,
-            "input": <micheline expression>,
+            "script": <michelson expression>,
+            "storage": <michelson expression>,
+            "input": <michelson expression>,
             "amount": <mutez>,
             "source": <account address>,  // optional
             "payer": <account address>,  // optional
@@ -248,8 +248,8 @@ class ScriptsTypecheckCodeQuery(RpcQuery, path='/chains/{}/blocks/{}/helpers/scr
         Check that some data expression is well formed and of a given type in the current context
         :param expression: Json input:
         {
-            "data": <micheline expression>,
-            "type": <micheline expression>,
+            "data": <michelson expression>,
+            "type": <michelson expression>,
             "gas": <bignum>  // optional
         }
         :return: Json object

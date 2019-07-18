@@ -3,7 +3,7 @@ import os
 
 from pytezos.rpc.node import RpcNode, RpcError, urljoin
 
-NO_INFO = 'No description ¯\\_(ツ)_/¯'
+NO_INFO = '¯\\_(ツ)_/¯'
 
 
 def get_attr_docstring(class_type, attr_name):

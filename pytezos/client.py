@@ -8,8 +8,4 @@ class Client:
         self._shell = shell
         self._keychain = keychain
 
-    def endorse_block(self, level):
-        pass
-
-    def reveal_seed_nonce(self, level, nonce):
-        pass
+    def
