@@ -2,7 +2,8 @@ import pendulum
 from pendulum.parsing.exceptions import ParserError
 from datetime import datetime
 
-from pytezos.rpc.query import RpcQuery, get_attr_docstring
+from pytezos.rpc.search import BlockSliceQuery
+from pytezos.rpc.query import RpcQuery
 from pytezos.encoding import is_bh, is_ogh
 
 
@@ -14,28 +15,6 @@ def to_timestamp(v):
     if isinstance(v, datetime):
         v = int(v.timestamp())
     return v
-
-
-class BlockSliceQuery(RpcQuery):
-
-    def __init__(self, length, head, **kwargs):
-        super(BlockSliceQuery, self).__init__(**kwargs)
-        self._length = length
-        self._head = head
-
-    def __repr__(self):
-        return f'()\n{get_attr_docstring(BlockSliceQuery, "__call__")}'
-
-    def __call__(self):
-        """
-        Slice
-        :return: Array of block hashes
-        """
-        header = self[self._head].header()
-        if self._length < 0:
-            self._length += header['level']
-
-        return super(BlockSliceQuery, self).__call__(length=self._length, head=header['hash'])
 
 
 class BlocksQuery(RpcQuery, path='/chains/{}/blocks'):
@@ -70,32 +49,46 @@ class BlocksQuery(RpcQuery, path='/chains/{}/blocks'):
             if not isinstance(block_id.start, int):
                 raise NotImplementedError('Slice start should be an integer.')
 
-            if block_id.stop is None:
-                head = 'head'
-            elif isinstance(block_id.stop, int):
-                if block_id.stop < 0:
-                    head = f'head~{abs(block_id.stop)}'
-                else:
-                    head = block_id.stop
-            else:
-                raise NotImplementedError('Slice stop can be an integer or None.')
-
-            if block_id.start < 0:
-                length = abs(block_id.start)
-                if isinstance(block_id.stop, int) and block_id.stop < 0:
-                    length -= abs(block_id.stop)
-            else:
-                length = -block_id.start
-
             return BlockSliceQuery(
-                length=length,
-                head=head,
+                start=block_id.start,
+                stop=block_id.stop,
                 node=self._node,
                 path=self._path,
                 params=self._params
             )
 
+        if isinstance(block_id, int) and block_id < 0:
+            return self.blocks[f'head~{block_id}']
+
         return super(BlocksQuery, self).__getitem__(block_id)
+
+    def voting_period(self):
+        """
+
+        :return: BlockSliceQuery
+        """
+        metadata = self.head.metadata()
+        return BlockSliceQuery(
+            start=-metadata['level']['voting_period_position'],
+            head='head',
+            node=self._node,
+            path=self._path,
+            params=self._params
+        )
+
+    def cycle(self):
+        """
+
+        :return: BlockSliceQuery
+        """
+        metadata = self.head.metadata()
+        return BlockSliceQuery(
+            start=-metadata['level']['cycle_position'],
+            head='head',
+            node=self._node,
+            path=self._path,
+            params=self._params
+        )
 
 
 class BlockQuery(RpcQuery, path='/chains/{}/blocks/{}'):
@@ -116,45 +109,22 @@ class BlockQuery(RpcQuery, path='/chains/{}/blocks/{}'):
     def baker(self):
         return self.context.contracts[self.metadata()['baker']]
 
-    def get_level(self) -> int:
+    def level(self) -> int:
         """
         Level for this block from metadata.
         :return: Integer
         """
         return self.metadata()['level']['level']
 
-    def get_cycle(self) -> int:
+    def cycle(self) -> int:
         """
         Cycle for this block from metadata.
         :return: Integer
         """
         return self.metadata()['level']['cycle']
 
-    @property
-    def endorsements(self):
-        return self.operations[0]
-
-    @property
-    def votes(self):
-        return self.operations[1]
-
-    @property
-    def evidences(self):
-        return self.operations[2]
-
-    @property
-    def transactions(self):
-        return self.operations[3]
-
 
 class ContractQuery(RpcQuery, path='/chains/{}/blocks/{}/context/contracts/{}'):
-
-    def decode(self):
-        """
-
-        :return:
-        """
-        return self()
 
     def get_public_key(self):
         """
@@ -174,7 +144,7 @@ class ContractQuery(RpcQuery, path='/chains/{}/blocks/{}/context/contracts/{}'):
 
 class BigMapGetQuery(RpcQuery, path='/chains/{}/blocks/{}/context/contracts/{}/big_map_get'):
 
-    def post(self, key, key_type, key_prim):
+    def post(self, key, key_type, key_prim):  # TODO: query
         """
         Access the value associated with a key in the big map storage  of the michelson.
         :param key:
@@ -190,6 +160,10 @@ class BigMapGetQuery(RpcQuery, path='/chains/{}/blocks/{}/context/contracts/{}/b
 
 class ContextRawBytesQuery(RpcQuery, path='/chains/{}/blocks/{}/context/raw/bytes'):
 
+    def __init__(self, *args, **kwargs):
+        kwargs.update(timeout=60)
+        super(ContextRawBytesQuery, self).__init__(*args, **kwargs)
+
     def __call__(self, depth=1):
         """
         Returns the raw context.
@@ -197,6 +171,13 @@ class ContextRawBytesQuery(RpcQuery, path='/chains/{}/blocks/{}/context/raw/byte
         :return:
         """
         return super(ContextRawBytesQuery, self).__call__(depth=depth)
+
+
+class ContextRawJsonQuery(RpcQuery, path='/chains/{}/blocks/{}/context/raw/json'):
+
+    def __init__(self, *args, **kwargs):
+        kwargs.update(timeout=60)
+        super(ContextRawJsonQuery, self).__init__(*args, **kwargs)
 
 
 class ContextSeedQuery(RpcQuery, path='/chains/{}/blocks/{}/context/seed'):
@@ -224,6 +205,40 @@ class OperationListListQuery(RpcQuery, path=['/chains/{}/blocks/{}/operations'])
             return self[find_index()]
 
         return super(OperationListListQuery, self).__getitem__(item)
+
+    @property
+    def endorsements(self):
+        return self[0]
+
+    @property
+    def votes(self):
+        return self[1]
+
+    @property
+    def anonymous(self):
+        return self[2]
+
+    @property
+    def managers(self):
+        return self[3]
+
+    def proposal(self, proposal_id):
+        def is_proposal(op):
+            return any(map(lambda x: proposal_id in x.get('proposals', []), op['contents']))
+        return next(filter(is_proposal, self.votes()))
+
+    def ballots(self, proposal_id) -> list:
+        def is_ballot(op):
+            return any(map(lambda x: proposal_id == x.get('proposal'), op['contents']))
+        return list(filter(is_ballot, self.votes()))
+
+    def origination(self, contract_id):
+        def is_origination(op):
+            def is_it(x):
+                return x['kind'] == 'origination' \
+                       and contract_id in x['metadata']['operation_result']['originated_contracts']
+            return any(map(is_it, op['contents']))
+        return next(filter(is_origination, self.managers()))
 
 
 class OperationQuery(RpcQuery, path=['/chains/{}/blocks/{}/operations/{}/{}']):
@@ -262,9 +277,10 @@ class ProposalsQuery(RpcQuery, path='/chains/{}/blocks/{}/votes/proposals'):
         :param proposal_id: Base58-encoded proposal ID
         :return: Integer
         """
-        return self._spawn_query(
-            path=f'{self._path}/proposal_id',
-            params=self._params + [proposal_id]
+        return ProposalQuery(
+            path=self._path + '/{}',
+            params=self._params + [proposal_id],
+            node=self._node
         )
 
     def __repr__(self):

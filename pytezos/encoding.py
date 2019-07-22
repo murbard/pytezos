@@ -110,7 +110,7 @@ def validate_sig(v):
 def is_pkh(v) -> bool:
     try:
         validate_pkh(v)
-    except ValueError:
+    except (ValueError, TypeError):
         return False
     return True
 
@@ -118,7 +118,7 @@ def is_pkh(v) -> bool:
 def is_sig(v) -> bool:
     try:
         validate_sig(v)
-    except ValueError:
+    except (ValueError, TypeError):
         return False
     return True
 
@@ -126,7 +126,7 @@ def is_sig(v) -> bool:
 def is_bh(v) -> bool:
     try:
         _validate(v, prefixes=[b'B'])
-    except ValueError:
+    except (ValueError, TypeError):
         return False
     return True
 
@@ -134,6 +134,6 @@ def is_bh(v) -> bool:
 def is_ogh(v) -> bool:
     try:
         _validate(v, prefixes=[b'o'])
-    except ValueError:
+    except (ValueError, TypeError):
         return False
     return True

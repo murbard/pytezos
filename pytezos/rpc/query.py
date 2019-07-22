@@ -79,10 +79,11 @@ class RpcQuery:
         else:
             cls.__extensions__[path] = cls
 
-    def __init__(self, node: RpcNode, path='', caching=False, params=None):
+    def __init__(self, node: RpcNode, path='', caching=False, params=None, timeout=None):
         self._node = node
         self._path = path
         self._caching = caching
+        self._timeout = timeout
         self._params = params or list()
 
     def _spawn_query(self, path, params):
@@ -108,11 +109,15 @@ class RpcQuery:
     def __getattr__(self, attr):
         if not attr.startswith('_'):
             if attr in {'main', 'test', 'head', 'genesis'}:
-                return self[attr]
-            return self._spawn_query(
-                path=f'{self._path}/{attr}',
-                params=self._params
-            )
+                return self._spawn_query(
+                    path=self._path + '/{}',
+                    params=self._params + [attr]
+                )
+            else:
+                return self._spawn_query(
+                    path=f'{self._path}/{attr}',
+                    params=self._params
+                )
         raise AttributeError(attr)
 
     def __getitem__(self, child_id):
@@ -140,7 +145,8 @@ class RpcQuery:
         return self._node.get(
             path=self._query_path,
             params=params,
-            caching=self._caching
+            caching=self._caching,
+            timeout=self._timeout
         )
 
     def _post(self, json=None, params=None):

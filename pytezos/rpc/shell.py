@@ -5,6 +5,7 @@ from binascii import hexlify
 
 from pytezos.encoding import base58_decode
 from pytezos.rpc.query import RpcQuery, get_attr_docstring
+from pytezos.rpc.search import CyclesQuery
 
 
 class ShellQuery(RpcQuery, path=''):
@@ -26,10 +27,18 @@ class ShellQuery(RpcQuery, path=''):
         """
         return self.blocks[self.head.hash()]
 
+    @property
+    def cycles(self):
+        return CyclesQuery(
+            node=self._node,
+            path=self._path + '/chains/{}/blocks',
+            params=self._params + ['main']
+        )
+
 
 class ChainQuery(RpcQuery, path='/chains/{}'):
 
-    def get_watermark(self):
+    def watermark(self):
         """
         Chain watermark
         :return: Hex encoded value

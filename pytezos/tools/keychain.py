@@ -5,10 +5,6 @@ from getpass import getpass
 from pytezos.crypto import Key
 
 
-class FaucetKey(Key):
-    pass
-
-
 class Keychain:
 
     def __init__(self, path='~/.pytezos/secret_keys'):

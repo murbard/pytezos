@@ -39,7 +39,7 @@ class RpcNode:
 
         return res
 
-    def get(self, path, params=None, caching=False, cache_key=None):
+    def get(self, path, params=None, caching=False, cache_key=None, timeout=None):
         if caching:
             if not cache_key:
                 cache_key = path
@@ -48,7 +48,7 @@ class RpcNode:
             if cache_key in self._cache:
                 return self._cache[cache_key]
 
-        res = self.request('GET', path, params=params).json()
+        res = self.request('GET', path, params=params, timeout=timeout).json()
         if caching:
             self._cache[cache_key] = res
 

@@ -1,2 +1,0 @@
-class OperationGroup:
-    pass

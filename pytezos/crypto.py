@@ -2,6 +2,7 @@ import hashlib
 import pysodium
 import secp256k1
 import binascii
+import json
 from fastecdsa.ecdsa import sign, verify
 from fastecdsa.keys import get_public_key
 from fastecdsa.curve import P256
@@ -153,6 +154,17 @@ class Key(object):
             assert False
 
         return cls(public_point, secret_exponent)
+
+    @classmethod
+    def from_faucet(cls, path):
+        with open(path, 'r') as f:
+            data = json.loads(f.read())
+
+        return cls.from_mnemonic(
+            mnemonic=data['mnemonic'],
+            passphrase=data['password'],
+            email=data['email']
+        )
 
     def public_key(self):
         """

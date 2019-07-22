@@ -7,5 +7,3 @@ class Client:
     def __init__(self, shell=alphanet, keychain=Keychain()):
         self._shell = shell
         self._keychain = keychain
-
-    def
