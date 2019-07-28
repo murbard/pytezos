@@ -15,7 +15,7 @@ class OTP:
         """
         if not isinstance(key, Key):
             if is_pkh(key):
-                key = shell.get_public_key(key)
+                key = shell.public_key(key)
             key = Key.from_key(key)
 
         self._key = key

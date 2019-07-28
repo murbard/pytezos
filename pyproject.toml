@@ -2,7 +2,7 @@
 name = "pytezos"
 version = "1.2.2"
 description = "Python utils for Tezos"
-authors = ["Arthur Breitman, Michael Zaikin <baking-bad.org>"]
+authors = ["Michael Zaikin <mz@baking-bad.org>", "Arthur Breitman", "Roman Serikov"]
 license = "MIT"
 readme = "README.md"
 repository = "https://github.com/baking-bad/pytezos"

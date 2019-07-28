@@ -3,6 +3,8 @@ import pysodium
 import secp256k1
 import binascii
 import json
+import os
+from getpass import getpass
 from fastecdsa.ecdsa import sign, verify
 from fastecdsa.keys import get_public_key
 from fastecdsa.curve import P256
@@ -47,12 +49,15 @@ class Key(object):
         self.curve = curve
         self.is_secret = secret_exponent is not None
 
+    def __repr__(self):
+        return self.public_key_hash()
+
     @classmethod
     def from_secret_key(cls, secret_exponent: bytes, curve=b'ed'):
         """
         Creates a key object from a secret exponent.
         :param secret_exponent: secret exponent or seed
-        :param curve: an elliptic curve used, default is ed25519
+        :param curve: b'sp' for Secp251k1, b'p2' for P256/Secp256r1, b'ed' for Ed25519 (default)
         """
         # Ed25519
         if curve == b'ed':
@@ -79,7 +84,7 @@ class Key(object):
         """
         Creates a key object from a public elliptic point.
         :param public_point: elliptic point in the compressed format (see https://tezos.stackexchange.com/a/623/309)
-        :param curve: an elliptic curve used, default is ed25519
+        :param curve: b'sp' for secp251k1, b'p2' for P256/secp256r1, b'ed' for Ed25519 (default)
         """
         return cls(public_point, curve=curve)
 
@@ -127,6 +132,32 @@ class Key(object):
         return cls.from_secret_key(key, curve)
 
     @classmethod
+    def generate(cls, passphrase='', curve=b'ed', strength=128, language='english', export=True):
+        """
+        Generates new key
+        :param passphrase: optional password
+        :param curve: b'sp' for secp251k1, b'p2' for P256/secp256r1, b'ed' for Ed25519 (default)
+        :param strength: mnemonic strength, default is 128
+        :param language: mnemonic language, default is english
+        :param export: export as json file in the current folder, default is True
+        :return: Key
+        """
+        mnemonic = Mnemonic(language).generate(strength)
+        key = cls.from_mnemonic(mnemonic, passphrase, curve=curve)
+
+        if export:
+            pkh = key.public_key_hash()
+            data = {
+                'mnemonic': mnemonic.split(),
+                'pkh': pkh,
+                'password': passphrase
+            }
+            with open(os.path.abspath(f'./{pkh}.json')) as f:
+                f.write(json.dumps(data))
+
+        return key
+
+    @classmethod
     def from_mnemonic(cls, mnemonic, passphrase='', email='', validate=True, curve=b'ed'):
         """
         Creates a key object from a bip39 mnemonic.
@@ -134,7 +165,7 @@ class Key(object):
         :param passphrase: a mnemonic password or a fundraiser key
         :param email: email used if a fundraiser key is passed
         :param validate: whether to check mnemonic or not
-        :param curve:
+        :param curve: b'sp' for secp251k1, b'p2' for P256/secp256r1, b'ed' for Ed25519 (default)
         """
         if isinstance(mnemonic, list):
             mnemonic = ' '.join(mnemonic)
@@ -157,14 +188,48 @@ class Key(object):
 
     @classmethod
     def from_faucet(cls, path):
+        """
+        Import key from a faucet file: https://faucet.tzalpha.net/
+        :param path: path to the json file
+        :return: Key
+        """
         with open(path, 'r') as f:
             data = json.loads(f.read())
 
-        return cls.from_mnemonic(
+        key = cls.from_mnemonic(
             mnemonic=data['mnemonic'],
-            passphrase=data['password'],
-            email=data['email']
+            passphrase=data.get('password', ''),
+            email=data.get('email', '')
         )
+        if key.public_key_hash() != data['pkh']:
+            raise ValueError('Failed to import')
+
+        return key
+
+    @classmethod
+    def from_alias(cls, alias, passphrase='', path='~/.tezos-client/secret_keys'):
+        """
+        Import secret key from tezos-client keychain
+        :param alias: key alias
+        :param passphrase: if key is encrypted (optional)
+        :param path: path to the keychain (default is `~/.tezos-client/secret_keys`)
+        :return: Key
+        """
+        with open(path, 'r') as f:
+            data = json.loads(f.read())
+
+        value = next(x['value'] for x in data if x['name'] == alias)
+        prefix, sk = value.split(':', maxsplit=1)
+
+        if prefix == 'encrypted':
+            if not passphrase:
+                passphrase = getpass(f'Please, enter passphrase for `{alias}`:\n')
+            key = cls.from_key(sk, passphrase=passphrase)
+            del passphrase
+        else:
+            key = cls.from_key(sk)
+
+        return key
 
     def public_key(self):
         """

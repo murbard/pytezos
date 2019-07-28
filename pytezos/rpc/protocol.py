@@ -109,6 +109,9 @@ class BlockQuery(RpcQuery, path='/chains/{}/blocks/{}'):
     def baker(self):
         return self.context.contracts[self.metadata()['baker']]
 
+    def voting_period(self):
+        return self.metadata()['level']['voting_period']
+
     def level(self) -> int:
         """
         Level for this block from metadata.
@@ -126,7 +129,7 @@ class BlockQuery(RpcQuery, path='/chains/{}/blocks/{}'):
 
 class ContractQuery(RpcQuery, path='/chains/{}/blocks/{}/context/contracts/{}'):
 
-    def get_public_key(self):
+    def public_key(self):
         """
         Retrieves the owner's public key
         :return: base58 encoded public key
@@ -140,6 +143,9 @@ class ContractQuery(RpcQuery, path='/chains/{}/blocks/{}/context/contracts/{}'):
             raise ValueError('Public key is not revealed.')
 
         return pk
+
+    def next_counter(self):
+        return int(self.counter()) + 1
 
 
 class BigMapGetQuery(RpcQuery, path='/chains/{}/blocks/{}/context/contracts/{}/big_map_get'):

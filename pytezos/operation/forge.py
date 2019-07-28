@@ -2,19 +2,19 @@ import base58
 import json
 
 
-OPERATION_TYPES = [
-    "endorsement",
-    "seedNonceRevelation",
-    "doubleEndorsementEvidence",
-    "doubleBakingEvidence",
-    "accountActivation",
-    "proposal",
-    "ballot",
-    "reveal",
-    "transaction",
-    "origination",
-    "delegation"
-]
+OPERATION_TYPES = {
+    "endorsement": 0,
+    "seedNonceRevelation": 1,
+    "doubleEndorsementEvidence": 2,
+    "doubleBakingEvidence": 3,
+    "accountActivation": 4,
+    "proposal": 5,
+    "ballot": 6,
+    "reveal": 7,
+    "transaction": 8,
+    "origination": 9,
+    "delegation": 10
+}
 
 PRIM_MAPPING_REVERSE = [
     {
@@ -302,7 +302,7 @@ def write_address(value):
 def write_boolean(value):
     if value == "true":
         return b"\xff"
-    elif value == True:
+    elif value is True:
         return b"\xff"
 
     return b"\x00"
@@ -347,7 +347,6 @@ def write_json(data):
                 num = int(data["int"])
                 mark = '0' if num >= 0 else '1'
                 binary = format(num, "b")
-                pad = 0
 
                 if (len(binary) - 6) % 7 == 0:
                     pad = len(binary)

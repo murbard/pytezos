@@ -13,28 +13,43 @@ def michelson_to_micheline(source):
     return michelson_parser.parse(source)
 
 
+def micheline_to_bytes(expression):
+    pass
+
+
 class Script:
 
-    def __init__(self, code):
+    def __init__(self, script):
         """
-        :param code: ['parameter': {}, 'storage': {}, 'code': {}]
+        :param script: ['parameter': {}, 'storage': {}, 'code': {}]
         """
-        self._code = code  # type: list
+        self._script = script
 
     def __repr__(self):
-        return str(self._code)
+        return str(self._script)
+
+    @classmethod
+    def from_script(cls, script):
+        return Script(script)
 
     @classmethod
     def from_michelson(cls, source):
         return Script(michelson_to_micheline(source))
 
     @classmethod
-    def from_tz_file(cls, path):
+    def from_file(cls, path):
         with open(path) as f:
             return cls.from_michelson(f.read())
 
+    @classmethod
+    def from_bytes(cls, data):
+        raise NotImplementedError
+
+    def to_bytes(self):
+        pass
+
     def _get_section(self, section):
-        return next(s for s in self._code if s['prim'] == section)
+        return next(x for x in self._script if x == section)
 
     @lru_cache(maxsize=None)
     def _get_schema(self, section):

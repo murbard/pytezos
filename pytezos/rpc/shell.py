@@ -35,6 +35,10 @@ class ShellQuery(RpcQuery, path=''):
             params=self._params + ['main']
         )
 
+    @property
+    def contracts(self):
+        return self.head.context.contracts
+
 
 class ChainQuery(RpcQuery, path='/chains/{}'):
 
