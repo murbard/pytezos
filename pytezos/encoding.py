@@ -153,27 +153,24 @@ def is_ogh(v) -> bool:
     return True
 
 
-def encode_int(value):
+def encode_nat(value):
     """
     Encode a number using LEB128 encoding (Zarith)
     :param int value: the value to encode
     :return: encoded value
     :rtype: bytes
     """
-
     if value < 0:
-        raise ValueError("Value cannot be negative.")
+        raise ValueError('Value cannot be negative.')
 
     buf = bytearray()
     more = True
 
     while more:
-        # Obtain the lowest 7 bits, and shift the remainder.
         byte = value & 0x7f
         value >>= 7
 
         if value:
-            # Not done yet
             byte |= 0x80
         else:
             more = False
@@ -187,36 +184,39 @@ def encode_public_key(value):
     prefix = value[:4]
     res = base58.b58decode_check(value)[4:]
 
-    if prefix == "edpk":
-        return b"\x00" + res
-    elif prefix == "sppk":
-        return b"\x01" + res
-    elif prefix == "p2pk":
-        return b"\x02" + res
+    if prefix == 'edpk':
+        return b'\x00' + res
+    elif prefix == 'sppk':
+        return b'\x01' + res
+    elif prefix == 'p2pk':
+        return b'\x02' + res
 
-    raise ValueError(f"Unrecognized key type: #{prefix}")
+    raise ValueError(f'Unrecognized key type: #{prefix}')
 
 
 def encode_address(value):
     prefix = value[:3]
     res = base58.b58decode_check(value)[3:]
 
-    if prefix == "tz1":
-        return b"\x00\x00" + res
-    elif prefix == "tz2":
-        return b"\x00\x01" + res
-    elif prefix == "tz3":
-        return b"\x00\x02" + res
-    elif prefix == "KT1":
-        return b"\x01" + res + b"\x00"
+    if prefix == 'tz1':
+        return b'\x00\x00' + res
+    elif prefix == 'tz2':
+        return b'\x00\x01' + res
+    elif prefix == 'tz3':
+        return b'\x00\x02' + res
+    elif prefix == 'KT1':
+        return b'\x01' + res + b'\x00'
 
     raise ValueError(f"Unrecognized address prefix: #{prefix}")
 
 
 def encode_boolean(value):
-    if value == "true":
-        return b"\xff"
-    elif value is True:
-        return b"\xff"
+    return b'\xff' if value else b'\x00'
 
-    return b"\x00"
+
+def encode_with_len(data: bytes):
+    return len(data).to_bytes(4, 'big') + data
+
+
+def encode_b58_value(value):
+    return base58_decode(value.encode())

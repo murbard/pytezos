@@ -1,4 +1,5 @@
 import requests
+from json import JSONDecodeError
 from hashlib import sha1
 from urllib.parse import urlencode
 
@@ -61,7 +62,12 @@ class RpcNode:
             if cache_key in self._cache:
                 return self._cache[cache_key]
 
-        res = self.request('POST', path, params=params, json=json).json()
+        response = self.request('POST', path, params=params, json=json)
+        try:
+            res = response.json()
+        except JSONDecodeError:
+            res = response.text
+
         if caching:
             self._cache[cache_key] = res
 

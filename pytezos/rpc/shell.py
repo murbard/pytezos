@@ -39,6 +39,10 @@ class ShellQuery(RpcQuery, path=''):
     def contracts(self):
         return self.head.context.contracts
 
+    @property
+    def mempool(self):
+        return self.chains.main.mempool
+
 
 class ChainQuery(RpcQuery, path='/chains/{}'):
 
@@ -69,20 +73,18 @@ class MempoolQuery(RpcQuery, path='/chains/{}/mempool'):
 
 class PendingOperationsQuery(RpcQuery, path='/chains/{}/mempool/pending_operations'):
 
-    def applied(self):
-        return self()['applied']
-
-    def refused(self):
-        return self()['refused']
-
-    def branch_refused(self):
-        return self()['branch_refused']
-
-    def branch_delayed(self):
-        return self()['branch_delayed']
-
-    def unprocessed(self):
-        return self()['unprocessed']
+    def __getitem__(self, item):
+        """
+        Search for operation in node's mempool by hash
+        :param item: operation group hash, base58 encoded
+        :return: operation with status field if found, StopIteration raised otherwise
+        """
+        operations_dict = self()
+        for status, operations in operations_dict.items():
+            for operation in operations:
+                if operation['hash'] == item:
+                    return {'status': status, **operation}
+        raise StopIteration
 
 
 class DescribeQuery(RpcQuery, path='/describe'):
@@ -140,12 +142,15 @@ class OperationInjectionQuery(RpcQuery, path='/injection/operation'):
         Inject an operation in node and broadcast it.
         The `signedOperationContents` should be constructed using a contextual RPCs from the latest block
         and signed by the client.
-        :param operation: Hex-encoded operation data
+        :param operation: Hex-encoded operation data or bytes
         :param _async: By default, the RPC will wait for the operation to be (pre-)validated before answering,
         set True if you don't want to.
         :param chain: Optionally you can specify the chain
         :return: ID of the operation
         """
+        if isinstance(operation, bytes):
+            operation = operation.hex()
+
         return self._post(
             params={
                 'async': _async,

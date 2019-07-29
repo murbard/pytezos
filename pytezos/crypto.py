@@ -43,11 +43,12 @@ class Key(object):
     Represents a public or secret key for Tezos. Ed25519, Secp256k1 and P256
     are supported.
     """
-    def __init__(self, public_point, secret_exponent=None, curve=b'ed'):
+    def __init__(self, public_point, secret_exponent=None, curve=b'ed', activation_code=None):
         self._public_point = public_point
         self._secret_exponent = secret_exponent
         self.curve = curve
         self.is_secret = secret_exponent is not None
+        self.activation_code = activation_code
 
     def __repr__(self):
         return self.public_key_hash()
@@ -158,7 +159,7 @@ class Key(object):
         return key
 
     @classmethod
-    def from_mnemonic(cls, mnemonic, passphrase='', email='', validate=True, curve=b'ed'):
+    def from_mnemonic(cls, mnemonic, passphrase='', email='', validate=True, curve=b'ed', activation_code=None):
         """
         Creates a key object from a bip39 mnemonic.
         :param mnemonic: a 15 word bip39 english mnemonic
@@ -166,6 +167,7 @@ class Key(object):
         :param email: email used if a fundraiser key is passed
         :param validate: whether to check mnemonic or not
         :param curve: b'sp' for secp251k1, b'p2' for P256/secp256r1, b'ed' for Ed25519 (default)
+        :param activation_code: secret for initializing account balance
         """
         if isinstance(mnemonic, list):
             mnemonic = ' '.join(mnemonic)
@@ -184,7 +186,7 @@ class Key(object):
         else:
             assert False
 
-        return cls(public_point, secret_exponent)
+        return cls(public_point, secret_exponent, activation_code=activation_code)
 
     @classmethod
     def from_faucet(cls, path):
@@ -199,7 +201,8 @@ class Key(object):
         key = cls.from_mnemonic(
             mnemonic=data['mnemonic'],
             passphrase=data.get('password', ''),
-            email=data.get('email', '')
+            email=data.get('email', ''),
+            activation_code=data['secret']
         )
         if key.public_key_hash() != data['pkh']:
             raise ValueError('Failed to import')

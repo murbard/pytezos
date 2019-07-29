@@ -1,6 +1,8 @@
 import pendulum
 from pendulum.parsing.exceptions import ParserError
 from datetime import datetime
+from itertools import count
+from typing import Iterator
 
 from pytezos.rpc.search import BlockSliceQuery
 from pytezos.rpc.query import RpcQuery
@@ -144,8 +146,8 @@ class ContractQuery(RpcQuery, path='/chains/{}/blocks/{}/context/contracts/{}'):
 
         return pk
 
-    def next_counter(self):
-        return int(self.counter()) + 1
+    def count(self) -> Iterator:
+        return count(start=int(self.counter()) + 1, step=1)
 
 
 class BigMapGetQuery(RpcQuery, path='/chains/{}/blocks/{}/context/contracts/{}/big_map_get'):
@@ -214,18 +216,35 @@ class OperationListListQuery(RpcQuery, path=['/chains/{}/blocks/{}/operations'])
 
     @property
     def endorsements(self):
+        """
+        Operations with content of type: `endorsement`
+        :return: OperationListQuery
+        """
         return self[0]
 
     @property
     def votes(self):
+        """
+        Operations with content of type: `proposal`, `ballot`
+        :return: OperationListQuery
+        """
         return self[1]
 
     @property
     def anonymous(self):
+        """
+        Operations with content of type: `seed_nonce_revelation`, `double_endorsement_evidence`,
+            `double_baking_evidence`, `activate_account`
+        :return: OperationListQuery
+        """
         return self[2]
 
     @property
     def managers(self):
+        """
+        Operations with content of type: `reveal`, `transaction`, `origination`, `delegation`
+        :return: OperationListQuery
+        """
         return self[3]
 
     def proposal(self, proposal_id):

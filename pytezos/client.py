@@ -11,16 +11,8 @@ class PyTezosClient(ContentMixin):
         self.key = key  # type: Key
 
     @staticmethod
-    def using(*args):
-        kwargs = dict()
-        for arg in args:
-            if isinstance(arg, Key):
-                kwargs['key'] = arg
-            elif isinstance(arg, ShellQuery):
-                kwargs['shell'] = arg
-            else:
-                raise NotImplementedError(arg)
-        return PyTezosClient(**kwargs)
+    def using(shell: ShellQuery, key: Key):
+        return PyTezosClient(shell, key)
 
     def operation_group(self, protocol=None, branch=None, contents: list = None, signature=None):
         return OperationGroup(

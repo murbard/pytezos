@@ -1,7 +1,7 @@
 from decimal import Decimal
 
 
-def format_number(value):
+def format_mutez(value):
     if value is None:
         value = 0
     elif isinstance(value, Decimal):
@@ -24,7 +24,7 @@ class ContentMixin:
         """
         return self.operation({
             'kind': 'endorsement',
-            'level': level
+            'level': str(level)
         })
 
     def seed_nonce_revelation(self, level: int, nonce):
@@ -37,7 +37,7 @@ class ContentMixin:
         """
         return self.operation({
             'kind': 'seed_nonce_revelation',
-            'level': level,
+            'level': str(level),
             'nonce': nonce
         })
 
@@ -74,7 +74,7 @@ class ContentMixin:
             'bh2': bh2
         })
 
-    def activate_account(self, activation_code, pkh=None):
+    def activate_account(self, activation_code='', pkh=''):
         """
         Activate recommended allocations for contributions to the TF fundraiser.
         More info https://activate.tezos.com/
@@ -84,12 +84,12 @@ class ContentMixin:
         """
         return self.operation({
             'kind': 'activate_account',
-            'pkh': pkh or '',
+            'pkh': pkh,
             'secret': activation_code
         })
 
     def proposals(self, proposals,
-                  source=None, period=None):
+                  source='', period=0):
         """
         Submit and/or upvote proposals to amend the protocol.
         Can only be submitted during a proposal period.
@@ -105,12 +105,12 @@ class ContentMixin:
         return self.operation({
             'kind': 'proposals',
             'source': source,
-            'period': period,
+            'period': str(period),
             'proposals': proposals
         })
 
     def ballot(self, proposal, ballot,
-               source=None, period=None):
+               source='', period=0):
         """
         Vote for a proposal in a given voting period.
         Can only be submitted during Testing_vote or Promotion_vote periods, and only once per period.
@@ -124,13 +124,13 @@ class ContentMixin:
         return self.operation({
             'kind': 'ballot',
             'source': source,
-            'period': period,
+            'period': str(period),
             'proposal': proposal,
             'ballot': ballot
         })
 
-    def reveal(self, public_key,
-               source=None, counter=None, fee=None, gas_limit=None, storage_limit=None):
+    def reveal(self, public_key='',
+               source='', counter=0, fee=0, gas_limit=0, storage_limit=0):
         """
         Reveal the public key associated with a tz address.
         :param public_key: Public key to reveal, Base58 encoded
@@ -145,15 +145,15 @@ class ContentMixin:
         return self.operation({
             'kind': 'reveal',
             'source': source,
-            'fee': fee,
-            'counter': counter,
-            'gas_limit': gas_limit,
-            'storage_limit': storage_limit,
+            'fee': format_mutez(fee),
+            'counter': str(counter),
+            'gas_limit': str(gas_limit),
+            'storage_limit': str(storage_limit),
             'public_key': public_key
         })
 
     def transaction(self, destination, amount=0, parameters=None,
-                    source=None, counter=None, fee=None, gas_limit=None, storage_limit=None):
+                    source='', counter=0, fee=0, gas_limit=0, storage_limit=0):
         """
         Transfer tezzies to an account (implicit or originated).
         If the receiver is an originated account (KT1…), then optional parameters may be passed.
@@ -169,18 +169,18 @@ class ContentMixin:
         """
         return self.operation({
             'kind': 'transaction',
-            'source': source or '',
-            'fee': format_number(fee),
-            'counter': format_number(counter),
-            'gas_limit': format_number(gas_limit),
-            'storage_limit': format_number(storage_limit),
-            'amount': format_number(amount),
+            'source': source,
+            'fee': format_mutez(fee),
+            'counter': str(counter),
+            'gas_limit': str(gas_limit),
+            'storage_limit': str(storage_limit),
+            'amount': format_mutez(amount),
             'destination': destination,
             'parameters': parameters or {}
         })
 
-    def origination(self, script=None, manager_pubkey=None,
-                    source=None, counter=None, fee=None, gas_limit=None, storage_limit=None):
+    def origination(self, script=None, manager_pubkey='',
+                    source='', counter=0, fee=0, gas_limit=0, storage_limit=0):
         """
         :param manager_pubkey:
         :param script:
@@ -194,17 +194,17 @@ class ContentMixin:
         return self.operation({
             'kind': 'transaction',
             'source': source,
-            'fee': fee,
-            'counter': counter,
-            'gas_limit': gas_limit,
-            'storage_limit': storage_limit,
+            'fee': format_mutez(fee),
+            'counter': str(counter),
+            'gas_limit': str(gas_limit),
+            'storage_limit': str(storage_limit),
             'manager_pubkey': manager_pubkey,
-            'balance': 0,
-            'script': script
+            'balance': '0',
+            'script': script or {}
         })
 
-    def delegation(self, delegate=None,
-                   source=None, counter=None, fee=None, gas_limit=None, storage_limit=None):
+    def delegation(self, delegate='',
+                   source='', counter=0, fee=0, gas_limit=0, storage_limit=0):
         """
 
         :param delegate:
@@ -218,12 +218,28 @@ class ContentMixin:
         return self.operation({
             'kind': 'delegation',
             'source': source,
-            'fee': fee,
-            'counter': counter,
-            'gas_limit': gas_limit,
-            'storage_limit': storage_limit,
+            'fee': format_mutez(fee),
+            'counter': str(counter),
+            'gas_limit': str(gas_limit),
+            'storage_limit': str(storage_limit),
             'delegate': delegate
         })
+
+
+def get_fees(operation_kind, strategy='avg'):
+    pass
+
+
+class Fees:
+
+    def avg(self):
+        pass
+
+    def max(self):
+        pass
+
+    def precise(self):
+        pass
 
 #
 # class Transaction(Content):
