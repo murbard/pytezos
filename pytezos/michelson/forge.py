@@ -170,6 +170,7 @@ def micheline_to_bytes(data):
         if data.get('prim'):
             args_len = len(data.get('args', []))
             annots_len = len(data.get('annots', []))
+
             res.append(len_tags[args_len][annots_len > 0])
             res.append(prim_tags[data['prim']])
 
@@ -190,7 +191,8 @@ def micheline_to_bytes(data):
         elif data.get('string'):
             res.append(b'\x01')
             res.append(encode_with_len(data['string'].encode()))
-
+        else:
+            raise NotImplementedError(data)
     else:
         raise ValueError(data)
 

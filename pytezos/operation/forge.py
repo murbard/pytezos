@@ -1,6 +1,6 @@
 from pytezos.encoding import encode_address, encode_boolean, encode_nat, encode_with_len, encode_public_key, \
     encode_b58_value
-from pytezos.michelson.forge import micheline_to_bytes
+from pytezos.michelson.forge import micheline_to_bytes, encode_script
 
 operation_tags = {
     'endorsement': 0,
@@ -89,18 +89,18 @@ def encode_origination(content):
     res += encode_boolean(content.get('delegatable'))
 
     if content.get('delegate'):
-        content += encode_boolean(True)
-        content += encode_address(content['delegate'])[1:]
+        res += encode_boolean(True)
+        res += encode_address(content['delegate'])[1:]
     else:
-        content += encode_boolean(False)
+        res += encode_boolean(False)
         
     if content.get('script'):
-        content += encode_boolean(True)
-        content += micheline_to_bytes(content['script'])
+        res += encode_boolean(True)
+        res += encode_script(content['script'])
     else:
-        content += encode_boolean(False)
+        res += encode_boolean(False)
 
-    return content
+    return res
 
 
 def encode_delegation(content):
