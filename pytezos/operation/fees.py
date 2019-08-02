@@ -1,4 +1,4 @@
-from pytezos.operation.forge import encode_operation
+from pytezos.operation.forge import forge_operation
 
 
 class FeesProvider:
@@ -31,7 +31,7 @@ class Athens004FeesProvider(FeesProvider, protocol='Pt24m4xiPbLDhVgVfABUjirbmda3
     minimal_nanotez_per_gas_unit = .1
 
     def calculate_fee(self, content, consumed_gas, extra_size):
-        size = len(encode_operation(content)) + extra_size
+        size = len(forge_operation(content)) + extra_size
         fee = self.minimal_fees \
             + self.minimal_nanotez_per_byte * size \
             + int(self.minimal_nanotez_per_gas_unit * consumed_gas)

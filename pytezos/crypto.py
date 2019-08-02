@@ -210,14 +210,15 @@ class Key(object):
         return key
 
     @classmethod
-    def from_alias(cls, alias, passphrase='', path='~/.tezos-client/secret_keys'):
+    def from_alias(cls, alias, passphrase='', tezos_client_dir='~/.tezos-client'):
         """
         Import secret key from tezos-client keychain
         :param alias: key alias
         :param passphrase: if key is encrypted (optional)
-        :param path: path to the keychain (default is `~/.tezos-client/secret_keys`)
+        :param tezos_client_dir: path to the tezos client directory (default is `~/.tezos-client`)
         :return: Key
         """
+        path = os.path.expanduser(os.path.join(tezos_client_dir, 'secret_keys'))
         with open(path, 'r') as f:
             data = json.loads(f.read())
 

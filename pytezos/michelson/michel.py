@@ -119,19 +119,6 @@ def build_schema(code) -> Schema:
     return Schema(type_map, collapsed_tree)
 
 
-def get_json_path(schema: Schema, path):
-    type_info = schema.type_map[path[0]]
-    json_path = list()
-    for i in path[1:]:
-        index = int(i)
-        if type_info.get('props'):
-            json_path.append(type_info['props'][index])
-        else:
-            json_path.append(i)
-        type_info = schema.type_map[type_info['children'][index]]
-    return '/'.join(json_path)
-
-
 def decode_data(data, schema: Schema, annotations=True, literals=True, root='0'):
     def decode_node(node, path='0'):
         type_info = schema.type_map.get(path, {})
@@ -301,28 +288,3 @@ def encode_data(data, schema: Schema, binary=False, root='0'):
         )
 
     return encode_node(root)
-
-
-def decode_schema(schema: Schema):
-    def decode_node(node):
-        if node['prim'] == 'or':
-            return {
-                arg.get('name', str(i)): decode_node(arg)
-                for i, arg in enumerate(node['args'])
-            }
-        if node['prim'] == 'pair':
-            args = list(map(lambda x: (x.get('name'), decode_node(x)), node['args']))
-            names, values = zip(*args)
-            return dict(args) if all(names) else values
-        if node['prim'] == 'set':
-            return {decode_node(node['args'][0])}
-        if node['prim'] == 'list':
-            return [decode_node(node['args'][0])]
-        if node['prim'] in {'map', 'big_map'}:
-            return {decode_node(node['args'][0]): decode_node(node['args'][1])}
-        if node['prim'] == 'option':
-            return decode_node(node['args'][0])
-
-        return f'#{node["prim"]}'
-
-    return decode_node(schema.collapsed_tree)

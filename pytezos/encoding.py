@@ -153,7 +153,23 @@ def is_ogh(v) -> bool:
     return True
 
 
-def encode_nat(value):
+def is_kt(v) -> bool:
+    try:
+        _validate(v, prefixes=[b'KT1'])
+    except (ValueError, TypeError):
+        return False
+    return True
+
+
+def is_key(v) -> bool:
+    try:
+        _validate(v, prefixes=[b"edsk", b"edpk", b"spsk", b"p2sk", b"sppk", b"p2pk"])
+    except (ValueError, TypeError):
+        return False
+    return True
+
+
+def forge_nat(value) -> bytes:
     """
     Encode a number using LEB128 encoding (Zarith)
     :param int value: the value to encode
@@ -180,7 +196,7 @@ def encode_nat(value):
     return bytes(buf)
 
 
-def encode_public_key(value):
+def forge_public_key(value) -> bytes:
     prefix = value[:4]
     res = base58.b58decode_check(value)[4:]
 
@@ -194,29 +210,55 @@ def encode_public_key(value):
     raise ValueError(f'Unrecognized key type: #{prefix}')
 
 
-def encode_address(value):
+def parse_public_key(data: bytes):
+    key_prefix = {
+        b'\x00': b'edpk',
+        b'\x01': b'sppk',
+        b'\x02': b'p2pk'
+    }
+    return base58_encode(data[1:], key_prefix[data[:1]]).decode()
+
+
+def forge_address(value, tz_only=False) -> bytes:
     prefix = value[:3]
-    res = base58.b58decode_check(value)[3:]
+    address = base58.b58decode_check(value)[3:]
 
     if prefix == 'tz1':
-        return b'\x00\x00' + res
+        res = b'\x00\x00' + address
     elif prefix == 'tz2':
-        return b'\x00\x01' + res
+        res = b'\x00\x01' + address
     elif prefix == 'tz3':
-        return b'\x00\x02' + res
+        res = b'\x00\x02' + address
     elif prefix == 'KT1':
-        return b'\x01' + res + b'\x00'
+        res = b'\x01' + address + b'\x00'
+    else:
+        raise ValueError(value)
 
-    raise ValueError(f"Unrecognized address prefix: #{prefix}")
+    return res[1:] if tz_only else res
 
 
-def encode_boolean(value):
+def parse_address(data: bytes):
+    tz_prefix = {
+        b'\x00\x00': b'tz1',
+        b'\x00\x01': b'tz2',
+        b'\x00\x02': b'tz3'
+    }
+
+    if data.startswith(b'\x00'):
+        return base58_encode(data[2:], tz_prefix[data[:2]]).decode()
+    elif data.startswith(b'\x01') and data.endswith(b'\x00'):
+        return base58_encode(data[1:-2], b'KT1').decode()
+    else:
+        return base58_encode(data[1:], tz_prefix[b'\x00' + data[:1]]).decode()
+
+
+def forge_bool(value) -> bytes:
     return b'\xff' if value else b'\x00'
 
 
-def encode_with_len(data: bytes):
+def forge_array(data) -> bytes:
     return len(data).to_bytes(4, 'big') + data
 
 
-def encode_b58_value(value):
+def forge_base58(value) -> bytes:
     return base58_decode(value.encode())

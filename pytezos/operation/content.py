@@ -1,5 +1,8 @@
 from decimal import Decimal
 
+from pytezos.michelson import michelson_to_micheline
+from pytezos.michelson.contract import Contract
+
 
 def format_mutez(value):
     if value is None:
@@ -167,6 +170,9 @@ class ContentMixin:
         :param storage_limit:
         :return: Operation content
         """
+        if isinstance(parameters, str):
+            parameters = michelson_to_micheline(parameters)
+
         return self.operation({
             'kind': 'transaction',
             'source': source,
@@ -179,11 +185,12 @@ class ContentMixin:
             'parameters': parameters or {}
         })
 
-    def origination(self, script=None, manager_pubkey='',
+    def origination(self, code=None, storage=None, manager_pubkey='',
                     source='', counter=0, fee=0, gas_limit=0, storage_limit=0):
         """
         :param manager_pubkey:
-        :param script:
+        :param code:
+        :param storage:
         :param source:
         :param counter:
         :param fee:
@@ -191,6 +198,19 @@ class ContentMixin:
         :param storage_limit:
         :return:
         """
+        if code:
+            if isinstance(code, str):
+                code = michelson_to_micheline(code)
+
+            if isinstance(storage, str):
+                storage = michelson_to_micheline(storage)
+            elif storage is None:
+                storage = Contract.from_micheline(code).default_storage(output='micheline')
+
+            script = {'code': code, 'storage': storage}
+        else:
+            script = {}
+
         return self.operation({
             'kind': 'transaction',
             'source': source,
@@ -200,7 +220,7 @@ class ContentMixin:
             'storage_limit': str(storage_limit),
             'manager_pubkey': manager_pubkey,
             'balance': '0',
-            'script': script or {}
+            'script': script
         })
 
     def delegation(self, delegate='',

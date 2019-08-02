@@ -1,4 +1,4 @@
-from pytezos.encoding import encode_with_len
+from pytezos.encoding import forge_array
 
 prim_tags = {
   'parameter': b'\x00',
@@ -91,7 +91,7 @@ prim_tags = {
   'CAST': b'\x57',
   'RENAME': b'\x58',
   'bool': b'\x59',
-  'contract': b'\x5A',
+  'michelson': b'\x5A',
   'int': b'\x5B',
   'key': b'\x5C',
   'key_hash': b'\x5D',
@@ -134,7 +134,7 @@ len_tags = [
 ]
 
 
-def encode_int(value: int):
+def forge_int(value: int):
     mark = '0' if value >= 0 else '1'
     binary = format(value, 'b')
 
@@ -164,7 +164,7 @@ def micheline_to_bytes(data):
 
     if isinstance(data, list):
         res.append(b'\x02')
-        res.append(encode_with_len(b''.join(map(micheline_to_bytes, data))))
+        res.append(forge_array(b''.join(map(micheline_to_bytes, data))))
 
     elif isinstance(data, dict):
         if data.get('prim'):
@@ -178,19 +178,19 @@ def micheline_to_bytes(data):
                 res.append(b''.join(map(micheline_to_bytes, data['args'])))
 
             if annots_len > 0:
-                res.append(encode_with_len(b' '.join(map(lambda x: x.encode(), data['annots']))))
+                res.append(forge_array(b' '.join(map(lambda x: x.encode(), data['annots']))))
 
         elif data.get('bytes'):
             res.append(b'\x0A')
-            res.append(encode_with_len(bytes.fromhex(data['bytes'])))
+            res.append(forge_array(bytes.fromhex(data['bytes'])))
 
         elif data.get('int'):
             res.append(b'\x00')
-            res.append(encode_int(int(data['int'])))
+            res.append(forge_int(int(data['int'])))
 
         elif data.get('string'):
             res.append(b'\x01')
-            res.append(encode_with_len(data['string'].encode()))
+            res.append(forge_array(data['string'].encode()))
         else:
             raise NotImplementedError(data)
     else:
@@ -199,7 +199,7 @@ def micheline_to_bytes(data):
     return b''.join(res)
 
 
-def encode_script(script):
+def forge_script(script):
     code = micheline_to_bytes(script['code'])
     storage = micheline_to_bytes(script['storage'])
-    return encode_with_len(code) + encode_with_len(storage)
+    return forge_array(code) + forge_array(storage)

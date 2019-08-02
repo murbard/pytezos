@@ -3,9 +3,9 @@ from pprint import pformat
 from pytezos.rpc import ShellQuery, RpcError
 from pytezos.crypto import Key
 from pytezos.operation.content import ContentMixin
-from pytezos.operation.forge import encode_operation_group
+from pytezos.operation.forge import forge_operation_group
 from pytezos.operation.fees import FeesProvider
-from pytezos.encoding import encode_b58_value, base58_encode
+from pytezos.encoding import forge_base58, base58_encode
 
 validation_passes = {
     'endorsement': 0,
@@ -24,10 +24,10 @@ validation_passes = {
 
 class OperationGroup(ContentMixin):
 
-    def __init__(self, shell=None, key=None, contents=None, protocol=None, branch=None, signature=None):
-        self.shell = shell  # type: ShellQuery
-        self.key = key  # type: Key
-        self.contents = contents
+    def __init__(self, shell: ShellQuery, key: Key, contents=None, protocol=None, branch=None, signature=None):
+        self.shell = shell
+        self.key = key
+        self.contents = contents or []
         self.protocol = protocol
         self.branch = branch
         self.signature = signature
@@ -48,7 +48,7 @@ class OperationGroup(ContentMixin):
         }
 
     def operation(self, content):
-        if validation_passes[content['kind']] != self.validation_pass:
+        if self.contents and validation_passes[content['kind']] != self.validation_pass:
             raise ValueError('Mixed validation passes')
 
         return OperationGroup(
@@ -107,7 +107,7 @@ class OperationGroup(ContentMixin):
             'branch': self.branch,
             'contents': self.contents
         }
-        local_data = encode_operation_group(payload).hex()
+        local_data = forge_operation_group(payload).hex()
 
         if validate:
             remote_data = self.shell.blocks[self.branch].helpers.forge.operations.post(payload)
@@ -181,5 +181,5 @@ class OperationGroup(ContentMixin):
         else:
             pass
 
-        data = bytes.fromhex(self.forge()) + encode_b58_value(self.signature)
+        data = bytes.fromhex(self.forge()) + forge_base58(self.signature)
         return self.shell.injection.operation.post(data, _async=_async)
