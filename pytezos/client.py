@@ -1,11 +1,12 @@
 import os
 import json
+from functools import lru_cache
 
 from pytezos.rpc import ShellQuery
 from pytezos.crypto import Key
 from pytezos.operation.group import OperationGroup
 from pytezos.operation.content import ContentMixin
-from pytezos.michelson.abi import ContractAbi
+from pytezos.michelson.interface import ContractInterface
 from pytezos.encoding import is_pkh, is_kt, is_key
 
 
@@ -84,8 +85,9 @@ class PyTezosClient(ContentMixin):
             amount=amount
         ).autofill().sign().inject()
 
-    def contract(self, contract_id) -> ContractAbi:
-        return ContractAbi.from_address(
+    @lru_cache(maxsize=None)
+    def contract(self, contract_id) -> ContractInterface:
+        return ContractInterface.from_address(
             shell=self.shell,
             key=self.key,
             address=get_address(contract_id)

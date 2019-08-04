@@ -4,7 +4,7 @@ from unittest import TestCase
 from parameterized import parameterized
 
 from pytezos.michelson.grammar import MichelsonParser
-from pytezos.michelson.michel import build_schema, decode_data, encode_data
+from pytezos.michelson.coding import build_schema, decode_micheline, encode_micheline
 
 
 def get_data(filename):
@@ -38,8 +38,8 @@ class TestMichelineParser(TestCase):
         script = json.loads(get_data(source_name))
         storage = next(s for s in script['code'] if s['prim'] == 'storage')
         schema = build_schema(storage)
-        data = decode_data(script['storage'], schema)
-        res = encode_data(data, schema)
+        data = decode_micheline(script['storage'], schema)
+        res = encode_micheline(data, schema)
         self.assertDictEqual(script['storage'], res)
 
     @parameterized.expand([
@@ -49,13 +49,13 @@ class TestMichelineParser(TestCase):
         code = json.loads(get_data(code_name))
         parameters = json.loads(get_data(parameters_name))
         schema = build_schema(code)
-        data = decode_data(parameters, schema)
-        res = encode_data(data, schema)
+        data = decode_micheline(parameters, schema)
+        res = encode_micheline(data, schema)
         self.assertDictEqual(parameters, res)
 
     def test_encode(self):
         code = json.loads(get_data('parameter/code_1.json'))
         data = 'deadbeef'
         schema = build_schema(code)
-        res = encode_data(data, schema)
+        res = encode_micheline(data, schema)
         self.assertEqual({'bytes': 'deadbeef'}, res)

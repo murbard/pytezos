@@ -152,18 +152,18 @@ class ContractQuery(RpcQuery, path='/chains/{}/blocks/{}/context/contracts/{}'):
 
 class BigMapGetQuery(RpcQuery, path='/chains/{}/blocks/{}/context/contracts/{}/big_map_get'):
 
-    def post(self, key, key_type, key_prim):  # TODO: query
+    def post(self, query: dict):
         """
         Access the value associated with a key in the big map storage  of the michelson.
-        :param key:
-        :param key_type: Provided key encoding, e.g. "string", "bytes" for hex-encoded string, "int"
-        :param key_prim: Expected high-level data type, e.g. "address", "nat", "mutez" (see storage section in code)
+        :param query: {
+            key: { $key_type : <key> },
+            type: { "prim" : $key_prim }
+        }
+        $key_type: Provided key encoding, e.g. "string", "bytes" for hex-encoded string, "int"
+        key_prim: Expected high-level data type, e.g. "address", "nat", "mutez" (see storage section in code)
         :return: Micheline expression
         """
-        return self._post(json={
-            'key': {key_type: key},
-            'type': {'prim': key_prim}
-        })
+        return self._post(json=query)
 
 
 class ContextRawBytesQuery(RpcQuery, path='/chains/{}/blocks/{}/context/raw/bytes'):
