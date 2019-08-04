@@ -1,11 +1,14 @@
 import pendulum
 import re
+from typing import Dict
 from datetime import datetime
 from os.path import join, dirname
 from decimal import Decimal
 from collections import namedtuple, defaultdict
+from functools import lru_cache
 
 from pytezos.encoding import parse_address, parse_public_key
+from pytezos.michelson.grammar import MichelsonParser
 
 Nested = namedtuple('Nested', ['prim', 'args'])
 Schema = namedtuple('Schema', ['metadata', 'bin_types', 'bin_to_json', 'json_types', 'json_to_bin'])
@@ -13,6 +16,11 @@ Schema = namedtuple('Schema', ['metadata', 'bin_types', 'bin_to_json', 'json_typ
 meaningful_types = ['key', 'key_hash', 'signature', 'timestamp', 'address']
 first_cap_re = re.compile('(.)([A-Z][a-z]+)')
 all_cap_re = re.compile('([a-z0-9])([A-Z])')
+
+
+@lru_cache(maxsize=None)
+def michelson_parser():
+    return MichelsonParser()
 
 
 def to_snake_case(name):
@@ -119,7 +127,8 @@ def collapse_micheline(code) -> dict:
 
         if node['prim'] in ['pair', 'or']:
             res = Nested(node['prim'], args)
-            if typename or parent_prim != node['prim']:
+            is_struct = node['prim'] == 'pair' and (typename or fieldname)
+            if is_struct or parent_prim != node['prim']:
                 args = get_flat_nested(res)
             else:
                 return res
@@ -274,7 +283,7 @@ def make_json(json_values: dict, json_types: dict, root='/'):
 
 
 def parse_json(data, json_to_bin: dict, bin_types: dict, root='/'):
-    bin_values = defaultdict(dict)
+    bin_values = defaultdict(dict)  # type: Dict[str, dict]
 
     def parse_entry(bin_path, index):
         for i in range(len(bin_path) - 1, 0, -1):
@@ -396,3 +405,7 @@ def encode_micheline(data, schema: Schema, root='0'):
     json_root = schema.bin_to_json[root]
     bin_values = parse_json(data, schema.json_to_bin, schema.bin_types, json_root)
     return make_micheline(bin_values, schema.bin_types, root)
+
+
+def michelson_to_micheline(source):
+    return michelson_parser().parse(source)

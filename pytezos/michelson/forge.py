@@ -91,7 +91,7 @@ prim_tags = {
   'CAST': b'\x57',
   'RENAME': b'\x58',
   'bool': b'\x59',
-  'michelson': b'\x5A',
+  'contract': b'\x5A',
   'int': b'\x5B',
   'key': b'\x5C',
   'key_hash': b'\x5D',
@@ -135,7 +135,7 @@ len_tags = [
 
 
 def forge_int(value: int):
-    mark = '0' if value >= 0 else '1'
+    sign = '0' if value >= 0 else '1'
     binary = format(value, 'b')
 
     if (len(binary) - 6) % 7 == 0:
@@ -148,7 +148,7 @@ def forge_int(value: int):
     s = binary.zfill(pad)
     splitted = [s[i:i + 7] for i in range(0, len(s), 7)]
     sp_reversed = splitted[::-1]
-    sp_reversed[0] = mark + sp_reversed[0]
+    sp_reversed[0] = sign + sp_reversed[0]
 
     res = []
     for idx in range(len(sp_reversed)):
@@ -178,7 +178,7 @@ def micheline_to_bytes(data):
                 res.append(b''.join(map(micheline_to_bytes, data['args'])))
 
             if annots_len > 0:
-                res.append(forge_array(b' '.join(map(lambda x: x.encode(), data['annots']))))
+                res.append(forge_array(' '.join(data['annots']).encode()))
 
         elif data.get('bytes'):
             res.append(b'\x0A')

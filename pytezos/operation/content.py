@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from pytezos.michelson import michelson_to_micheline
+from pytezos.michelson.coding import michelson_to_micheline
 from pytezos.michelson.contract import Contract
 
 
@@ -244,70 +244,3 @@ class ContentMixin:
             'storage_limit': str(storage_limit),
             'delegate': delegate
         })
-
-
-def get_fees(operation_kind, strategy='avg'):
-    pass
-
-
-class Fees:
-
-    def avg(self):
-        pass
-
-    def max(self):
-        pass
-
-    def precise(self):
-        pass
-
-#
-# class Transaction(Content):
-#
-#     @classmethod
-#     def build(cls, destination, amount: int, parameters=None,
-#               source=None, counter=None, fee=None, gas_limit=None, storage_limit=None):
-#         """
-#         Transfer tezzies to an account (implicit or originated).
-#         If the receiver is an originated account (KT1…), then optional parameters may be passed.
-#         :param source:
-#         :param destination:
-#         :param amount:
-#         :param counter:
-#         :param parameters:
-#         :param fee:
-#         :param gas_limit:
-#         :param storage_limit:
-#         :return: Operation content
-#         """
-#         return {
-#             'kind': 'transaction',
-#             'source': source,
-#             'fee': fee,
-#             'counter': counter,
-#             'gas_limit': gas_limit,
-#             'storage_limit': storage_limit,
-#             'amount': amount,
-#             'destination': destination,
-#             'parameters': parameters
-#         }
-#
-#     @classmethod
-#     def to_bytes(cls, content):
-#         res = encode_int(operation_tags[content['kind']])
-#         res += encode_address(content["source"])
-#         res += encode_int(int(content["fee"]))
-#         res += encode_int(int(content["counter"]))
-#         res += encode_int(int(content["gas_limit"]))
-#         res += encode_int(int(content["storage_limit"]))
-#         res += encode_int(int(content["amount"]))
-#         res += encode_address(content["destination"])
-#
-#         if content["parameters"]:
-#             res += encode_boolean(True)
-#             parameters = micheline_to_bytes(content["parameters"])
-#             res += len(parameters).to_bytes(4, 'big') + parameters
-#         else:
-#             res += encode_boolean(False)
-#
-#         return res

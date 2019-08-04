@@ -1,22 +1,22 @@
 from functools import lru_cache
-from os.path import basename, join
+from os.path import basename
 
-from pytezos.michelson import michelson_to_micheline
 from pytezos.michelson.coding import build_schema, decode_micheline, encode_micheline, Schema, \
-    encode_literal, decode_literal
+    encode_literal, decode_literal, michelson_to_micheline
 
-core_types = ['string', 'int', 'nat', 'bool']
+core_types = ['string', 'int', 'bool']
 domain_types = {
-    'unit': 'No arguments, set to `None` or any empty container ({}, [], "")',
-    'bytes': 'Hex string (string) or Python byte string (bytes)',
-    'timestamp': 'Unix time in millis (int), or formatted datetime `%Y-%m-%dT%H:%M:%SZ` (string)',
-    'mutez': 'Amount in `utz` (int) or in `tz` (Decimal)',
-    'contract': 'Base58 encoded implicit `KT` address (string)',
-    'address': 'Base58 encoded `tz` or `KT` address (string)',
-    'key': 'Base58 encoded public key (string)',
-    'key_hash': 'Base58 encoded public key hash (string)',
-    'signature': 'Base58 encoded signature (string)',
-    'lambda': 'Michelson source code (string)'
+    'nat': 'int  /* Natural number */',
+    'unit': 'Void',
+    'bytes': 'string  /* Hex string */ ||\n\tbytes  /* Python byte string */',
+    'timestamp': 'int  /* Unix time in milliseconds */ ||\n\tstring  /* Formatted datetime `%Y-%m-%dT%H:%M:%SZ` */',
+    'mutez': 'int  /* Amount in `utz` (10^-6) */ ||\n\tDecimal  /* Amount in `tz` */',
+    'contract': 'string  /* Base58 encoded implicit `KT` address */',
+    'address': 'string  /* Base58 encoded `tz` or `KT` address */',
+    'key': 'string  /* Base58 encoded public key */',
+    'key_hash': 'string  /* Base58 encoded public key hash */',
+    'signature': 'string  /* Base58 encoded signature */',
+    'lambda': 'string  /* Michelson source code */'
 }
 
 
@@ -30,10 +30,14 @@ def generate_docstring(schema: Schema, title, root='0'):
     def get_name(bin_path):
         return basename(schema.bin_to_json[bin_path])
 
+    def get_comment(bin_path):
+        node = schema.metadata[bin_path]
+        return node.get('typename', node.get('fieldname'))
+
     def is_optional(bin_path):
         return len(bin_path) > 1 and schema.bin_types[bin_path[:-1]] == 'option'
 
-    def decode_node(bin_path, is_element=False):
+    def decode_node(bin_path, is_element=False, is_entry=False):
         node = get_node(bin_path)
 
         def get_struct_name():
@@ -46,7 +50,7 @@ def generate_docstring(schema: Schema, title, root='0'):
             return f'${struct_name}'
 
         if node['prim'] == 'or':
-            entries = {get_name(x): decode_node(x) for x in node['args']}
+            entries = {get_name(x): decode_node(x, is_entry=True) for x in node['args']}
             doc = ' || \n\t'.join(map(lambda x: '{ ' + f'"{x[0]}": {x[1]}' + ' }', entries.items()))
             res = get_struct_name()
             docstring.insert(0, f'{res}:\n\t{doc}\n')
@@ -78,9 +82,14 @@ def generate_docstring(schema: Schema, title, root='0'):
                 res = f'${res}'
             if is_optional(bin_path):
                 res = f'{res}?'
+            if is_entry:
+                comment = get_comment(bin_path)
+                if comment:
+                    res = f'{res}  /* {comment} */'
+
             if node['prim'] not in core_types:
                 if bin_path == root:
-                    res = f'{res}  /* {domain_types[node["prim"]]} */'
+                    res = domain_types[node["prim"]]
                 else:
                     known_types.add(node['prim'])
 
@@ -92,7 +101,7 @@ def generate_docstring(schema: Schema, title, root='0'):
     decode_node(root)
 
     for prim in known_types:
-        docstring.append(f'${prim}:\n\t/* {domain_types[prim]} */\n')
+        docstring.append(f'${prim}:\n\t{domain_types[prim]}\n')
 
     return '\n'.join(docstring)
 
@@ -124,7 +133,15 @@ class ContractParameter:
         else:
             entries = [(default, '0')]
 
-        return list(map(lambda x: (x[0], generate_docstring(self.schema, 'args', x[1])), entries))
+        def make_docs(bin_path):
+            json_path = self.schema.bin_to_json[bin_path]
+            if self.schema.json_types.get(json_path) == 'dict':
+                title = 'kwargs'
+            else:
+                title = 'args'
+            return generate_docstring(self.schema, title, bin_path)
+
+        return list(map(lambda x: (x[0], make_docs(x[1])), entries))
 
 
 class ContractStorage:

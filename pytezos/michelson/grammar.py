@@ -9,7 +9,7 @@ class SimpleMichelsonLexer(Lexer):
     tokens = (
         'PRIM', 'INT', 'BYTE', 'STR',
         'LEFT_CURLY', 'RIGHT_CURLY', 'LEFT_PAREN', 'RIGHT_PAREN', 'SEMI',
-        'COMMENT', 'MULTI_COMMENT', 'ANNOT'
+        'ANNOT'
     )
     t_PRIM = r'[A-Za-z_]+'
     t_INT = r'-?[0-9]+'
@@ -20,14 +20,20 @@ class SimpleMichelsonLexer(Lexer):
     t_LEFT_PAREN = r'\('
     t_RIGHT_PAREN = r'\)'
     t_SEMI = r';'
-    t_COMMENT = r'#[^\n]+'
-    t_MULTI_COMMENT = r'/"\* ~\*"/'
+    # t_COMMENT = r'#[^\n]+'
+    # t_MULTI_COMMENT = r'/"\* ~\*"/'
     t_ANNOT = r'[:@%](@|%|%%|[_a-zA-Z][_0-9a-zA-Z\.]*)?'
     t_ignore = ' \r\n\t\f'
 
     def __init__(self):
         super(SimpleMichelsonLexer, self).__init__()
         self.lexer = lex(module=self, reflags=re.DOTALL)
+
+    def t_error(self, t):
+        t.type = t.value[0]
+        t.value = t.value[0]
+        t.lexer.skip(1)
+        return t
 
 
 class MichelsonParser(object):
@@ -128,6 +134,9 @@ class MichelsonParser(object):
 
     def p_empty(self, p):
         '''empty :'''
+
+    def p_error(self, p):
+        raise ValueError(p)
 
     def __init__(self, debug=False, write_tables=False):
         self.lexer = SimpleMichelsonLexer()

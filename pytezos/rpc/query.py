@@ -1,9 +1,8 @@
 import re
-import os
+from os.path import dirname
 
-from pytezos.rpc.node import RpcNode, RpcError, urljoin
-
-NO_INFO = '¯\\_(ツ)_/¯'
+from pytezos.rpc.node import RpcNode
+from pytezos.rpc.docs import rpc_docs
 
 
 def get_attr_docstring(class_type, attr_name):
@@ -15,56 +14,54 @@ def get_attr_docstring(class_type, attr_name):
         return re.sub(r' {3,}', '', attr.__doc__)
 
 
-def format_docstring(class_type, describe_tree):
-    sections = list()
+def format_docstring(class_type, query_path):
+    res = list()
+    methods = {
+        'GET': '()',
+        'POST': '.post()',
+        'PUT': '.put()',
+        'DELETE': '.delete()'
+    }
+    rpc_doc = rpc_docs.get(query_path, {})
 
-    for name, service in describe_tree['static'].items():
-        if name.endswith('service'):
-            method = {'GET': '()',
-                      'POST': '.post()',
-                      'PUT': '.put()',
-                      'DELETE': '.delete()'}[service["meth"]]
-            docstring = get_attr_docstring(class_type, service["meth"].lower())
+    for method, func in methods.items():
+        if method in rpc_doc:
+            docstring = get_attr_docstring(class_type, method.lower())
             if not docstring:
-                docstring = f'\n{service.get("description", NO_INFO)}\n'
-                for arg in service.get('query', []):
-                    docstring += f':param {arg["name"]}: {arg.get("description", NO_INFO)}\n'
-                if service.get('output'):
-                    return_type = service['output']['json_schema'].get('type', 'object').capitalize()
-                    docstring += f':return: {return_type}\n'
+                docstring = f'\n{rpc_doc[method]["descr"]}\n'
+                for arg in rpc_doc[method]['args']:
+                    docstring += f':param {arg["name"]}: {arg["descr"]}\n'
+                docstring += f':return: {rpc_doc[method]["ret"]}\n'
 
-            sections.append(f'{method}{docstring}')
+            res.append(f'{method}{docstring}')
 
-    if describe_tree['static'].get('subdirs'):
-        dynamic_dispatch = describe_tree['static']['subdirs'].get('dynamic_dispatch')
-        if dynamic_dispatch:
-            docstring = get_attr_docstring(class_type, '__getitem__')
-            if not docstring:
-                arg = dynamic_dispatch["arg"]
-                docstring = f'\n:param {arg["name"]}: {arg.get("descr", NO_INFO)}\n:return: Child element\n'
+    if 'item' in rpc_doc:
+        docstring = get_attr_docstring(class_type, '__getitem__')
+        if not docstring:
+            item = rpc_doc["item"]
+            docstring = f'\n:param {item["name"]}: {item["descr"]}\n:return: Child element\n'
 
-            sections.append(f'[]{docstring}')
+        res.append(f'[]{docstring}')
 
-        suffixes = describe_tree['static']['subdirs'].get('suffixes')
-        if suffixes:
-            properties = list(map(lambda x: x['name'], suffixes))
-            docstring = '\n'.join(map(lambda x: f'.{x}', properties))
-            sections.append(f'RPC endpoints\n{docstring}\n')
+    if 'props' in rpc_doc:
+        properties = rpc_doc['props']
+        docstring = '\n'.join(map(lambda x: f'.{x}', properties))
+        res.append(f'RPC endpoints\n{docstring}\n')
+    else:
+        properties = list()
+
+    helpers = filter(
+        lambda x: not x.startswith('_') and x not in properties,
+        dir(class_type))
+    for helper in helpers:
+        if type(getattr(class_type, helper)) == property:
+            name = f'.{helper}'
         else:
-            properties = list()
+            name = f'.{helper}()'
+        docstring = get_attr_docstring(class_type, helper) or '\n'
+        res.append(f'{name}{docstring}')
 
-        helpers = filter(
-            lambda x: not x.startswith('_') and x not in properties,
-            dir(class_type))
-        for helper in helpers:
-            if type(getattr(class_type, helper)) == property:
-                name = f'.{helper}'
-            else:
-                name = f'.{helper}()'
-            docstring = get_attr_docstring(class_type, helper) or '\n'
-            sections.append(f'{name}{docstring}')
-
-    return '\n'.join(sections)
+    return '\n'.join(res)
 
 
 class RpcQuery:
@@ -85,6 +82,12 @@ class RpcQuery:
         self._caching = caching
         self._timeout = timeout
         self._params = params or list()
+        self.__doc__ = self._get_docstring()
+
+    def _get_docstring(self):
+        docstring = f'Path\n{self._query_path or "/"}\n\n'
+        docstring += format_docstring(self.__class__, self._path)
+        return docstring
 
     def _spawn_query(self, path, params):
         child_class = self.__extensions__.get(path, RpcQuery)
@@ -127,19 +130,7 @@ class RpcQuery:
         )
 
     def __repr__(self):
-        docstring = f'Path\n{self._query_path or "/"}\n\n'
-        try:
-            res = self._node.get(
-                path=urljoin('describe', self._query_path),
-                params=dict(recurse=True),
-                caching=True,
-                cache_key=f'/describe{self._path}'
-            )
-        except RpcError:
-            return f'{docstring}\n\n{NO_INFO}'
-
-        docstring += format_docstring(self.__class__, res)
-        return docstring
+        return self.__doc__
 
     def _get(self, params=None):
         return self._node.get(
@@ -171,7 +162,7 @@ class RpcQuery:
 
     @property
     def _parent(self):
-        dir_path = os.path.dirname(self._path)
+        dir_path = dirname(self._path)
         return self._spawn_query(
             path=dir_path,
             params=self._params[:dir_path.count('{}')]

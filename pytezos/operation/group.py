@@ -175,11 +175,9 @@ class OperationGroup(ContentMixin):
             raise ValueError('Not signed')
 
         try:
-            opg_with_metadata = self.preapply()
+            self.preapply()
         except RpcError as e:
             return e.res.text
-        else:
-            pass
 
         data = bytes.fromhex(self.forge()) + forge_base58(self.signature)
         return self.shell.injection.operation.post(data, _async=_async)
