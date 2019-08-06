@@ -2,8 +2,9 @@ from os.path import basename, dirname, join
 
 from pytezos.rpc import ShellQuery
 from pytezos.crypto import Key
-from pytezos.michelson.contract import Contract, ContractParameter
+from pytezos.michelson.contract import Contract, ContractParameter, micheline_to_michelson
 from pytezos.operation.group import OperationGroup
+from pytezos.operation.content import format_mutez
 
 
 class ContractInterop:
@@ -40,6 +41,12 @@ class ContractCall(ContractInterop):
 
     def inject(self):
         return self.operation_group().autofill().sign().inject()
+
+    def cmdline(self):
+        arg = micheline_to_michelson(self.parameters, inline=True)
+        source = self.key.public_key_hash()
+        amount = format_mutez(self.amount)
+        return f'transfer {amount} from {source} to {self.address} -arg "{arg}"'
 
 
 class ContractEntrypoint(ContractInterop):

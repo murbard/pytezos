@@ -2,14 +2,14 @@ from functools import lru_cache
 from os.path import basename
 
 from pytezos.michelson.coding import build_schema, decode_micheline, encode_micheline, Schema, \
-    encode_literal, decode_literal, michelson_to_micheline
+    encode_literal, decode_literal, michelson_to_micheline, make_default, micheline_to_michelson
 
 core_types = ['string', 'int', 'bool']
 domain_types = {
     'nat': 'int  /* Natural number */',
     'unit': 'Void',
     'bytes': 'string  /* Hex string */ ||\n\tbytes  /* Python byte string */',
-    'timestamp': 'int  /* Unix time in milliseconds */ ||\n\tstring  /* Formatted datetime `%Y-%m-%dT%H:%M:%SZ` */',
+    'timestamp': 'int  /* Unix time in seconds */ ||\n\tstring  /* Formatted datetime `%Y-%m-%dT%H:%M:%SZ` */',
     'mutez': 'int  /* Amount in `utz` (10^-6) */ ||\n\tDecimal  /* Amount in `tz` */',
     'contract': 'string  /* Base58 encoded implicit `KT` address */',
     'address': 'string  /* Base58 encoded `tz` or `KT` address */',
@@ -162,6 +162,9 @@ class ContractStorage:
     def encode(self, data):
         return encode_micheline(data, self.schema)
 
+    def default(self, root='0'):
+        return make_default(self.schema.bin_types, root)
+
     def _locate_big_map(self, big_map_path=None):
         if big_map_path is None:
             # Default Big Map location (prior to Babylon https://blog.nomadic-labs.com/michelson-updates-in-005.html)
@@ -200,6 +203,10 @@ class Contract:
         self.parameter = ContractParameter(code[0])
         self.storage = ContractStorage(code[1])
         self.code = code
+        self.source = micheline_to_michelson(code)
+
+    def __repr__(self):
+        return self.source
 
     @classmethod
     def from_micheline(cls, code):

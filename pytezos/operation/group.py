@@ -1,7 +1,7 @@
 from pprint import pformat
 
 from pytezos.rpc import ShellQuery, RpcError
-from pytezos.crypto import Key
+from pytezos.crypto import Key, blake2b_32
 from pytezos.operation.content import ContentMixin
 from pytezos.operation.forge import forge_operation_group
 from pytezos.operation.fees import FeesProvider
@@ -33,19 +33,25 @@ class OperationGroup(ContentMixin):
         self.signature = signature
 
     def __repr__(self):
-        return pformat(self.payload())
+        return pformat(self.json_payload())
 
     @property
     def validation_pass(self):
         return validation_passes[self.contents[0]['kind']] if self.contents else None
 
-    def payload(self):
+    def json_payload(self):
         return {
             'protocol': self.protocol,
             'branch': self.branch,
             'contents': self.contents,
             'signature': self.signature
         }
+
+    def binary_payload(self):
+        if not self.signature:
+            raise ValueError('Not signed')
+
+        return bytes.fromhex(self.forge()) + forge_base58(self.signature)
 
     def operation(self, content):
         if self.contents and validation_passes[content['kind']] != self.validation_pass:
@@ -164,20 +170,22 @@ class OperationGroup(ContentMixin):
             protocol=self.protocol
         )
 
+    def hash(self):
+        hash_digest = blake2b_32(self.binary_payload()).digest()
+        return base58_encode(hash_digest, b'o').decode()
+
     def preapply(self):
         if not self.signature:
             raise ValueError('Not signed')
 
-        return self.shell.head.helpers.preapply.operations.post([self.payload()])
+        return self.shell.head.helpers.preapply.operations.post(
+            operatios=[self.json_payload()])
 
     def inject(self, _async=False):
-        if not self.signature:
-            raise ValueError('Not signed')
-
         try:
             self.preapply()
         except RpcError as e:
             return e.res.text
 
-        data = bytes.fromhex(self.forge()) + forge_base58(self.signature)
-        return self.shell.injection.operation.post(data, _async=_async)
+        return self.shell.injection.operation.post(
+            operation=self.binary_payload(), _async=_async)

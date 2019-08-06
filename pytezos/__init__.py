@@ -21,5 +21,5 @@ mainnet = mainnet_cryptonomic
 alphanet = alphanet_cryptonomic
 zeronet = zeronet_tzscan
 
-please_use_with_care = Key.from_key('edsk33N474hxzA4sKeWVM6iuGNGDpX2mGwHNxEA4UbWS8sW3Ta3NKH')
+please_use_with_care = Key.from_encoded_key('edsk33N474hxzA4sKeWVM6iuGNGDpX2mGwHNxEA4UbWS8sW3Ta3NKH')
 pytezos = PyTezosClient(shell=alphanet, key=please_use_with_care)

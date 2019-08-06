@@ -4,13 +4,15 @@
 [![Made With](https://img.shields.io/badge/made%20with-python-blue.svg?)](https://www.python.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Python utils for Tezos.
+Python SDK for Tezos: RPC, cryptography, operations, smart contract interaction
 
-## Requirements
+## Get PyTezos
+
+### Requirements
 
 * git
-* python 3.6+ (can't resist string interpolation)
-* pip 19.0.1+ (in order to support poetry packages)
+* python 3.6+
+* pip 19.0.1+
 
 You will also probably need to install several cryptographic packets:
 
@@ -18,13 +20,18 @@ You will also probably need to install several cryptographic packets:
 $ sudo apt install libsodium-dev libsecp256k1-dev libgmp-dev
 ```
 
-## Installation
+### Installation
 
 ```
-$ pip install git+https://github.com/murbard/pytezos
+$ pip install pytezos
 ```
 
-## Usage
+## Use PyTezos
+
+### RPC wrapper
+
+
+
 
 ### Crypto: keys and signatures
 

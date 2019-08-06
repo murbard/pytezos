@@ -40,7 +40,7 @@ class PyTezosClient(ContentMixin):
         if isinstance(key, Key):
             pass
         elif is_key(key):
-            key = Key.from_key(key)
+            key = Key.from_encoded_key(key)
         else:
             key = Key.from_alias(key)
 
@@ -68,22 +68,25 @@ class PyTezosClient(ContentMixin):
         return self.shell.contracts[address]()
 
     def activate(self):
-        return self.activate_account().autofill().sign().inject()
+        return self.activate_account().autofill().sign()
 
     def reveal_public_key(self, source=''):
         if source:
             source = get_address(source)
-        return self.reveal(source=source).autofill().sign().inject()
+        return self.reveal(source=source).autofill().sign()
 
     def register_delegate(self):
-        return self.delegation().autofill().sign().inject()
+        return self.delegation().autofill().sign()
 
-    def transfer(self, destination, amount, source=None):
+    def send(self, destination, amount, source=None):
         return self.transaction(
             source=get_address(source) if source else '',
             destination=get_address(destination),
             amount=amount
-        ).autofill().sign().inject()
+        ).autofill().sign()
+
+    def deploy(self, source, storage=None):
+        return self.origination()
 
     @lru_cache(maxsize=None)
     def contract(self, contract_id) -> ContractInterface:

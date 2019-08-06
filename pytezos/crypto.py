@@ -44,21 +44,21 @@ class Key(object):
     are supported.
     """
     def __init__(self, public_point, secret_exponent=None, curve=b'ed', activation_code=None):
-        self._public_point = public_point
-        self._secret_exponent = secret_exponent
+        self.public_point = public_point
+        self.secret_exponent = secret_exponent
         self.curve = curve
-        self.is_secret = secret_exponent is not None
         self.activation_code = activation_code
 
     def __repr__(self):
         return self.public_key_hash()
 
     @classmethod
-    def from_secret_key(cls, secret_exponent: bytes, curve=b'ed'):
+    def from_secret_exponent(cls, secret_exponent: bytes, curve=b'ed', activation_code=None):
         """
         Creates a key object from a secret exponent.
         :param secret_exponent: secret exponent or seed
         :param curve: b'sp' for Secp251k1, b'p2' for P256/Secp256r1, b'ed' for Ed25519 (default)
+        :param activation_code: secret for initializing account balance
         """
         # Ed25519
         if curve == b'ed':
@@ -78,10 +78,10 @@ class Key(object):
         else:
             assert False
 
-        return cls(public_point, secret_exponent, curve=curve)
+        return cls(public_point, secret_exponent, curve=curve, activation_code=activation_code)
 
     @classmethod
-    def from_public_key(cls, public_point: bytes, curve=b'ed'):
+    def from_public_point(cls, public_point: bytes, curve=b'ed'):
         """
         Creates a key object from a public elliptic point.
         :param public_point: elliptic point in the compressed format (see https://tezos.stackexchange.com/a/623/309)
@@ -90,7 +90,7 @@ class Key(object):
         return cls(public_point, curve=curve)
 
     @classmethod
-    def from_key(cls, key, passphrase=''):
+    def from_encoded_key(cls, key, passphrase=''):
         """
         Creates a key object from a base58 encoded key.
         :param key: a public or secret key in base58 encoding
@@ -112,7 +112,7 @@ class Key(object):
         key = base58_decode(key)
         is_secret = (public_or_secret == b'sk')
         if not is_secret:
-            return cls.from_public_key(key, curve)
+            return cls.from_public_point(key, curve)
 
         if encrypted:
             if not passphrase:
@@ -130,7 +130,7 @@ class Key(object):
                 c=encrypted_sk, nonce=b'\000' * 24, k=encryption_key)
             del passphrase
 
-        return cls.from_secret_key(key, curve)
+        return cls.from_secret_exponent(key, curve)
 
     @classmethod
     def generate(cls, passphrase='', curve=b'ed', strength=128, language='english', export=True):
@@ -178,15 +178,15 @@ class Key(object):
         seed = Mnemonic.to_seed(mnemonic, passphrase=email + passphrase)
 
         if curve == b'ed':
-            public_point, secret_exponent = pysodium.crypto_sign_seed_keypair(seed=seed[:32])
+            _, secret_exponent = pysodium.crypto_sign_seed_keypair(seed=seed[:32])
         elif curve == b'sp':
-            raise NotImplementedError(curve)
+            secret_exponent = seed[:32]
         elif curve == b'p2':
-            raise NotImplementedError(curve)
+            secret_exponent = seed[:32]
         else:
             assert False
 
-        return cls(public_point, secret_exponent, activation_code=activation_code)
+        return cls.from_secret_exponent(secret_exponent, curve=curve, activation_code=activation_code)
 
     @classmethod
     def from_faucet(cls, path):
@@ -228,10 +228,10 @@ class Key(object):
         if prefix == 'encrypted':
             if not passphrase:
                 passphrase = getpass(f'Please, enter passphrase for `{alias}`:\n')
-            key = cls.from_key(sk, passphrase=passphrase)
+            key = cls.from_encoded_key(sk, passphrase=passphrase)
             del passphrase
         else:
-            key = cls.from_key(sk)
+            key = cls.from_encoded_key(sk)
 
         return key
 
@@ -240,28 +240,27 @@ class Key(object):
         Creates base58 encoded public key representation
         :return: the public key associated with the private key
         """
-        return base58_encode(self._public_point, self.curve + b'pk').decode()
+        return base58_encode(self.public_point, self.curve + b'pk').decode()
 
-    def mnemonic(self, language='english'):
-        if not self.is_secret:
-            raise ValueError('Not a secret key')
-        return Mnemonic(language).to_mnemonic(self._secret_exponent)
-
-    def secret_key(self, passphrase=None):  # TODO: edsk full key
+    def secret_key(self, passphrase=None, ed25519_seed=True):
         """
         Creates base58 encoded private key representation
         :param passphrase: encryption phrase for the private key
+        :param ed25519_seed: encode seed rather than full key for ed25519 curve (True by default)
         :return: the secret key associated with this key, if available
         """
-        if not self._secret_exponent:
+        if not self.secret_exponent:
             raise ValueError("Secret key not known.")
 
-        if self.curve == b'ed':
-            key = pysodium.crypto_sign_sk_to_seed(self._secret_exponent)
+        if self.curve == b'ed' and ed25519_seed:
+            key = pysodium.crypto_sign_sk_to_seed(self.secret_exponent)
         else:
-            key = self._secret_exponent
+            key = self.secret_exponent
 
         if passphrase:
+            if not ed25519_seed:
+                raise NotImplementedError
+
             salt = pysodium.randombytes(8)
             encryption_key = hashlib.pbkdf2_hmac(
                 hash_name="sha512",
@@ -284,7 +283,7 @@ class Key(object):
         Creates base58 encoded public key hash for this key.
         :return: the public key hash for this key
         """
-        pkh = blake2b(data=self._public_point, digest_size=20).digest()
+        pkh = blake2b(data=self.public_point, digest_size=20).digest()
         prefix = {b'ed': b'tz1', b'sp': b'tz2', b'p2': b'tz3'}[self.curve]
         return base58_encode(pkh, prefix).decode()
 
@@ -297,21 +296,21 @@ class Key(object):
         """
         message = scrub_input(message)
 
-        if not self.is_secret:
+        if not self.secret_exponent:
             raise ValueError("Cannot sign without a secret key.")
 
         # Ed25519
         if self.curve == b"ed":
             digest = pysodium.crypto_generichash(message)
-            signature = pysodium.crypto_sign_detached(digest, self._secret_exponent)
+            signature = pysodium.crypto_sign_detached(digest, self.secret_exponent)
         # Secp256k1
         elif self.curve == b"sp":
-            pk = secp256k1.PrivateKey(self._secret_exponent)
+            pk = secp256k1.PrivateKey(self.secret_exponent)
             signature = pk.ecdsa_serialize_compact(
                 pk.ecdsa_sign(message, digest=blake2b_32))
         # P256
         elif self.curve == b"p2":
-            r, s = sign(msg=message, d=bytes_to_int(self._secret_exponent), hashfunc=blake2b_32)
+            r, s = sign(msg=message, d=bytes_to_int(self.secret_exponent), hashfunc=blake2b_32)
             signature = int_to_bytes(r) + int_to_bytes(s)
         else:
             assert False
@@ -332,7 +331,7 @@ class Key(object):
         signature = scrub_input(signature)
         message = scrub_input(message)
 
-        if not self._public_point:
+        if not self.public_point:
             raise ValueError("Cannot verify without a public key")
 
         if signature[:3] != b'sig':  # not generic
@@ -345,18 +344,18 @@ class Key(object):
         if self.curve == b"ed":
             digest = pysodium.crypto_generichash(message)
             try:
-                pysodium.crypto_sign_verify_detached(signature, digest, self._public_point)
+                pysodium.crypto_sign_verify_detached(signature, digest, self.public_point)
             except ValueError:
                 raise ValueError('Signature is invalid.')
         # Secp256k1
         elif self.curve == b"sp":
-            pk = secp256k1.PublicKey(self._public_point, raw=True)
+            pk = secp256k1.PublicKey(self.public_point, raw=True)
             sig = pk.ecdsa_deserialize_compact(signature)
             if not pk.ecdsa_verify(message, sig, digest=blake2b_32):
                 raise ValueError('Signature is invalid.')
         # P256
         elif self.curve == b"p2":
-            pk = SEC1Encoder.decode_public_key(self._public_point, curve=P256)
+            pk = SEC1Encoder.decode_public_key(self.public_point, curve=P256)
             r, s = bytes_to_int(signature[:32]), bytes_to_int(signature[32:])
             if not verify(sig=(r, s), msg=message, Q=pk, hashfunc=blake2b_32):
                 raise ValueError('Signature is invalid.')
