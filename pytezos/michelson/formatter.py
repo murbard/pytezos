@@ -1,12 +1,13 @@
 line_size = 100
 
 
-def is_braced(node):
-    if node['prim'] in ['Pair', 'Left', 'Right', 'Some']:
+def is_framed(node):
+    if node['prim'] in {'Pair', 'Left', 'Right', 'Some',
+                        'pair', 'or', 'option', 'map', 'big_map', 'list', 'set', 'contract', 'lambda'}:
         return True
-    if node['prim'] in ['pair', 'or', 'option', 'map', 'big_map', 'list', 'set', 'contract', 'lambda'] \
-            and ('annots' in node or 'args' in node):
-        return True
+    elif node['prim'] in {'key', 'unit', 'signature', 'operation',
+                          'int', 'nat', 'string', 'bytes', 'mutez', 'bool', 'key_hash', 'timestamp', 'address'}:
+        return 'annots' in node
     return False
 
 
@@ -15,7 +16,7 @@ def is_complex(node):
            or node['prim'].startswith('IF')
 
 
-def is_no_wrap(node):
+def is_inline(node):
     return node['prim'] == 'PUSH'
 
 
@@ -54,13 +55,13 @@ def format_node(node, indent='', inline=False):
                 for arg in args:
                     item = format_node(arg, arg_indent, inline)
                     length = len(indent) + len(expr) + len(item) + 1
-                    if inline or is_no_wrap(node) or length < line_size:
+                    if inline or is_inline(node) or length < line_size:
                         arg_indent = alt_indent
                         expr = f'{expr} {item}'
                     else:
                         expr = f'{expr}\n{arg_indent}{item}'
 
-            return f'({expr})' if is_braced(node) else expr
+            return f'({expr})' if is_framed(node) else expr
         else:
             assert len(node) == 1
             value = next(iter(node.values()))

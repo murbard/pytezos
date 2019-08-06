@@ -1,5 +1,4 @@
 import re
-import json
 from typing import Dict
 from datetime import datetime
 from os.path import join, dirname
@@ -156,8 +155,8 @@ def build_maps(metadata: dict):
             if bin_types[lpath] == 'or':
                 entry = {'0': 'l', '1': 'r'}[bin_path[i]] + entry
             else:
-                break
-        return entry
+                return entry
+        assert False, bin_path
 
     def get_key(bin_path):
         node = metadata[bin_path]
@@ -427,25 +426,60 @@ def make_default(bin_types: dict, root='0'):
 
 
 def build_schema(code) -> Schema:
+    """
+    Creates internal structures necessary for decoding/encoding micheline:
+    `metadata` -> micheline tree with collapsed `pair`, `or`, and `option` nodes
+    `bin_types` -> maps binary path to primitive
+    `bin_to_json` -> binary path to json path mapping
+    `json_types` -> maps json path to container type (dict/list)
+    `json_to_bin` -> reversed `bin_to_json`
+    :param code: parameter or storage section of smart contract source code (in micheline)
+    :return: Schema
+    """
     metadata = collapse_micheline(code)
     return Schema(metadata, *build_maps(metadata))
 
 
 def decode_micheline(data, schema: Schema, root='0'):
+    """
+    Converts Micheline data into Python object
+    :param data: Micheline expression
+    :param schema: schema built for particular contract/section
+    :param root: which binary node to take as root, used to decode BigMap values/diffs
+    :return: Object
+    """
     json_root = schema.bin_to_json[root]
     json_values = parse_micheline(data, schema.bin_to_json, schema.bin_types, root)
     return make_json(json_values, schema.json_types, json_root)
 
 
 def encode_micheline(data, schema: Schema, root='0'):
+    """
+    Converts Python object into Micheline expression
+    :param data: Python object
+    :param schema: schema built for particular contract/section
+    :param root: which binary node to take as root, used to encode BigMap values
+    :return: Micheline expression
+    """
     json_root = schema.bin_to_json[root]
     bin_values = parse_json(data, schema.json_to_bin, schema.bin_types, json_root)
     return make_micheline(bin_values, schema.bin_types, root)
 
 
-def michelson_to_micheline(source):
-    return michelson_parser().parse(source)
+def michelson_to_micheline(data):
+    """
+    Converts michelson source text into Micheline expression
+    :param data: Michelson string
+    :return: Micheline expression
+    """
+    return michelson_parser().parse(data)
 
 
 def micheline_to_michelson(data, inline=False):
+    """
+    Converts micheline expression into formatted Michelson source
+    :param data: Micheline expression
+    :param inline: produce single line, used for tezos-client arguments (False by default)
+    :return: string
+    """
     return format_node(data, inline=inline)

@@ -195,28 +195,41 @@ class ContractStorage:
 
 
 class Contract:
+    """
+
+    """
 
     def __init__(self, code: list):
-        """
-        :param code: [{'prim': 'parameter'}, {'prim': 'storage'}, {'prim': 'code'}]
-        """
         self.parameter = ContractParameter(code[0])
         self.storage = ContractStorage(code[1])
         self.code = code
-        self.source = micheline_to_michelson(code)
+        self.text = micheline_to_michelson(code)
 
     def __repr__(self):
-        return self.source
+        return self.text
 
     @classmethod
     def from_micheline(cls, code):
+        """
+        :param code: [{'prim': 'parameter'}, {'prim': 'storage'}, {'prim': 'code'}]
+        """
         return cls(code)
 
     @classmethod
-    def from_michelson(cls, source):
-        return cls(michelson_to_micheline(source))
+    def from_michelson(cls, text):
+        """
+
+        :param text:
+        :return:
+        """
+        return cls(michelson_to_micheline(text))
 
     @classmethod
     def from_file(cls, path):
+        """
+
+        :param path:
+        :return:
+        """
         with open(path) as f:
             return cls.from_michelson(f.read())

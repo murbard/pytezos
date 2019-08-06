@@ -52,6 +52,10 @@ class Key(object):
     def __repr__(self):
         return self.public_key_hash()
 
+    @property
+    def is_secret(self):
+        return self.secret_exponent is not None
+
     @classmethod
     def from_secret_exponent(cls, secret_exponent: bytes, curve=b'ed', activation_code=None):
         """

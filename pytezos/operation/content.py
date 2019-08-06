@@ -185,12 +185,13 @@ class ContentMixin:
             'parameters': parameters or {}
         })
 
-    def origination(self, code=None, storage=None, manager_pubkey='',
+    def origination(self, code=None, storage=None, manager_pubkey='', balance=0,
                     source='', counter=0, fee=0, gas_limit=0, storage_limit=0):
         """
-        :param manager_pubkey:
         :param code:
         :param storage:
+        :param manager_pubkey:
+        :param balance:
         :param source:
         :param counter:
         :param fee:
@@ -219,7 +220,7 @@ class ContentMixin:
             'gas_limit': str(gas_limit),
             'storage_limit': str(storage_limit),
             'manager_pubkey': manager_pubkey,
-            'balance': '0',
+            'balance': format_mutez(balance),
             'script': script
         })
 

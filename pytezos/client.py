@@ -6,7 +6,7 @@ from pytezos.rpc import ShellQuery
 from pytezos.crypto import Key
 from pytezos.operation.group import OperationGroup
 from pytezos.operation.content import ContentMixin
-from pytezos.michelson.interface import ContractInterface
+from pytezos.michelson.interface import ContractInterface, Contract
 from pytezos.encoding import is_pkh, is_kt, is_key
 
 
@@ -78,15 +78,27 @@ class PyTezosClient(ContentMixin):
     def register_delegate(self):
         return self.delegation().autofill().sign()
 
-    def send(self, destination, amount, source=None):
+    def transfer(self, destination, amount, source=None):
         return self.transaction(
             source=get_address(source) if source else '',
             destination=get_address(destination),
             amount=amount
         ).autofill().sign()
 
-    def deploy(self, source, storage=None):
-        return self.origination()
+    def deploy(self, code, storage=None, balance=0):
+        if os.path.isfile(code):
+            contract = Contract.from_file(code)
+        else:
+            contract = Contract.from_michelson(code)
+
+        if storage is None:
+            storage = contract.storage.default()
+
+        return self.origination(
+            code=contract.code,
+            storage=storage,
+            balance=balance
+        )
 
     @lru_cache(maxsize=None)
     def contract(self, contract_id) -> ContractInterface:

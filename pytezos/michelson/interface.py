@@ -83,13 +83,14 @@ class ContractEntrypoint(ContractInterop):
 
 
 class ContractInterface(ContractInterop):
+    default_entry = 'call'
 
     def __init__(self, contract: Contract, **kwargs):
         super(ContractInterface, self).__init__(**kwargs)
         self.contract = contract
-        for entry_name, docstring in contract.parameter.entries(default='call'):
+        for entry_name, docstring in contract.parameter.entries(default=self.default_entry):
             entry_point = ContractEntrypoint(
-                entry_name if entry_name != 'call' else None,
+                entry_name if entry_name != self.default_entry else None,
                 contract.parameter,
                 shell=self.shell,
                 key=self.key,
