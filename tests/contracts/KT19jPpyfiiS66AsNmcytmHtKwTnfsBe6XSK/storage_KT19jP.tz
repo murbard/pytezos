@@ -1,0 +1,7 @@
+Pair { Elt "tz1KmPuXvF3qc5iUdxfw23YopbTubQNA1dRQ" "{"publicName":"Tezos TestCap by Shaun","fee":5,"payoutModel":"dynamic","minDelegation":0,"minPayout":0,"payoutInterval":1,"delegationOpen":true,"signupRequired":false,"country":"USA","website":"www.tezos.capital"}" ;
+       Elt "tz1LNw3LkBstngXmJkg3ZAbEeQ964M2d3Uiy" "{"publicName":"New Bakery on Alpha","fee":7.5,"payoutModel":"dynamic","minDelegation":0,"minPayout":0,"payoutInterval":1,"delegationOpen":false,"signupRequired":false,"country":"USA","website":"tzscan.io"}" ;
+       Elt "tz1RZek3UmfwBaqSBjSJ1irJf2kXkXiokSiv" "{"publicName":"BestBaker for Tezos","fee":5,"payoutModel":"dynamic","minDelegation":50,"minPayout":1,"payoutInterval":3,"delegationOpen":true,"signupRequired":false,"country":"USA","website":"WeDontHaveASiteYet"}" ;
+       Elt "tz1YJa4DJxK5UNuwzKHVee8F8UpejT6X8MTx" "{}" ;
+       Elt "tz1Z5MEwwEjkCpKzVfnyZttNTxJFvdT4qGdN" "{"publicName":"Dev Baker 1 fixed payout","fee":28,"payoutModel":"fixed","minDelegation":50,"minPayout":1,"payoutInterval":1,"delegationOpen":true,"signupRequired":true,"country":"Switzerland","website":"bakendorse.com"}" }
+     { Elt "tz1KmPuXvF3qc5iUdxfw23YopbTubQNA1dRQ" "tz1KmPuXvF3qc5iUdxfw23YopbTubQNA1dRQ" ;
+       Elt "tz1Z5MEwwEjkCpKzVfnyZttNTxJFvdT4qGdN" "KT1VaqEn625ivcoav1jhxe85rjCMPueazQ1t" }

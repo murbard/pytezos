@@ -1,0 +1,21 @@
+{
+  "prim": "Pair",
+  "args": [
+    {
+      "string": "tz1KmPuXvF3qc5iUdxfw23YopbTubQNA1dRQ"
+    },
+    {
+      "prim": "Left",
+      "args": [
+        {
+          "prim": "Some",
+          "args": [
+            {
+              "string": "{\"id\":\"100\",\"value1\":\"111\",\"value2\":\"222\",\"value3\":\"333\"}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

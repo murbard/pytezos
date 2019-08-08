@@ -5,13 +5,17 @@ import re
 # Inspired by https://github.com/jansorg/tezos-intellij/blob/master/grammar/michelson.bnf
 
 
+class Sequence(list):
+    pass
+
+
 class SimpleMichelsonLexer(Lexer):
     tokens = (
         'PRIM', 'INT', 'BYTE', 'STR',
         'LEFT_CURLY', 'RIGHT_CURLY', 'LEFT_PAREN', 'RIGHT_PAREN', 'SEMI',
         'ANNOT'
     )
-    t_PRIM = r'[A-Za-z_]+'
+    t_PRIM = r'[A-Za-z][A-Za-z0-9_]+'
     t_INT = r'-?[0-9]+'
     t_BYTE = r'0x[A-Fa-f0-9]+'
     t_STR = r'\"[^\"]*\"'
@@ -22,7 +26,7 @@ class SimpleMichelsonLexer(Lexer):
     t_SEMI = r';'
     # t_COMMENT = r'#[^\n]+'
     # t_MULTI_COMMENT = r'/"\* ~\*"/'
-    t_ANNOT = r'[:@%](@|%|%%|[_a-zA-Z][_0-9a-zA-Z\.]*)?'
+    t_ANNOT = r'[:@%]+([_a-zA-Z][_0-9a-zA-Z\.]*)?'
     t_ignore = ' \r\n\t\f'
 
     def __init__(self):
@@ -49,15 +53,17 @@ class MichelsonParser(object):
         '''instr : instr SEMI instr'''
         p[0] = list()
         for i in [p[1], p[3]]:
-            if isinstance(i, list):
+            if type(i) is list:
                 p[0].extend(i)
             elif i is not None:
                 p[0].append(i)
 
     def p_instr_subseq(self, p):
         '''instr : LEFT_CURLY instr RIGHT_CURLY'''
-        p[0] = list()
-        if p[2] is not None:
+        p[0] = Sequence()
+        if type(p[2]) is list:
+            p[0].extend(p[2])
+        elif p[2] is not None:
             p[0].append(p[2])
 
     def p_expr(self, p):
@@ -78,7 +84,7 @@ class MichelsonParser(object):
     def p_annots_list(self, p):
         '''annots : annots annot'''
         p[0] = list()
-        if isinstance(p[1], list):
+        if type(p[1]) == list:
             p[0].extend(p[1])
         if p[2] is not None:
             p[0].append(p[2])
@@ -98,7 +104,7 @@ class MichelsonParser(object):
     def p_args_list(self, p):
         '''args : args arg'''
         p[0] = list()
-        if isinstance(p[1], list):
+        if type(p[1]) == list:
             p[0].extend(p[1])
         if p[2] is not None:
             p[0].append(p[2])
@@ -121,7 +127,7 @@ class MichelsonParser(object):
 
     def p_arg_subseq(self, p):
         '''arg : LEFT_CURLY instr RIGHT_CURLY'''
-        if isinstance(p[2], list):
+        if type(p[2]) == list:
             p[0] = p[2]
         elif p[2] is not None:
             p[0] = [p[2]]

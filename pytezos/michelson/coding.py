@@ -1,7 +1,7 @@
 import re
 from typing import Dict
 from datetime import datetime
-from os.path import join, dirname
+from os.path import join, dirname, basename
 from decimal import Decimal
 from collections import namedtuple, defaultdict
 from functools import lru_cache
@@ -11,7 +11,7 @@ from pytezos.michelson.grammar import MichelsonParser
 from pytezos.michelson.formatter import format_node
 
 Nested = namedtuple('Nested', ['prim', 'args'])
-Schema = namedtuple('Schema', ['metadata', 'bin_types', 'bin_to_json', 'json_types', 'json_to_bin'])
+Schema = namedtuple('Schema', ['metadata', 'bin_types', 'bin_to_json', 'json_to_bin'])
 
 meaningful_types = ['key', 'key_hash', 'signature', 'timestamp', 'address']
 first_cap_re = re.compile('(.)([A-Z][a-z]+)')
@@ -141,7 +141,11 @@ def collapse_micheline(code) -> dict:
 
 def build_maps(metadata: dict):
     bin_types = {k: v['prim'] for k, v in metadata.items()}
-    bin_to_json, json_types, json_to_bin = {}, {}, {}
+    bin_to_json, json_to_bin = {}, {}
+
+    def is_unit(bin_path):
+        node = metadata[bin_path]
+        return node.get('prim') == 'unit'
 
     def get_entry(bin_path):
         node = metadata[bin_path]
@@ -152,11 +156,12 @@ def build_maps(metadata: dict):
         entry = ''
         for i in range(len(bin_path) - 1, 0, -1):
             lpath = bin_path[:i]
-            if bin_types[lpath] == 'or':
+            if bin_types[lpath] in ['or', 'enum', 'router']:
                 entry = {'0': 'l', '1': 'r'}[bin_path[i]] + entry
             else:
                 return entry
-        assert False, bin_path
+        assert entry, bin_path
+        return entry
 
     def get_key(bin_path):
         node = metadata[bin_path]
@@ -167,77 +172,90 @@ def build_maps(metadata: dict):
     def parse_node(bin_path='0', json_path='/'):
         node = metadata[bin_path]
 
-        if node['prim'] in ['list', 'set']:
-            json_types[json_path] = 'list'
-            parse_node(node['args'][0], join(json_path, '{}'))
+        if node['prim'] in ['list', 'set', 'map', 'big_map']:
+            index = 0 if node['prim'] in ['list', 'set'] else 1
+            parse_node(node['args'][index], join(json_path, '{}'))
 
-        elif node['prim'] in ['map', 'big_map']:
-            json_types[json_path] = 'dict'
-            parse_node(node['args'][1], join(json_path, '{}'))
+        elif node['prim'] == 'or':
+            entries = list(map(get_entry, node['args']))
+            named = all(entries) and len(entries) == len(set(entries))
 
-        elif node['prim'] in ['pair', 'or']:
-            keys = list(map(get_key if node['prim'] == 'pair' else get_entry, node['args']))
+            if all(map(is_unit, node['args'])):
+                bin_types[bin_path] = 'enum'
+                for i, arg in enumerate(node['args']):
+                    bin_types[arg] = entries[i] if named else str(i)
+                    bin_to_json[arg] = json_path
+                    json_to_bin[join(json_path, bin_types[arg])] = arg
+            else:
+                if not named:
+                    entries = list(map(get_lr_path, node['args']))
+
+                bin_types[bin_path] = 'router'
+                for i, arg in enumerate(node['args']):
+                    parse_node(arg, join(json_path, entries[i]))
+
+        elif node['prim'] == 'pair':
+            keys = list(map(get_key, node['args']))
             named = all(keys) and len(keys) == len(set(keys))
 
-            if not named and node['prim'] == 'or':
-                keys = list(map(get_lr_path, node['args']))
-                named = True
-
-            json_types[json_path] = 'dict' if named else 'list'
+            bin_types[bin_path] = 'namedtuple' if named else 'tuple'
             for i, arg in enumerate(node['args']):
                 parse_node(arg, join(json_path, keys[i] if named else str(i)))
 
         bin_to_json[bin_path], json_to_bin[json_path] = json_path, bin_path
 
     parse_node()
-    return bin_types, bin_to_json, json_types, json_to_bin
+    return bin_types, bin_to_json, json_to_bin
 
 
 def parse_micheline(data, bin_to_json: dict, bin_types: dict, root='0'):
     json_values = dict()
     json_root = bin_to_json[root]
 
-    def get_json_path(bin_path, params: list):
-        template = bin_to_json[bin_path]
-        if json_root != '/' and template.startswith(json_root) and template != json_root:
-            template = template[len(json_root):]
-        return template.format(*params)
+    def set_value(bin_path, params: list, value):
+        wild_path = bin_to_json.get(bin_path)
+        if json_root != '/' and wild_path.startswith(json_root) and wild_path != json_root:
+            wild_path = wild_path[len(json_root):]
+
+        json_path = wild_path.format(*params)
+        json_values[json_path] = value
 
     def parse_node(node, bin_path, params):
+        bin_type = bin_types[bin_path]
+        if bin_type in ['map', 'big_map', 'namedtuple', 'router']:
+            set_value(bin_path, params, dict())
+        elif bin_type in ['list', 'set', 'tuple']:
+            set_value(bin_path, params, list())
+
         if isinstance(node, dict):
-            if node.get('prim') in ['Left', 'Some']:
+            if node.get('prim') == 'Pair':
+                for i, arg in enumerate(node['args']):
+                    parse_node(arg, bin_path + str(i), params)
+            elif node.get('prim') == 'Left':
                 parse_node(node['args'][0], bin_path + '0', params)
             elif node.get('prim') == 'Right':
                 parse_node(node['args'][0], bin_path + '1', params)
-            elif node.get('prim') == 'Pair':
-                for i, arg in enumerate(node['args']):
-                    parse_node(arg, bin_path + str(i), params)
             elif node.get('prim') == 'Elt':
                 assert False  # should be already handled
+            elif node.get('prim') == 'Some':
+                parse_node(node['args'][0], bin_path + '0', params)
+            elif node.get('prim') == 'None':
+                set_value(bin_path + '0', params, None)
             elif node.get('prim') == 'Unit':
-                pass  # do not store
+                set_value(bin_path, params, bin_type if bin_type != 'unit' else None)
             else:
-                if node.get('prim') == 'None':
-                    value = None
-                    bin_path += '0'
-                else:
-                    value = decode_literal(node, bin_types[bin_path])
-
-                json_path = get_json_path(bin_path, params)
-                json_values[json_path] = value
+                set_value(bin_path, params, decode_literal(node, bin_types[bin_path]))
 
         elif isinstance(node, list):
-            prim = bin_types[bin_path]
-            if prim in ['map', 'big_map']:
+            if bin_type in ['map', 'big_map']:
                 for elt in node:
                     key = next(iter(elt['args'][0].values()))
                     parse_node(elt['args'][1], bin_path + '1', params + [key])
-            elif prim in ['set', 'list']:
+            elif bin_type in ['set', 'list']:
                 for i, arg in enumerate(node):
                     parse_node(arg, bin_path + '0', params + [i])
-            elif prim == 'lambda':
-                json_path = get_json_path(bin_path, params)
-                json_values[json_path] = micheline_to_michelson(node)
+            elif bin_type == 'lambda':
+                set_value(bin_path, params, micheline_to_michelson(node))
             else:
                 assert False, (node, bin_path)
         else:
@@ -247,39 +265,34 @@ def parse_micheline(data, bin_to_json: dict, bin_types: dict, root='0'):
     return json_values
 
 
-def make_json(json_values: dict, json_types: dict, root='/'):
+def make_json(json_values: dict, root='/'):
+    tree = json_values[root].copy()
 
-    def make_container(path):
-        path = join(root, path)
-        alt_path = join(dirname(path), '{}')
-        json_type = json_types.get(path, json_types.get(alt_path))
-        if json_type == 'dict':
-            return {}
-        elif json_type == 'list':
-            return []
-        else:
-            raise KeyError(path)
-
-    tree = make_container('/')
+    def get_parent_node(path):
+        assert path.startswith(root)
+        node = tree
+        keys = dirname(path)[len(root):].split('/')
+        for key in keys:
+            if not key:
+                continue
+            if isinstance(node, list):
+                node = node[int(key)]
+            else:
+                node = node[key]
+        return node
 
     for json_path, value in json_values.items():
-        node = tree
-        lpath = '/'
+        if json_path == root:
+            continue
+        if type(value) in [dict, list]:
+            value = value.copy()
 
-        for key in json_path.lstrip('/').split('/'):
-            lpath = join(lpath, key)
-            if key.isdigit():
-                key = int(key)
-            try:
-                node = node[key]
-            except (KeyError, IndexError):
-                if isinstance(node, list):
-                    node.extend([None] * (key - len(node) + 1))
-                if lpath == json_path:
-                    node[key] = value
-                else:
-                    node[key] = make_container(lpath)
-                    node = node[key]
+        parent_node = get_parent_node(json_path)
+        key_path = basename(json_path)
+        if isinstance(parent_node, list):
+            parent_node.insert(int(key_path), value)
+        else:
+            parent_node[key_path] = value
 
     return tree
 
@@ -290,44 +303,44 @@ def parse_json(data, json_to_bin: dict, bin_types: dict, root='/'):
     def parse_entry(bin_path, index):
         for i in range(len(bin_path) - 1, 0, -1):
             lpath = bin_path[:i]
-            if bin_types[lpath] == 'or':
+            if bin_types[lpath] in ['or', 'router', 'enum']:
                 bin_values[lpath][index] = bin_path[i]
 
     def parse_node(node, json_path, index='0'):
         bin_path = json_to_bin[json_path]
-        prim = bin_types[bin_path]
+        bin_type = bin_types[bin_path]
 
         if isinstance(node, dict):
-            if prim in ['map', 'big_map']:
+            if bin_type in ['map', 'big_map']:
                 bin_values[bin_path][index] = len(node)
                 for i, (key, value) in enumerate(node.items()):
                     bin_values[bin_path + '0'][f'{index}:{i}'] = key
                     parse_node(value, join(json_path, '{}'), f'{index}:{i}')
 
-            elif prim in ['pair', 'or']:
+            elif bin_type in ['pair', 'or', 'namedtuple', 'router']:
                 for key, value in node.items():
                     parse_node(value, join(json_path, key), index)
             else:
                 assert False, (node, json_path)
 
         elif isinstance(node, list):
-            if prim in ['list', 'set']:
+            if bin_type in ['list', 'set']:
                 bin_values[bin_path][index] = len(node)
                 for i, value in enumerate(node):
                     parse_node(value, join(json_path, '{}'), f'{index}:{i}')
 
-            elif prim == 'pair':
+            elif bin_type in ['pair', 'tuple']:
                 for i, value in enumerate(node):
                     parse_node(value, join(json_path, str(i)), index)
 
-            elif prim == 'lambda':
+            elif bin_type == 'lambda':
                 bin_values[bin_path][index] = node
 
-            elif prim == 'or':
+            elif bin_type == 'or':
                 assert False, (node, bin_path)  # must be at least lr encoded
         else:
-            if prim == 'or':  # enum
-                parse_entry(json_to_bin[join(json_path, str(node))], index)
+            if bin_type == 'enum':
+                parse_node(node, join(json_path, node), index)
             else:
                 bin_values[bin_path][index] = node
                 parse_entry(bin_path, index)
@@ -346,14 +359,14 @@ def make_micheline(bin_values: dict, bin_types: dict, root='0'):
         return length
 
     def encode_node(bin_path, index='0'):
-        prim = bin_types[bin_path]
+        bin_type = bin_types[bin_path]
 
-        if prim == 'pair':
+        if bin_type in ['pair', 'tuple', 'namedtuple']:
             return dict(
                 prim='Pair',
                 args=list(map(lambda x: encode_node(bin_path + x, index), '01'))
             )
-        elif prim in ['map', 'big_map']:
+        elif bin_type in ['map', 'big_map']:
             length = get_length(bin_path, index)
             return [
                 dict(
@@ -363,19 +376,19 @@ def make_micheline(bin_values: dict, bin_types: dict, root='0'):
                 )
                 for i in range(length)
             ]
-        elif prim in ['set', 'list']:
+        elif bin_type in ['set', 'list']:
             length = get_length(bin_path, index)
             return [
                 encode_node(bin_path + '0', f'{index}:{i}')
                 for i in range(length)
             ]
-        elif prim == 'or':
+        elif bin_type in ['or', 'router', 'enum']:
             entry = bin_values[bin_path][index]
             return dict(
                 prim={'0': 'Left', '1': 'Right'}[entry],
                 args=[encode_node(bin_path + entry, index)]
             )
-        elif prim == 'option':
+        elif bin_type == 'option':
             try:
                 value = encode_node(bin_path + '0', index)
                 if value:
@@ -384,16 +397,18 @@ def make_micheline(bin_values: dict, bin_types: dict, root='0'):
                     return dict(prim='None')
             except KeyError:
                 return dict(prim='None')
-        elif prim == 'unit':
-            return dict(prim='Unit')
-        elif prim == 'lambda':
+        elif bin_type == 'lambda':
             return michelson_to_micheline(bin_values[bin_path][index])
+        elif bin_type == 'unit':
+            return dict(prim='Unit')
         else:
             value = bin_values[bin_path][index]
-            if value is None:
+            if value == bin_type:
+                return dict(prim='Unit')
+            elif value is None:
                 return None
             else:
-                return encode_literal(value, prim)
+                return encode_literal(value, bin_type)
 
     return encode_node(root)
 
@@ -401,26 +416,26 @@ def make_micheline(bin_values: dict, bin_types: dict, root='0'):
 def make_default(bin_types: dict, root='0'):
 
     def encode_node(bin_path):
-        prim = bin_types[bin_path]
-        if prim == 'option':
+        bin_type = bin_types[bin_path]
+        if bin_type == 'option':
             return dict(prim='None')
-        elif prim == 'pair':
+        elif bin_type in ['pair', 'tuple', 'namedtuple']:
             return dict(
                 prim='Pair',
                 args=list(map(lambda x: encode_node(bin_path + x), '01'))
             )
-        elif prim in ['map', 'big_map', 'set', 'list']:
+        elif bin_type in ['map', 'big_map', 'set', 'list']:
             return []
-        elif prim in ['int', 'nat', 'mutez', 'timestamp']:
+        elif bin_type in ['int', 'nat', 'mutez', 'timestamp']:
             return {'int': 0}
-        elif prim in ['string', 'bytes']:
+        elif bin_type in ['string', 'bytes']:
             return {'string': ''}
-        elif prim == 'bool':
+        elif bin_type == 'bool':
             return {'prim': 'False'}
-        elif prim == 'unit':
+        elif bin_type == 'unit':
             return {'prim': 'Unit'}
         else:
-            raise ValueError(f'Cannot create default value for `{prim}` at `{bin_path}`')
+            raise ValueError(f'Cannot create default value for `{bin_type}` at `{bin_path}`')
 
     return encode_node(root)
 
@@ -431,7 +446,6 @@ def build_schema(code) -> Schema:
     `metadata` -> micheline tree with collapsed `pair`, `or`, and `option` nodes
     `bin_types` -> maps binary path to primitive
     `bin_to_json` -> binary path to json path mapping
-    `json_types` -> maps json path to container type (dict/list)
     `json_to_bin` -> reversed `bin_to_json`
     :param code: parameter or storage section of smart contract source code (in micheline)
     :return: Schema
@@ -450,7 +464,7 @@ def decode_micheline(data, schema: Schema, root='0'):
     """
     json_root = schema.bin_to_json[root]
     json_values = parse_micheline(data, schema.bin_to_json, schema.bin_types, root)
-    return make_json(json_values, schema.json_types, json_root)
+    return make_json(json_values, json_root)
 
 
 def encode_micheline(data, schema: Schema, root='0'):

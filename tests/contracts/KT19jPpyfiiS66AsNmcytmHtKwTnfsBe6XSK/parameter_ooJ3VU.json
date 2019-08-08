@@ -1,0 +1,21 @@
+{
+  "prim": "Pair",
+  "args": [
+    {
+      "string": "tz1KmPuXvF3qc5iUdxfw23YopbTubQNA1dRQ"
+    },
+    {
+      "prim": "Left",
+      "args": [
+        {
+          "prim": "Some",
+          "args": [
+            {
+              "string": "{\"publicName\":\"Tezos TestCap LegacyBaker\",\"fee\":18,\"payoutModel\":\"dynamic\",\"minDelegation\":0,\"minPayout\":0,\"payoutInterval\":1,\"delegationOpen\":true,\"signupRequired\":false,\"country\":\"USA\",\"website\":\"www.tezos.capital\"}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

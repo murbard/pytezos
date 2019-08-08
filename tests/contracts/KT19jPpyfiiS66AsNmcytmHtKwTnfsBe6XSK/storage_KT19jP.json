@@ -1,0 +1,86 @@
+{
+  "prim": "Pair",
+  "args": [
+    [
+      {
+        "prim": "Elt",
+        "args": [
+          {
+            "string": "tz1KmPuXvF3qc5iUdxfw23YopbTubQNA1dRQ"
+          },
+          {
+            "string": "{\"publicName\":\"Tezos TestCap by Shaun\",\"fee\":5,\"payoutModel\":\"dynamic\",\"minDelegation\":0,\"minPayout\":0,\"payoutInterval\":1,\"delegationOpen\":true,\"signupRequired\":false,\"country\":\"USA\",\"website\":\"www.tezos.capital\"}"
+          }
+        ]
+      },
+      {
+        "prim": "Elt",
+        "args": [
+          {
+            "string": "tz1LNw3LkBstngXmJkg3ZAbEeQ964M2d3Uiy"
+          },
+          {
+            "string": "{\"publicName\":\"New Bakery on Alpha\",\"fee\":7.5,\"payoutModel\":\"dynamic\",\"minDelegation\":0,\"minPayout\":0,\"payoutInterval\":1,\"delegationOpen\":false,\"signupRequired\":false,\"country\":\"USA\",\"website\":\"tzscan.io\"}"
+          }
+        ]
+      },
+      {
+        "prim": "Elt",
+        "args": [
+          {
+            "string": "tz1RZek3UmfwBaqSBjSJ1irJf2kXkXiokSiv"
+          },
+          {
+            "string": "{\"publicName\":\"BestBaker for Tezos\",\"fee\":5,\"payoutModel\":\"dynamic\",\"minDelegation\":50,\"minPayout\":1,\"payoutInterval\":3,\"delegationOpen\":true,\"signupRequired\":false,\"country\":\"USA\",\"website\":\"WeDontHaveASiteYet\"}"
+          }
+        ]
+      },
+      {
+        "prim": "Elt",
+        "args": [
+          {
+            "string": "tz1YJa4DJxK5UNuwzKHVee8F8UpejT6X8MTx"
+          },
+          {
+            "string": "{}"
+          }
+        ]
+      },
+      {
+        "prim": "Elt",
+        "args": [
+          {
+            "string": "tz1Z5MEwwEjkCpKzVfnyZttNTxJFvdT4qGdN"
+          },
+          {
+            "string": "{\"publicName\":\"Dev Baker 1 fixed payout\",\"fee\":28,\"payoutModel\":\"fixed\",\"minDelegation\":50,\"minPayout\":1,\"payoutInterval\":1,\"delegationOpen\":true,\"signupRequired\":true,\"country\":\"Switzerland\",\"website\":\"bakendorse.com\"}"
+          }
+        ]
+      }
+    ],
+    [
+      {
+        "prim": "Elt",
+        "args": [
+          {
+            "string": "tz1KmPuXvF3qc5iUdxfw23YopbTubQNA1dRQ"
+          },
+          {
+            "string": "tz1KmPuXvF3qc5iUdxfw23YopbTubQNA1dRQ"
+          }
+        ]
+      },
+      {
+        "prim": "Elt",
+        "args": [
+          {
+            "string": "tz1Z5MEwwEjkCpKzVfnyZttNTxJFvdT4qGdN"
+          },
+          {
+            "string": "KT1VaqEn625ivcoav1jhxe85rjCMPueazQ1t"
+          }
+        ]
+      }
+    ]
+  ]
+}

@@ -1,0 +1,43 @@
+Right (Left (Right { PUSH (lambda (pair bytes (big_map bytes bytes)) (pair (list operation) (big_map bytes bytes))) { DUP ; CAR ; DIP { CDR } ; UNPACK (or (or (pair address (lambda nat nat)) (pair unit (lambda nat nat))) (or (pair unit (lambda nat nat)) (pair unit (lambda (pair string (pair string nat)) (pair string (pair string nat)))))) ; IF_NONE { PUSH (pair string unit) (Pair "ArgumentUnpackFailed" Unit) ; FAILWITH } {} ; PAIR ; DUP ; CAR ; DIP { CDR } ; IF_LEFT { IF_LEFT { DUP ;
+                    CAR ;
+                    DIP { CDR } ;
+                    SWAP ;
+                    DIP { PUSH string "sWalletsBalances" ; PAIR ; PACK ; GET ; IF_NONE { NONE nat }
+                            { UNPACK nat ;
+                              IF_NONE { PUSH string "UStore: failed to unpack sWalletsBalances" ; FAILWITH } {} ;
+                              SOME } ; IF_NONE { PUSH nat 0 } {} } ;
+                    SWAP ;
+                    EXEC ;
+                    PUSH string "VoidResult" ;
+                    PAIR ;
+                    FAILWITH }
+                  { DUP ;
+                    CAR ;
+                    DIP { CDR } ;
+                    SWAP ;
+                    DIP { DROP ; PUSH string "sTotalMinted" ; PACK ; GET ; IF_NONE { PUSH string "UStore: no field sTotalMinted" ; FAILWITH } {} ; UNPACK nat ; IF_NONE { PUSH string "UStore: failed to unpack sTotalMinted" ; FAILWITH } {} } ;
+                    SWAP ;
+                    EXEC ;
+                    PUSH string "VoidResult" ;
+                    PAIR ;
+                    FAILWITH } }
+        { IF_LEFT { DUP ;
+                    CAR ;
+                    DIP { CDR } ;
+                    SWAP ;
+                    DIP { DROP ; PUSH string "sTotal" ; PACK ; GET ; IF_NONE { PUSH string "UStore: no field sTotal" ; FAILWITH } {} ; UNPACK nat ; IF_NONE { PUSH string "UStore: failed to unpack sTotal" ; FAILWITH } {} } ;
+                    SWAP ;
+                    EXEC ;
+                    PUSH string "VoidResult" ;
+                    PAIR ;
+                    FAILWITH }
+                  { DUP ;
+                    CAR ;
+                    DIP { CDR } ;
+                    SWAP ;
+                    DIP { DROP ; PUSH string "sMeta" ; PACK ; GET ; IF_NONE { PUSH string "UStore: no field sMeta" ; FAILWITH } {} ; UNPACK (pair string (pair string nat)) ; IF_NONE { PUSH string "UStore: failed to unpack sMeta" ; FAILWITH } {} } ;
+                    SWAP ;
+                    EXEC ;
+                    PUSH string "VoidResult" ;
+                    PAIR ;
+                    FAILWITH } } } ; PUSH string "callTokenGetters" ; PUSH string "code" ; PAIR ; PACK ; DIP { PACK ; SOME } ; UPDATE }))

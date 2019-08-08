@@ -1,0 +1,34 @@
+parameter (pair (key_hash :subject %subject) (or (option :data %set_data string) (address :reporter %set_reporter)));
+storage (pair (map %data (key_hash :subject) (string :data)) (map %reporters (key_hash :subject) (address :reporter)));
+code { DUP ;
+       CDR ;
+       SWAP ;
+       CAR ;
+       { { DUP ; CAR ; DIP { CDR } } } ;
+       DUP ;
+       IMPLICIT_ACCOUNT ;
+       ADDRESS ;
+       SENDER ;
+       { COMPARE ; EQ } ;
+       SWAP ;
+       { DIP { DIP { DIP { DUP } ; SWAP } ; SWAP } ; SWAP } ;
+       CDR %reporters ;
+       SWAP ;
+       DUP ;
+       DIP { GET ; IF_NONE { PUSH bool False }
+               { SENDER ;
+                 { COMPARE ; EQ } } ; OR ; { IF {} { { UNIT ; FAILWITH } } } } ;
+       SWAP ;
+       IF_LEFT { SWAP ;
+                 { DIP { DIP { DUP ; CAR %data } } } ;
+                 UPDATE ;
+                 SWAP ;
+                 { DUP ; CAR %data ; DROP ; CDR @%% ; SWAP ; PAIR %data %@ } }
+               { SOME ;
+                 SWAP ;
+                 { DIP { DIP { DUP ; CDR %reporters } } } ;
+                 UPDATE ;
+                 SWAP ;
+                 { DUP ; CDR %reporters ; DROP ; CAR @%% ; PAIR %@ %reporters } } ;
+       NIL operation ;
+       PAIR }

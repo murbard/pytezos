@@ -1,0 +1,16 @@
+{
+  "prim": "Left",
+  "args": [
+    {
+      "prim": "Pair",
+      "args": [
+        {
+          "string": "3327f4a6975e6f372e5174d43336dd0a"
+        },
+        {
+          "string": "tz1Yh1g4Lb9fEP9CqdxHLwaGsKgXqVphhYYF"
+        }
+      ]
+    }
+  ]
+}

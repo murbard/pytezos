@@ -1,0 +1,19 @@
+{
+  "prim": "Pair",
+  "args": [
+    {
+      "bytes": "164e1e1d8f63bed17891d47f1f8a649da712088257d1ec6392d37aeaab968b75"
+    },
+    {
+      "prim": "Pair",
+      "args": [
+        {
+          "bytes": "9a3047ca5e89aa4f095c2bfebfcb8d24ae9b1d2b"
+        },
+        {
+          "int": "0"
+        }
+      ]
+    }
+  ]
+}

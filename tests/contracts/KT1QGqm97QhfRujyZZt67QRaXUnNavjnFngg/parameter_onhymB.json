@@ -1,0 +1,18 @@
+{
+  "prim": "Left",
+  "args": [
+    {
+      "prim": "Right",
+      "args": [
+        {
+          "prim": "Left",
+          "args": [
+            {
+              "bytes": "380090edf61ade7ec43d21776800a232caa35d11"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

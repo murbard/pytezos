@@ -20,16 +20,27 @@ def is_inline(node):
     return node['prim'] == 'PUSH'
 
 
-def format_node(node, indent='', inline=False):
+def is_root(node: list):
+    return all(map(
+        lambda x: isinstance(x, dict) and x.get('prim') in ['parameter', 'storage', 'code'],
+        node))
+
+
+def format_node(node, indent='', inline=False, wrapped=False):
     if isinstance(node, list):
         seq_indent = indent + ' ' * 2
-        items = list(map(lambda x: format_node(x, seq_indent, inline), node))
-        length = len(indent) + sum(map(len, items)) + 4
-        if inline or length < line_size:
-            seq = ' ; '.join(items)
+        no_wrap = is_root(node)
+        items = list(map(lambda x: format_node(x, seq_indent, inline, wrapped=not no_wrap), node))
+        if items:
+            length = len(indent) + sum(map(len, items)) + 4
+            space = '' if no_wrap else ' '
+            if inline or length < line_size:
+                seq = f'{space}; '.join(items)
+            else:
+                seq = f'{space};\n{seq_indent}'.join(items)
+            return seq if no_wrap else f'{{ {seq} }}'
         else:
-            seq = f' ;\n{seq_indent}'.join(items)
-        return f'{{ {seq} }}'
+            return '{}'
 
     elif isinstance(node, dict):
         if node.get('prim'):
@@ -61,10 +72,20 @@ def format_node(node, indent='', inline=False):
                     else:
                         expr = f'{expr}\n{arg_indent}{item}'
 
-            return f'({expr})' if is_framed(node) else expr
+            if is_framed(node) and indent and not wrapped:
+                return f'({expr})'
+            else:
+                return expr
         else:
             assert len(node) == 1
-            value = next(iter(node.values()))
-            return value if value.isdigit() else f'"{value}"'
+            core_type, value = next(iter(node.items()))
+            if core_type == 'int':
+                return value
+            elif core_type == 'bytes':
+                return f'0x{value}'
+            elif core_type == 'string':
+                return f'"{value}"'
+            else:
+                assert False
     else:
         assert False, node

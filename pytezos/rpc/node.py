@@ -32,7 +32,10 @@ class RpcNode:
         res = self._session.request(
             method=method,
             url=urljoin(self._uri, path),
-            headers={'content-type': 'application/json'},
+            headers={
+                'content-type': 'application/json',
+                'user-agent': 'PyTezos'
+            },
             **kwargs
         )
         if res.status_code != 200:
@@ -78,5 +81,3 @@ class RpcNode:
 
     def put(self, path, params=None):
         return self.request('PUT', path, params=params).json()
-
-

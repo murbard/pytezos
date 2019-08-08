@@ -1,0 +1,262 @@
+from unittest import TestCase
+
+from tests import get_data
+from pytezos.michelson.coding import micheline_to_michelson, michelson_to_micheline
+
+
+class MichelsonCodingTestKT1Gqy(TestCase):
+    
+    def setUp(self):
+        self.maxDiff = None
+
+    def test_michelson_parse_code_KT1Gqy(self):
+        expected = get_data(
+            path='/home/mickey/pytezos/tests/contracts/KT1GqyAwGGqUbrduNgn4c4aVUXU9UGnXwNmD/code_KT1Gqy.json')
+        actual = michelson_to_micheline(get_data(
+            path='/home/mickey/pytezos/tests/contracts/KT1GqyAwGGqUbrduNgn4c4aVUXU9UGnXwNmD/code_KT1Gqy.tz'))
+        self.assertEqual(expected, actual)
+
+    def test_michelson_format_code_KT1Gqy(self):
+        expected = get_data(
+            path='/home/mickey/pytezos/tests/contracts/KT1GqyAwGGqUbrduNgn4c4aVUXU9UGnXwNmD/code_KT1Gqy.tz')
+        actual = micheline_to_michelson(get_data(
+            path='/home/mickey/pytezos/tests/contracts/KT1GqyAwGGqUbrduNgn4c4aVUXU9UGnXwNmD/code_KT1Gqy.json'), 
+            inline=True)
+        self.assertEqual(expected, actual)
+
+    def test_michelson_inverse_code_KT1Gqy(self):
+        expected = get_data(
+            path='/home/mickey/pytezos/tests/contracts/KT1GqyAwGGqUbrduNgn4c4aVUXU9UGnXwNmD/code_KT1Gqy.json')
+        actual = michelson_to_micheline(micheline_to_michelson(expected))
+        self.assertEqual(expected, actual)
+
+    def test_michelson_parse_storage_KT1Gqy(self):
+        expected = get_data(
+            path='/home/mickey/pytezos/tests/contracts/KT1GqyAwGGqUbrduNgn4c4aVUXU9UGnXwNmD/storage_KT1Gqy.json')
+        actual = michelson_to_micheline(get_data(
+            path='/home/mickey/pytezos/tests/contracts/KT1GqyAwGGqUbrduNgn4c4aVUXU9UGnXwNmD/storage_KT1Gqy.tz'))
+        self.assertEqual(expected, actual)
+
+    def test_michelson_format_storage_KT1Gqy(self):
+        expected = get_data(
+            path='/home/mickey/pytezos/tests/contracts/KT1GqyAwGGqUbrduNgn4c4aVUXU9UGnXwNmD/storage_KT1Gqy.tz')
+        actual = micheline_to_michelson(get_data(
+            path='/home/mickey/pytezos/tests/contracts/KT1GqyAwGGqUbrduNgn4c4aVUXU9UGnXwNmD/storage_KT1Gqy.json'), 
+            inline=True)
+        self.assertEqual(expected, actual)
+
+    def test_michelson_inverse_storage_KT1Gqy(self):
+        expected = get_data(
+            path='/home/mickey/pytezos/tests/contracts/KT1GqyAwGGqUbrduNgn4c4aVUXU9UGnXwNmD/storage_KT1Gqy.json')
+        actual = michelson_to_micheline(micheline_to_michelson(expected))
+        self.assertEqual(expected, actual)
+
+    def test_michelson_parse_parameter_op1vDy(self):
+        expected = get_data(
+            path='/home/mickey/pytezos/tests/contracts/KT1GqyAwGGqUbrduNgn4c4aVUXU9UGnXwNmD/parameter_op1vDy.json')
+        actual = michelson_to_micheline(get_data(
+            path='/home/mickey/pytezos/tests/contracts/KT1GqyAwGGqUbrduNgn4c4aVUXU9UGnXwNmD/parameter_op1vDy.tz'))
+        self.assertEqual(expected, actual)
+
+    def test_michelson_format_parameter_op1vDy(self):
+        expected = get_data(
+            path='/home/mickey/pytezos/tests/contracts/KT1GqyAwGGqUbrduNgn4c4aVUXU9UGnXwNmD/parameter_op1vDy.tz')
+        actual = micheline_to_michelson(get_data(
+            path='/home/mickey/pytezos/tests/contracts/KT1GqyAwGGqUbrduNgn4c4aVUXU9UGnXwNmD/parameter_op1vDy.json'), 
+            inline=True)
+        self.assertEqual(expected, actual)
+
+    def test_michelson_inverse_parameter_op1vDy(self):
+        expected = get_data(
+            path='/home/mickey/pytezos/tests/contracts/KT1GqyAwGGqUbrduNgn4c4aVUXU9UGnXwNmD/parameter_op1vDy.json')
+        actual = michelson_to_micheline(micheline_to_michelson(expected))
+        self.assertEqual(expected, actual)
+
+    def test_michelson_parse_parameter_ooqAps(self):
+        expected = get_data(
+            path='/home/mickey/pytezos/tests/contracts/KT1GqyAwGGqUbrduNgn4c4aVUXU9UGnXwNmD/parameter_ooqAps.json')
+        actual = michelson_to_micheline(get_data(
+            path='/home/mickey/pytezos/tests/contracts/KT1GqyAwGGqUbrduNgn4c4aVUXU9UGnXwNmD/parameter_ooqAps.tz'))
+        self.assertEqual(expected, actual)
+
+    def test_michelson_format_parameter_ooqAps(self):
+        expected = get_data(
+            path='/home/mickey/pytezos/tests/contracts/KT1GqyAwGGqUbrduNgn4c4aVUXU9UGnXwNmD/parameter_ooqAps.tz')
+        actual = micheline_to_michelson(get_data(
+            path='/home/mickey/pytezos/tests/contracts/KT1GqyAwGGqUbrduNgn4c4aVUXU9UGnXwNmD/parameter_ooqAps.json'), 
+            inline=True)
+        self.assertEqual(expected, actual)
+
+    def test_michelson_inverse_parameter_ooqAps(self):
+        expected = get_data(
+            path='/home/mickey/pytezos/tests/contracts/KT1GqyAwGGqUbrduNgn4c4aVUXU9UGnXwNmD/parameter_ooqAps.json')
+        actual = michelson_to_micheline(micheline_to_michelson(expected))
+        self.assertEqual(expected, actual)
+
+    def test_michelson_parse_parameter_onu43U(self):
+        expected = get_data(
+            path='/home/mickey/pytezos/tests/contracts/KT1GqyAwGGqUbrduNgn4c4aVUXU9UGnXwNmD/parameter_onu43U.json')
+        actual = michelson_to_micheline(get_data(
+            path='/home/mickey/pytezos/tests/contracts/KT1GqyAwGGqUbrduNgn4c4aVUXU9UGnXwNmD/parameter_onu43U.tz'))
+        self.assertEqual(expected, actual)
+
+    def test_michelson_format_parameter_onu43U(self):
+        expected = get_data(
+            path='/home/mickey/pytezos/tests/contracts/KT1GqyAwGGqUbrduNgn4c4aVUXU9UGnXwNmD/parameter_onu43U.tz')
+        actual = micheline_to_michelson(get_data(
+            path='/home/mickey/pytezos/tests/contracts/KT1GqyAwGGqUbrduNgn4c4aVUXU9UGnXwNmD/parameter_onu43U.json'), 
+            inline=True)
+        self.assertEqual(expected, actual)
+
+    def test_michelson_inverse_parameter_onu43U(self):
+        expected = get_data(
+            path='/home/mickey/pytezos/tests/contracts/KT1GqyAwGGqUbrduNgn4c4aVUXU9UGnXwNmD/parameter_onu43U.json')
+        actual = michelson_to_micheline(micheline_to_michelson(expected))
+        self.assertEqual(expected, actual)
+
+    def test_michelson_parse_parameter_oo6Wkn(self):
+        expected = get_data(
+            path='/home/mickey/pytezos/tests/contracts/KT1GqyAwGGqUbrduNgn4c4aVUXU9UGnXwNmD/parameter_oo6Wkn.json')
+        actual = michelson_to_micheline(get_data(
+            path='/home/mickey/pytezos/tests/contracts/KT1GqyAwGGqUbrduNgn4c4aVUXU9UGnXwNmD/parameter_oo6Wkn.tz'))
+        self.assertEqual(expected, actual)
+
+    def test_michelson_format_parameter_oo6Wkn(self):
+        expected = get_data(
+            path='/home/mickey/pytezos/tests/contracts/KT1GqyAwGGqUbrduNgn4c4aVUXU9UGnXwNmD/parameter_oo6Wkn.tz')
+        actual = micheline_to_michelson(get_data(
+            path='/home/mickey/pytezos/tests/contracts/KT1GqyAwGGqUbrduNgn4c4aVUXU9UGnXwNmD/parameter_oo6Wkn.json'), 
+            inline=True)
+        self.assertEqual(expected, actual)
+
+    def test_michelson_inverse_parameter_oo6Wkn(self):
+        expected = get_data(
+            path='/home/mickey/pytezos/tests/contracts/KT1GqyAwGGqUbrduNgn4c4aVUXU9UGnXwNmD/parameter_oo6Wkn.json')
+        actual = michelson_to_micheline(micheline_to_michelson(expected))
+        self.assertEqual(expected, actual)
+
+    def test_michelson_parse_parameter_ooHqAk(self):
+        expected = get_data(
+            path='/home/mickey/pytezos/tests/contracts/KT1GqyAwGGqUbrduNgn4c4aVUXU9UGnXwNmD/parameter_ooHqAk.json')
+        actual = michelson_to_micheline(get_data(
+            path='/home/mickey/pytezos/tests/contracts/KT1GqyAwGGqUbrduNgn4c4aVUXU9UGnXwNmD/parameter_ooHqAk.tz'))
+        self.assertEqual(expected, actual)
+
+    def test_michelson_format_parameter_ooHqAk(self):
+        expected = get_data(
+            path='/home/mickey/pytezos/tests/contracts/KT1GqyAwGGqUbrduNgn4c4aVUXU9UGnXwNmD/parameter_ooHqAk.tz')
+        actual = micheline_to_michelson(get_data(
+            path='/home/mickey/pytezos/tests/contracts/KT1GqyAwGGqUbrduNgn4c4aVUXU9UGnXwNmD/parameter_ooHqAk.json'), 
+            inline=True)
+        self.assertEqual(expected, actual)
+
+    def test_michelson_inverse_parameter_ooHqAk(self):
+        expected = get_data(
+            path='/home/mickey/pytezos/tests/contracts/KT1GqyAwGGqUbrduNgn4c4aVUXU9UGnXwNmD/parameter_ooHqAk.json')
+        actual = michelson_to_micheline(micheline_to_michelson(expected))
+        self.assertEqual(expected, actual)
+
+    def test_michelson_parse_parameter_ooU8MM(self):
+        expected = get_data(
+            path='/home/mickey/pytezos/tests/contracts/KT1GqyAwGGqUbrduNgn4c4aVUXU9UGnXwNmD/parameter_ooU8MM.json')
+        actual = michelson_to_micheline(get_data(
+            path='/home/mickey/pytezos/tests/contracts/KT1GqyAwGGqUbrduNgn4c4aVUXU9UGnXwNmD/parameter_ooU8MM.tz'))
+        self.assertEqual(expected, actual)
+
+    def test_michelson_format_parameter_ooU8MM(self):
+        expected = get_data(
+            path='/home/mickey/pytezos/tests/contracts/KT1GqyAwGGqUbrduNgn4c4aVUXU9UGnXwNmD/parameter_ooU8MM.tz')
+        actual = micheline_to_michelson(get_data(
+            path='/home/mickey/pytezos/tests/contracts/KT1GqyAwGGqUbrduNgn4c4aVUXU9UGnXwNmD/parameter_ooU8MM.json'), 
+            inline=True)
+        self.assertEqual(expected, actual)
+
+    def test_michelson_inverse_parameter_ooU8MM(self):
+        expected = get_data(
+            path='/home/mickey/pytezos/tests/contracts/KT1GqyAwGGqUbrduNgn4c4aVUXU9UGnXwNmD/parameter_ooU8MM.json')
+        actual = michelson_to_micheline(micheline_to_michelson(expected))
+        self.assertEqual(expected, actual)
+
+    def test_michelson_parse_parameter_ooBcbW(self):
+        expected = get_data(
+            path='/home/mickey/pytezos/tests/contracts/KT1GqyAwGGqUbrduNgn4c4aVUXU9UGnXwNmD/parameter_ooBcbW.json')
+        actual = michelson_to_micheline(get_data(
+            path='/home/mickey/pytezos/tests/contracts/KT1GqyAwGGqUbrduNgn4c4aVUXU9UGnXwNmD/parameter_ooBcbW.tz'))
+        self.assertEqual(expected, actual)
+
+    def test_michelson_format_parameter_ooBcbW(self):
+        expected = get_data(
+            path='/home/mickey/pytezos/tests/contracts/KT1GqyAwGGqUbrduNgn4c4aVUXU9UGnXwNmD/parameter_ooBcbW.tz')
+        actual = micheline_to_michelson(get_data(
+            path='/home/mickey/pytezos/tests/contracts/KT1GqyAwGGqUbrduNgn4c4aVUXU9UGnXwNmD/parameter_ooBcbW.json'), 
+            inline=True)
+        self.assertEqual(expected, actual)
+
+    def test_michelson_inverse_parameter_ooBcbW(self):
+        expected = get_data(
+            path='/home/mickey/pytezos/tests/contracts/KT1GqyAwGGqUbrduNgn4c4aVUXU9UGnXwNmD/parameter_ooBcbW.json')
+        actual = michelson_to_micheline(micheline_to_michelson(expected))
+        self.assertEqual(expected, actual)
+
+    def test_michelson_parse_parameter_opCHRq(self):
+        expected = get_data(
+            path='/home/mickey/pytezos/tests/contracts/KT1GqyAwGGqUbrduNgn4c4aVUXU9UGnXwNmD/parameter_opCHRq.json')
+        actual = michelson_to_micheline(get_data(
+            path='/home/mickey/pytezos/tests/contracts/KT1GqyAwGGqUbrduNgn4c4aVUXU9UGnXwNmD/parameter_opCHRq.tz'))
+        self.assertEqual(expected, actual)
+
+    def test_michelson_format_parameter_opCHRq(self):
+        expected = get_data(
+            path='/home/mickey/pytezos/tests/contracts/KT1GqyAwGGqUbrduNgn4c4aVUXU9UGnXwNmD/parameter_opCHRq.tz')
+        actual = micheline_to_michelson(get_data(
+            path='/home/mickey/pytezos/tests/contracts/KT1GqyAwGGqUbrduNgn4c4aVUXU9UGnXwNmD/parameter_opCHRq.json'), 
+            inline=True)
+        self.assertEqual(expected, actual)
+
+    def test_michelson_inverse_parameter_opCHRq(self):
+        expected = get_data(
+            path='/home/mickey/pytezos/tests/contracts/KT1GqyAwGGqUbrduNgn4c4aVUXU9UGnXwNmD/parameter_opCHRq.json')
+        actual = michelson_to_micheline(micheline_to_michelson(expected))
+        self.assertEqual(expected, actual)
+
+    def test_michelson_parse_parameter_ooG4wQ(self):
+        expected = get_data(
+            path='/home/mickey/pytezos/tests/contracts/KT1GqyAwGGqUbrduNgn4c4aVUXU9UGnXwNmD/parameter_ooG4wQ.json')
+        actual = michelson_to_micheline(get_data(
+            path='/home/mickey/pytezos/tests/contracts/KT1GqyAwGGqUbrduNgn4c4aVUXU9UGnXwNmD/parameter_ooG4wQ.tz'))
+        self.assertEqual(expected, actual)
+
+    def test_michelson_format_parameter_ooG4wQ(self):
+        expected = get_data(
+            path='/home/mickey/pytezos/tests/contracts/KT1GqyAwGGqUbrduNgn4c4aVUXU9UGnXwNmD/parameter_ooG4wQ.tz')
+        actual = micheline_to_michelson(get_data(
+            path='/home/mickey/pytezos/tests/contracts/KT1GqyAwGGqUbrduNgn4c4aVUXU9UGnXwNmD/parameter_ooG4wQ.json'), 
+            inline=True)
+        self.assertEqual(expected, actual)
+
+    def test_michelson_inverse_parameter_ooG4wQ(self):
+        expected = get_data(
+            path='/home/mickey/pytezos/tests/contracts/KT1GqyAwGGqUbrduNgn4c4aVUXU9UGnXwNmD/parameter_ooG4wQ.json')
+        actual = michelson_to_micheline(micheline_to_michelson(expected))
+        self.assertEqual(expected, actual)
+
+    def test_michelson_parse_parameter_opYgMf(self):
+        expected = get_data(
+            path='/home/mickey/pytezos/tests/contracts/KT1GqyAwGGqUbrduNgn4c4aVUXU9UGnXwNmD/parameter_opYgMf.json')
+        actual = michelson_to_micheline(get_data(
+            path='/home/mickey/pytezos/tests/contracts/KT1GqyAwGGqUbrduNgn4c4aVUXU9UGnXwNmD/parameter_opYgMf.tz'))
+        self.assertEqual(expected, actual)
+
+    def test_michelson_format_parameter_opYgMf(self):
+        expected = get_data(
+            path='/home/mickey/pytezos/tests/contracts/KT1GqyAwGGqUbrduNgn4c4aVUXU9UGnXwNmD/parameter_opYgMf.tz')
+        actual = micheline_to_michelson(get_data(
+            path='/home/mickey/pytezos/tests/contracts/KT1GqyAwGGqUbrduNgn4c4aVUXU9UGnXwNmD/parameter_opYgMf.json'), 
+            inline=True)
+        self.assertEqual(expected, actual)
+
+    def test_michelson_inverse_parameter_opYgMf(self):
+        expected = get_data(
+            path='/home/mickey/pytezos/tests/contracts/KT1GqyAwGGqUbrduNgn4c4aVUXU9UGnXwNmD/parameter_opYgMf.json')
+        actual = michelson_to_micheline(micheline_to_michelson(expected))
+        self.assertEqual(expected, actual)

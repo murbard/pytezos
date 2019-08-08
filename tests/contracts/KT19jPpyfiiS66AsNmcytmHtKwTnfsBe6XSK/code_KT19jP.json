@@ -1,0 +1,415 @@
+[
+  {
+    "prim": "parameter",
+    "args": [
+      {
+        "prim": "pair",
+        "args": [
+          {
+            "prim": "key_hash",
+            "annots": [
+              ":subject",
+              "%subject"
+            ]
+          },
+          {
+            "prim": "or",
+            "args": [
+              {
+                "prim": "option",
+                "args": [
+                  {
+                    "prim": "string"
+                  }
+                ],
+                "annots": [
+                  ":data",
+                  "%set_data"
+                ]
+              },
+              {
+                "prim": "address",
+                "annots": [
+                  ":reporter",
+                  "%set_reporter"
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "prim": "storage",
+    "args": [
+      {
+        "prim": "pair",
+        "args": [
+          {
+            "prim": "map",
+            "args": [
+              {
+                "prim": "key_hash",
+                "annots": [
+                  ":subject"
+                ]
+              },
+              {
+                "prim": "string",
+                "annots": [
+                  ":data"
+                ]
+              }
+            ],
+            "annots": [
+              "%data"
+            ]
+          },
+          {
+            "prim": "map",
+            "args": [
+              {
+                "prim": "key_hash",
+                "annots": [
+                  ":subject"
+                ]
+              },
+              {
+                "prim": "address",
+                "annots": [
+                  ":reporter"
+                ]
+              }
+            ],
+            "annots": [
+              "%reporters"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "prim": "code",
+    "args": [
+      [
+        {
+          "prim": "DUP"
+        },
+        {
+          "prim": "CDR"
+        },
+        {
+          "prim": "SWAP"
+        },
+        {
+          "prim": "CAR"
+        },
+        [
+          [
+            {
+              "prim": "DUP"
+            },
+            {
+              "prim": "CAR"
+            },
+            {
+              "prim": "DIP",
+              "args": [
+                [
+                  {
+                    "prim": "CDR"
+                  }
+                ]
+              ]
+            }
+          ]
+        ],
+        {
+          "prim": "DUP"
+        },
+        {
+          "prim": "IMPLICIT_ACCOUNT"
+        },
+        {
+          "prim": "ADDRESS"
+        },
+        {
+          "prim": "SENDER"
+        },
+        [
+          {
+            "prim": "COMPARE"
+          },
+          {
+            "prim": "EQ"
+          }
+        ],
+        {
+          "prim": "SWAP"
+        },
+        [
+          {
+            "prim": "DIP",
+            "args": [
+              [
+                {
+                  "prim": "DIP",
+                  "args": [
+                    [
+                      {
+                        "prim": "DIP",
+                        "args": [
+                          [
+                            {
+                              "prim": "DUP"
+                            }
+                          ]
+                        ]
+                      },
+                      {
+                        "prim": "SWAP"
+                      }
+                    ]
+                  ]
+                },
+                {
+                  "prim": "SWAP"
+                }
+              ]
+            ]
+          },
+          {
+            "prim": "SWAP"
+          }
+        ],
+        {
+          "prim": "CDR",
+          "annots": [
+            "%reporters"
+          ]
+        },
+        {
+          "prim": "SWAP"
+        },
+        {
+          "prim": "DUP"
+        },
+        {
+          "prim": "DIP",
+          "args": [
+            [
+              {
+                "prim": "GET"
+              },
+              {
+                "prim": "IF_NONE",
+                "args": [
+                  [
+                    {
+                      "prim": "PUSH",
+                      "args": [
+                        {
+                          "prim": "bool"
+                        },
+                        {
+                          "prim": "False"
+                        }
+                      ]
+                    }
+                  ],
+                  [
+                    {
+                      "prim": "SENDER"
+                    },
+                    [
+                      {
+                        "prim": "COMPARE"
+                      },
+                      {
+                        "prim": "EQ"
+                      }
+                    ]
+                  ]
+                ]
+              },
+              {
+                "prim": "OR"
+              },
+              [
+                {
+                  "prim": "IF",
+                  "args": [
+                    [],
+                    [
+                      [
+                        {
+                          "prim": "UNIT"
+                        },
+                        {
+                          "prim": "FAILWITH"
+                        }
+                      ]
+                    ]
+                  ]
+                }
+              ]
+            ]
+          ]
+        },
+        {
+          "prim": "SWAP"
+        },
+        {
+          "prim": "IF_LEFT",
+          "args": [
+            [
+              {
+                "prim": "SWAP"
+              },
+              [
+                {
+                  "prim": "DIP",
+                  "args": [
+                    [
+                      {
+                        "prim": "DIP",
+                        "args": [
+                          [
+                            {
+                              "prim": "DUP"
+                            },
+                            {
+                              "prim": "CAR",
+                              "annots": [
+                                "%data"
+                              ]
+                            }
+                          ]
+                        ]
+                      }
+                    ]
+                  ]
+                }
+              ],
+              {
+                "prim": "UPDATE"
+              },
+              {
+                "prim": "SWAP"
+              },
+              [
+                {
+                  "prim": "DUP"
+                },
+                {
+                  "prim": "CAR",
+                  "annots": [
+                    "%data"
+                  ]
+                },
+                {
+                  "prim": "DROP"
+                },
+                {
+                  "prim": "CDR",
+                  "annots": [
+                    "@%%"
+                  ]
+                },
+                {
+                  "prim": "SWAP"
+                },
+                {
+                  "prim": "PAIR",
+                  "annots": [
+                    "%data",
+                    "%@"
+                  ]
+                }
+              ]
+            ],
+            [
+              {
+                "prim": "SOME"
+              },
+              {
+                "prim": "SWAP"
+              },
+              [
+                {
+                  "prim": "DIP",
+                  "args": [
+                    [
+                      {
+                        "prim": "DIP",
+                        "args": [
+                          [
+                            {
+                              "prim": "DUP"
+                            },
+                            {
+                              "prim": "CDR",
+                              "annots": [
+                                "%reporters"
+                              ]
+                            }
+                          ]
+                        ]
+                      }
+                    ]
+                  ]
+                }
+              ],
+              {
+                "prim": "UPDATE"
+              },
+              {
+                "prim": "SWAP"
+              },
+              [
+                {
+                  "prim": "DUP"
+                },
+                {
+                  "prim": "CDR",
+                  "annots": [
+                    "%reporters"
+                  ]
+                },
+                {
+                  "prim": "DROP"
+                },
+                {
+                  "prim": "CAR",
+                  "annots": [
+                    "@%%"
+                  ]
+                },
+                {
+                  "prim": "PAIR",
+                  "annots": [
+                    "%@",
+                    "%reporters"
+                  ]
+                }
+              ]
+            ]
+          ]
+        },
+        {
+          "prim": "NIL",
+          "args": [
+            {
+              "prim": "operation"
+            }
+          ]
+        },
+        {
+          "prim": "PAIR"
+        }
+      ]
+    ]
+  }
+]
