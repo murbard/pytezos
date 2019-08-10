@@ -31,9 +31,9 @@ tulip = RpcProvider(
     zeronet='https://rpc.tulip.tools/zeronet/'
 )
 
-mainnet = tulip.mainnet
-alphanet = tulip.alphanet
-zeronet = tulip.zeronet
+mainnet = tzbeta.mainnet
+alphanet = cryptonomic.alphanet
+zeronet = tzscan.zeronet
 
 please_use_with_care = Key.from_encoded_key('edsk33N474hxzA4sKeWVM6iuGNGDpX2mGwHNxEA4UbWS8sW3Ta3NKH')
 

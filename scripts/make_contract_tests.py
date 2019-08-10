@@ -61,7 +61,7 @@ def find_operation(block_level, destination):
 
 
 def make_package(account, operations=1):
-    account_dir = join(data_dir, account['account_id'])
+    account_dir = join(data_dir, account["account_id"])
     if exists(account_dir):
         return
     else:
@@ -128,7 +128,7 @@ def make_michelson_tests(files: dict):
                 test_michelson_inverse.format(case=case, json_path=json_path)
             ])
 
-    with open(join(files['dir'], 'test_michelson_coding.py'), 'w+') as f:
+    with open(join(files['dir'], f'test_michelson_coding_{files["name"]}.py'), 'w+') as f:
         f.write(''.join(test_case))
 
 
@@ -144,13 +144,14 @@ def make_micheline_tests(files: dict):
                 test_micheline_inverse.format(case=case, json_path=json_path, section=section)
             )
 
-    with open(join(files['dir'], 'test_micheline_coding.py'), 'w+') as f:
+    with open(join(files['dir'], f'test_micheline_coding_{files["name"]}.py'), 'w+') as f:
         f.write(''.join(test_case))
 
 
 if __name__ == '__main__':
-    accounts = get_accounts(limit=50)
+    accounts = get_accounts(limit=100)
     for acc in accounts:
-        package = make_package(acc, operations=10)
-        make_michelson_tests(package)
-        make_micheline_tests(package)
+        package = make_package(acc, operations=7)
+        if package:
+            make_michelson_tests(package)
+            make_micheline_tests(package)

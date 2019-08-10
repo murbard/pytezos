@@ -1,3 +1,5 @@
+import json
+
 line_size = 100
 
 
@@ -20,25 +22,25 @@ def is_inline(node):
     return node['prim'] == 'PUSH'
 
 
-def is_root(node: list):
+def is_script(node):
     return all(map(
         lambda x: isinstance(x, dict) and x.get('prim') in ['parameter', 'storage', 'code'],
         node))
 
 
-def format_node(node, indent='', inline=False, wrapped=False):
+def format_node(node, indent='', inline=False, is_root=False, wrapped=False):
     if isinstance(node, list):
         seq_indent = indent + ' ' * 2
-        no_wrap = is_root(node)
-        items = list(map(lambda x: format_node(x, seq_indent, inline, wrapped=not no_wrap), node))
+        is_script_root = is_root and is_script(node)
+        items = list(map(lambda x: format_node(x, seq_indent, inline, wrapped=True), node))
         if items:
             length = len(indent) + sum(map(len, items)) + 4
-            space = '' if no_wrap else ' '
+            space = '' if is_script_root else ' '
             if inline or length < line_size:
                 seq = f'{space}; '.join(items)
             else:
                 seq = f'{space};\n{seq_indent}'.join(items)
-            return seq if no_wrap else f'{{ {seq} }}'
+            return seq if is_script_root else f'{{ {seq} }}'
         else:
             return '{}'
 
@@ -72,7 +74,7 @@ def format_node(node, indent='', inline=False, wrapped=False):
                     else:
                         expr = f'{expr}\n{arg_indent}{item}'
 
-            if is_framed(node) and indent and not wrapped:
+            if is_framed(node) and not is_root and not wrapped:
                 return f'({expr})'
             else:
                 return expr
@@ -84,7 +86,7 @@ def format_node(node, indent='', inline=False, wrapped=False):
             elif core_type == 'bytes':
                 return f'0x{value}'
             elif core_type == 'string':
-                return f'"{value}"'
+                return json.dumps(value)
             else:
                 assert False
     else:

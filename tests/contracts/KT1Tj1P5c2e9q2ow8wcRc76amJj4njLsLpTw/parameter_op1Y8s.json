@@ -1,0 +1,34 @@
+{
+  "prim": "Left",
+  "args": [
+    {
+      "prim": "Left",
+      "args": [
+        {
+          "prim": "Left",
+          "args": [
+            {
+              "prim": "Pair",
+              "args": [
+                {
+                  "string": "tz1RqHhotnSmmWYnFcZSHg7YVVGAf1c9qxPN"
+                },
+                {
+                  "prim": "Pair",
+                  "args": [
+                    {
+                      "string": "tz1XHBkGUbuWqicMiT77UvfuFNpWPFxA7LY6"
+                    },
+                    {
+                      "int": "5"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

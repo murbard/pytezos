@@ -8,6 +8,8 @@ def get_data(path):
     if path.endswith('.json'):
         return json.loads(data)
     elif path.endswith('.tz'):
-        return re.sub('\n\s*', ' ', data)
+        data = re.sub('\n\s*', ' ', data)
+        data = data.replace('{  }', '{}')
+        return data
     else:
         assert False, path

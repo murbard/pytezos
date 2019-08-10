@@ -305,6 +305,8 @@ def parse_json(data, json_to_bin: dict, bin_types: dict, root='/'):
             lpath = bin_path[:i]
             if bin_types[lpath] in ['or', 'router', 'enum']:
                 bin_values[lpath][index] = bin_path[i]
+            elif bin_types[lpath] in ['list', 'set', 'map', 'big_map']:
+                return
 
     def parse_node(node, json_path, index='0'):
         bin_path = json_to_bin[json_path]
@@ -313,6 +315,7 @@ def parse_json(data, json_to_bin: dict, bin_types: dict, root='/'):
         if isinstance(node, dict):
             if bin_type in ['map', 'big_map']:
                 bin_values[bin_path][index] = len(node)
+                parse_entry(bin_path, index)
                 for i, (key, value) in enumerate(node.items()):
                     bin_values[bin_path + '0'][f'{index}:{i}'] = key
                     parse_node(value, join(json_path, '{}'), f'{index}:{i}')
@@ -326,6 +329,7 @@ def parse_json(data, json_to_bin: dict, bin_types: dict, root='/'):
         elif isinstance(node, list):
             if bin_type in ['list', 'set']:
                 bin_values[bin_path][index] = len(node)
+                parse_entry(bin_path, index)
                 for i, value in enumerate(node):
                     parse_node(value, join(json_path, '{}'), f'{index}:{i}')
 
@@ -496,4 +500,4 @@ def micheline_to_michelson(data, inline=False):
     :param inline: produce single line, used for tezos-client arguments (False by default)
     :return: string
     """
-    return format_node(data, inline=inline)
+    return format_node(data, inline=inline, is_root=True)

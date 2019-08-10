@@ -1,0 +1,18 @@
+{
+  "prim": "Right",
+  "args": [
+    {
+      "prim": "Right",
+      "args": [
+        {
+          "prim": "Right",
+          "args": [
+            {
+              "string": "Bob"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 from ply.lex import Lexer, lex
 from ply.yacc import yacc
 import re
+import json
 
 # Inspired by https://github.com/jansorg/tezos-intellij/blob/master/grammar/michelson.bnf
 
@@ -18,7 +19,7 @@ class SimpleMichelsonLexer(Lexer):
     t_PRIM = r'[A-Za-z][A-Za-z0-9_]+'
     t_INT = r'-?[0-9]+'
     t_BYTE = r'0x[A-Fa-f0-9]+'
-    t_STR = r'\"[^\"]*\"'
+    t_STR = r'\"(\\.|[^\"])*\"'
     t_LEFT_CURLY = r'\{'
     t_RIGHT_CURLY = r'\}'
     t_LEFT_PAREN = r'\('
@@ -123,7 +124,7 @@ class MichelsonParser(object):
 
     def p_arg_str(self, p):
         '''arg : STR'''
-        p[0] = {'string': p[1].strip('"')}
+        p[0] = {'string': json.loads(p[1])}
 
     def p_arg_subseq(self, p):
         '''arg : LEFT_CURLY instr RIGHT_CURLY'''

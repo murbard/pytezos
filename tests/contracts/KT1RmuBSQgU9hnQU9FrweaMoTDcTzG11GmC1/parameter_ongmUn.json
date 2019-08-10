@@ -1,0 +1,13 @@
+{
+  "prim": "Right",
+  "args": [
+    {
+      "prim": "Left",
+      "args": [
+        {
+          "string": "Bob"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "prim": "Left",
+  "args": [
+    {
+      "prim": "Pair",
+      "args": [
+        {
+          "string": "tz1QNJtzVtYNJ3zCt31sGtWxRA7zpmQjpowq"
+        },
+        {
+          "prim": "Pair",
+          "args": [
+            {
+              "int": "-121"
+            },
+            {
+              "prim": "Pair",
+              "args": [
+                {
+                  "int": "48"
+                },
+                {
+                  "int": "180"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

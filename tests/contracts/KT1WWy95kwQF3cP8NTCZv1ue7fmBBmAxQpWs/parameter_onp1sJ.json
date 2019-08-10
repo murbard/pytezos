@@ -1,0 +1,24 @@
+{
+  "prim": "Left",
+  "args": [
+    {
+      "prim": "Pair",
+      "args": [
+        {
+          "string": "steve.tz"
+        },
+        {
+          "prim": "Pair",
+          "args": [
+            {
+              "string": "tz1Po8u9NrkFKDsXgkiAYKfLrjvmao2TYBce"
+            },
+            {
+              "int": "23"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

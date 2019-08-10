@@ -1,0 +1,41 @@
+{
+  "prim": "Right",
+  "args": [
+    {
+      "prim": "Right",
+      "args": [
+        {
+          "prim": "Right",
+          "args": [
+            {
+              "prim": "Pair",
+              "args": [
+                {
+                  "prim": "Right",
+                  "args": [
+                    {
+                      "prim": "Right",
+                      "args": [
+                        {
+                          "prim": "Left",
+                          "args": [
+                            {
+                              "prim": "Unit"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "string": "KT19iCUxLHSfRpHpSFXNfVNKF8knKcXGYyNK"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
