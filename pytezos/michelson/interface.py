@@ -1,42 +1,39 @@
 from os.path import basename, dirname, join
 
-from pytezos.rpc import ShellQuery
-from pytezos.crypto import Key
-from pytezos.michelson.contract import Contract, ContractParameter, micheline_to_michelson
+from pytezos.michelson.contract import Contract, micheline_to_michelson
 from pytezos.operation.group import OperationGroup
 from pytezos.operation.content import format_mutez
+from pytezos.interop import Interop
 
 
-class ContractInterop:
+class ContractCall(Interop):
 
-    def __init__(self, shell: ShellQuery, key: Key, address):
-        self.shell = shell
-        self.key = key
-        self.address = address
-
-
-class ContractCall(ContractInterop):
-
-    def __init__(self, parameters, amount=0, **kwargs):
-        super(ContractCall, self).__init__(**kwargs)
+    def __init__(self, parameters, address, amount=0, shell=None, key=None):
+        super(ContractCall, self).__init__(shell=shell, key=key)
         self.parameters = parameters
+        self.address = address
         self.amount = amount
+
+    def _spawn(self, **kwargs):
+        return ContractCall(
+            parameters=self.parameters,
+            address=self.address,
+            amount=kwargs.get('amount', self.amount),
+            shell=kwargs.get('shell', self.shell),
+            key=kwargs.get('key', self.key)
+        )
 
     def __repr__(self):
         return str(self.operation_group())
 
     def with_amount(self, amount):
-        return ContractCall(
-            self.parameters,
-            amount,
-            shell=self.shell,
-            key=self.key,
-            address=self.address
-        )
+        return self._spawn(amount=amount)
 
     def operation_group(self) -> OperationGroup:
         return OperationGroup(shell=self.shell, key=self.key) \
-            .transaction(destination=self.address, amount=self.amount, parameters=self.parameters) \
+            .transaction(destination=self.address,
+                         amount=self.amount,
+                         parameters=self.parameters) \
             .fill()
 
     def inject(self):
@@ -49,12 +46,26 @@ class ContractCall(ContractInterop):
         return f'transfer {amount} from {source} to {self.address} -arg "{arg}"'
 
 
-class ContractEntrypoint(ContractInterop):
+class ContractEntrypoint(Interop):
 
-    def __init__(self, name, parameter: ContractParameter, **kwargs):
-        super(ContractEntrypoint, self).__init__(**kwargs)
+    def __init__(self, name, address, contract: Contract = None, shell=None, key=None):
+        super(ContractEntrypoint, self).__init__(shell=shell, key=key)
+        if contract is None:
+            code = self.shell.contracts[address].script().get('code')
+            contract = Contract.from_micheline(code)
+
+        self.contract = contract
         self.name = name
-        self.parameter = parameter
+        self.address = address
+
+    def _spawn(self, **kwargs):
+        return ContractEntrypoint(
+            name=self.name,
+            contract=self.contract,
+            address=self.address,
+            shell=kwargs.get('shell', self.shell),
+            key=kwargs.get('key', self.key),
+        )
 
     def __repr__(self):
         return self.__doc__
@@ -73,45 +84,48 @@ class ContractEntrypoint(ContractInterop):
         if self.name:
             data = {self.name: data} if data else self.name
 
-        parameters = self.parameter.encode(data)
+        parameters = self.contract.parameter.encode(data)
         return ContractCall(
-            parameters,
+            parameters=parameters,
+            address=self.address,
             shell=self.shell,
             key=self.key,
-            address=self.address
         )
 
 
-class ContractInterface(ContractInterop):
+class ContractInterface(Interop):
     default_entry = 'call'
 
-    def __init__(self, contract: Contract, **kwargs):
-        super(ContractInterface, self).__init__(**kwargs)
+    def __init__(self, address, contract: Contract = None, shell=None, key=None):
+        super(ContractInterface, self).__init__(shell=shell, key=key)
+        if contract is None:
+            code = self.shell.contracts[address].script().get('code')
+            contract = Contract.from_micheline(code)
+
         self.contract = contract
+        self.address = address
+
         for entry_name, docstring in contract.parameter.entries(default=self.default_entry):
             entry_point = ContractEntrypoint(
-                entry_name if entry_name != self.default_entry else None,
-                contract.parameter,
+                name=entry_name if entry_name != self.default_entry else None,
+                address=self.address,
+                contract=contract,
                 shell=self.shell,
-                key=self.key,
-                address=self.address
+                key=self.key
             )
             entry_point.__doc__ = docstring
             setattr(self, entry_name, entry_point)
 
+    def _spawn(self, **kwargs):
+        return ContractInterface(
+            address=self.address,
+            contract=self.contract,
+            shell=kwargs.get('shell', self.shell),
+            key=kwargs.get('key', self.key)
+        )
+
     def __repr__(self):
         return str(self.contract.parameter)
-
-    @classmethod
-    def from_address(cls, shell, key, address):
-        code = shell.contracts[address].script().get('code')
-        contract = Contract.from_micheline(code)
-        return ContractInterface(
-            contract,
-            shell=shell,
-            key=key,
-            address=address
-        )
 
     def big_map_get(self, path, block_id='head'):
         key = basename(path)

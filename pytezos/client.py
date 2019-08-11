@@ -2,12 +2,11 @@ import os
 import json
 from functools import lru_cache
 
-from pytezos.rpc import ShellQuery
-from pytezos.crypto import Key
 from pytezos.operation.group import OperationGroup
 from pytezos.operation.content import ContentMixin
 from pytezos.michelson.interface import ContractInterface, Contract
 from pytezos.encoding import is_pkh, is_kt, is_key
+from pytezos.interop import Interop
 
 
 def get_address(identity, tezos_client_dir='~/.tezos-client'):
@@ -29,38 +28,29 @@ def get_address(identity, tezos_client_dir='~/.tezos-client'):
     return addresses[0]
 
 
-class PyTezosClient(ContentMixin):
+class PyTezosClient(Interop, ContentMixin):
 
-    def __init__(self, shell=None, key=None):
-        self.shell = shell  # type: ShellQuery
-        self.key = key  # type: Key
-
-    @staticmethod
-    def using(key, shell: ShellQuery):
-        if isinstance(key, Key):
-            pass
-        elif is_key(key):
-            key = Key.from_encoded_key(key)
-        else:
-            key = Key.from_alias(key)
-
-        return PyTezosClient(shell, key)
+    def _spawn(self, **kwargs):
+        return PyTezosClient(
+            shell=kwargs.get('shell', self.shell),
+            key=kwargs.get('key', self.key)
+        )
 
     def operation_group(self, protocol=None, branch=None, contents=None, signature=None) -> OperationGroup:
         return OperationGroup(
-            shell=self.shell,
-            key=self.key,
             protocol=protocol,
             branch=branch,
             contents=contents,
-            signature=signature
+            signature=signature,
+            shell=self.shell,
+            key=self.key
         )
 
     def operation(self, content: dict) -> OperationGroup:
         return OperationGroup(
+            contents=[content],
             shell=self.shell,
-            key=self.key,
-            contents=[content]
+            key=self.key
         )
 
     def account(self, account_id=None):
@@ -102,8 +92,8 @@ class PyTezosClient(ContentMixin):
 
     @lru_cache(maxsize=None)
     def contract(self, contract_id) -> ContractInterface:
-        return ContractInterface.from_address(
+        return ContractInterface(
+            address=get_address(contract_id),
             shell=self.shell,
-            key=self.key,
-            address=get_address(contract_id)
+            key=self.key
         )

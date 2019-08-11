@@ -166,7 +166,7 @@ def build_maps(metadata: dict):
     def get_key(bin_path):
         node = metadata[bin_path]
         default = node['prim'] if node['prim'] in meaningful_types else None
-        key = node.get('typename', node.get('fieldname', default))
+        key = node.get('typename', node.get('fieldname', node.get('entry', default)))
         return to_snake_case(key) if key else None
 
     def parse_node(bin_path='0', json_path='/'):
@@ -184,8 +184,7 @@ def build_maps(metadata: dict):
                 bin_types[bin_path] = 'enum'
                 for i, arg in enumerate(node['args']):
                     bin_types[arg] = entries[i] if named else str(i)
-                    bin_to_json[arg] = json_path
-                    json_to_bin[join(json_path, bin_types[arg])] = arg
+                    parse_node(arg, join(json_path, bin_types[arg]))
             else:
                 if not named:
                     entries = list(map(get_lr_path, node['args']))
@@ -212,12 +211,15 @@ def parse_micheline(data, bin_to_json: dict, bin_types: dict, root='0'):
     json_values = dict()
     json_root = bin_to_json[root]
 
-    def set_value(bin_path, params: list, value):
+    def get_json_path(bin_path, params: list):
         wild_path = bin_to_json.get(bin_path)
         if json_root != '/' and wild_path.startswith(json_root) and wild_path != json_root:
             wild_path = wild_path[len(json_root):]
 
-        json_path = wild_path.format(*params)
+        return wild_path.format(*params)
+
+    def set_value(bin_path, params: list, value):
+        json_path = get_json_path(bin_path, params)
         json_values[json_path] = value
 
     def parse_node(node, bin_path, params):
@@ -242,7 +244,11 @@ def parse_micheline(data, bin_to_json: dict, bin_types: dict, root='0'):
             elif node.get('prim') == 'None':
                 set_value(bin_path + '0', params, None)
             elif node.get('prim') == 'Unit':
-                set_value(bin_path, params, bin_type if bin_type != 'unit' else None)
+                if bin_type == 'unit':
+                    set_value(bin_path, params, None)
+                else:
+                    json_path = dirname(get_json_path(bin_path, params))
+                    json_values[json_path] = bin_type
             else:
                 set_value(bin_path, params, decode_literal(node, bin_types[bin_path]))
 

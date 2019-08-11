@@ -7,7 +7,7 @@ from pytezos.michelson.coding import build_schema, decode_micheline, encode_mich
 core_types = ['string', 'int', 'bool']
 domain_types = {
     'nat': 'int  /* Natural number */',
-    'unit': 'Void',
+    'unit': 'None /* Void */',
     'bytes': 'string  /* Hex string */ ||\n\tbytes  /* Python byte string */',
     'timestamp': 'int  /* Unix time in seconds */ ||\n\tstring  /* Formatted datetime `%Y-%m-%dT%H:%M:%SZ` */',
     'mutez': 'int  /* Amount in `utz` (10^-6) */ ||\n\tDecimal  /* Amount in `tz` */',
@@ -30,6 +30,10 @@ def generate_docstring(schema: Schema, title, root='0'):
     def get_name(bin_path):
         return basename(schema.bin_to_json[bin_path])
 
+    def get_type(bin_path):
+        default = get_name(bin_path[:-1]) + '_item'
+        return schema.metadata[bin_path].get('typename', default)
+
     def get_comment(bin_path):
         node = schema.metadata[bin_path]
         return node.get('typename', node.get('fieldname'))
@@ -39,40 +43,44 @@ def generate_docstring(schema: Schema, title, root='0'):
 
     def decode_node(bin_path, is_element=False, is_entry=False):
         node = get_node(bin_path)
+        bin_type = schema.bin_types[bin_path]
 
         def get_struct_name():
             if bin_path == root:
                 struct_name = title
             elif is_element:
-                struct_name = get_name(bin_path[:-1]) + '_item'
+                struct_name = get_type(bin_path)
             else:
                 struct_name = get_name(bin_path)
             return f'${struct_name}'
 
-        if node['prim'] == 'or':
+        if bin_type == 'router':
             entries = {get_name(x): decode_node(x, is_entry=True) for x in node['args']}
             doc = ' || \n\t'.join(map(lambda x: '{ ' + f'"{x[0]}": {x[1]}' + ' }', entries.items()))
             res = get_struct_name()
             docstring.insert(0, f'{res}:\n\t{doc}\n')
             return res
 
-        elif node['prim'] == 'pair':
-            items = list(map(lambda x: (get_name(x), decode_node(x)), node['args']))
-            names, values = zip(*items)
-            if all(map(lambda x: x.isdigit(), names)):
-                res = f'[ {" , ".join(values)} ]'
-            else:
-                lines = map(lambda x: f'  "{x[0]}": {x[1]}' if isinstance(x, tuple) else x, items)
-                doc = '\t{\n\t' + ',\n\t'.join(lines) + '\n\t}'
-                res = get_struct_name()
-                docstring.insert(0, f'{res}:\n{doc}\n')
-                return res
+        elif bin_type == 'enum':
+            res = ' || '.join(map(lambda x: f'"{get_name(x)}"', node['args']))
 
-        elif node['prim'] in ['set', 'list']:
+        elif bin_type == 'namedtuple':
+            items = map(lambda x: (get_name(x), decode_node(x)), node['args'])
+            lines = map(lambda x: f'  "{x[0]}": {x[1]}', items)
+            doc = '\t{\n\t' + ',\n\t'.join(lines) + '\n\t}'
+            res = get_struct_name()
+            docstring.insert(0, f'{res}:\n{doc}\n')
+            return res
+
+        elif bin_type == 'tuple':
+            values = map(decode_node, node['args'])
+            res = f'[ {" , ".join(values)} ]'
+
+        elif bin_type in {'set', 'list'}:
             value = decode_node(node['args'][0], is_element=True)
             res = f'[ {value} , ... ]'
 
-        elif node['prim'] in {'map', 'big_map'}:
+        elif bin_type in {'map', 'big_map'}:
             item = (decode_node(node['args'][0]), decode_node(node['args'][1], is_element=True))
             res = '{ ' + f'{item[0]} : {item[1]} , ...' + ' }'
 
@@ -80,8 +88,10 @@ def generate_docstring(schema: Schema, title, root='0'):
             res = node['prim']
             if res not in core_types:
                 res = f'${res}'
+
             if is_optional(bin_path):
                 res = f'{res}?'
+
             if is_entry:
                 comment = get_comment(bin_path)
                 if comment:
@@ -134,8 +144,7 @@ class ContractParameter:
             entries = [(default, '0')]
 
         def make_docs(bin_path):
-            json_path = self.schema.bin_to_json[bin_path]
-            if self.schema.json_types.get(json_path) == 'dict':
+            if self.schema.bin_types[bin_path] in ['namedtuple', 'router']:
                 title = 'kwargs'
             else:
                 title = 'args'
@@ -195,9 +204,6 @@ class ContractStorage:
 
 
 class Contract:
-    """
-
-    """
 
     def __init__(self, code: list):
         self.parameter = ContractParameter(code[0])

@@ -1,11 +1,12 @@
 from pprint import pformat
 
-from pytezos.rpc import ShellQuery, RpcError
-from pytezos.crypto import Key, blake2b_32
+from pytezos.rpc import RpcError
+from pytezos.crypto import blake2b_32
 from pytezos.operation.content import ContentMixin
 from pytezos.operation.forge import forge_operation_group
 from pytezos.operation.fees import FeesProvider
 from pytezos.encoding import forge_base58, base58_encode
+from pytezos.interop import Interop
 
 validation_passes = {
     'endorsement': 0,
@@ -22,11 +23,10 @@ validation_passes = {
 }
 
 
-class OperationGroup(ContentMixin):
+class OperationGroup(Interop, ContentMixin):
 
-    def __init__(self, shell: ShellQuery, key: Key, contents=None, protocol=None, branch=None, signature=None):
-        self.shell = shell
-        self.key = key
+    def __init__(self, contents=None, protocol=None, branch=None, signature=None, shell=None, key=None):
+        super(OperationGroup, self).__init__(shell=shell, key=key)
         self.contents = contents or []
         self.protocol = protocol
         self.branch = branch
@@ -34,6 +34,16 @@ class OperationGroup(ContentMixin):
 
     def __repr__(self):
         return pformat(self.json_payload())
+
+    def _spawn(self, **kwargs):
+        return OperationGroup(
+            contents=kwargs.get('contents', self.contents.copy()),
+            protocol=kwargs.get('protocol', self.protocol),
+            branch=kwargs.get('branch', self.branch),
+            signature=kwargs.get('signature', self.signature),
+            shell=kwargs.get('shell', self.shell),
+            key=kwargs.get('key', self.key)
+        )
 
     @property
     def validation_pass(self):
@@ -57,13 +67,7 @@ class OperationGroup(ContentMixin):
         if self.contents and validation_passes[content['kind']] != self.validation_pass:
             raise ValueError('Mixed validation passes')
 
-        return OperationGroup(
-            shell=self.shell,
-            key=self.key,
-            contents=self.contents + [content],
-            branch=self.branch,
-            protocol=self.protocol
-        )
+        return self._spawn(contents=self.contents + [content])
 
     def fill(self):
         branch = self.branch or self.shell.head.predecessor.hash()
@@ -93,9 +97,7 @@ class OperationGroup(ContentMixin):
                     content[k] = v(content) if callable(v) else v
             return content
 
-        return OperationGroup(
-            shell=self.shell,
-            key=self.key,
+        return self._spawn(
             contents=list(map(fill_content, self.contents)),
             protocol=protocol,
             branch=branch
@@ -161,14 +163,7 @@ class OperationGroup(ContentMixin):
         message = watermark + bytes.fromhex(self.forge())
         signature = self.key.sign(message=message, generic=True)
 
-        return OperationGroup(
-            shell=self.shell,
-            key=self.key,
-            contents=self.contents,
-            signature=signature,
-            branch=self.branch,
-            protocol=self.protocol
-        )
+        return self._spawn(signature=signature)
 
     def hash(self):
         hash_digest = blake2b_32(self.binary_payload()).digest()
