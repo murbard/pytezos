@@ -85,5 +85,5 @@ if __name__ == '__main__':
         for data in get_transaction_with_params(like='int', limit=5):
             make_test(**data)
 
-    for data in get_origination_with_script(limit=100):
+    for data in get_origination_with_script(limit=150):
         make_test(**data)

@@ -84,8 +84,10 @@ def forge_origination(content):
     res += forge_nat(int(content['storage_limit']))
     res += forge_address(content.get('manager_pubkey', content.get('managerPubkey')), tz_only=True)
     res += forge_nat(int(content['balance']))
-    res += forge_bool(content.get('spendable'))
-    res += forge_bool(content.get('delegatable'))
+
+    no_script = 'script' not in content
+    res += forge_bool(content.get('spendable', no_script))
+    res += forge_bool(content.get('delegatable', no_script))
 
     if content.get('delegate'):
         res += forge_bool(True)

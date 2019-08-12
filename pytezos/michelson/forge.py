@@ -129,6 +129,7 @@ len_tags = [
         True: b'\x08'
     },
     {
+        False: b'\x09',
         True: b'\x09'
     }
 ]
@@ -175,10 +176,13 @@ def forge_micheline(data):
             res.append(prim_tags[data['prim']])
 
             if args_len > 0:
-                res.append(b''.join(map(forge_micheline, data['args'])))
+                args = b''.join(map(forge_micheline, data['args']))
+                res.append(args if args_len < 3 else forge_array(args))
 
             if annots_len > 0:
                 res.append(forge_array(' '.join(data['annots']).encode()))
+            elif args_len == 3:
+                res.append(b'\x00' * 4)
 
         elif data.get('bytes') is not None:
             res.append(b'\x0A')

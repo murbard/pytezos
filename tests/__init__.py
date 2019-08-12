@@ -15,7 +15,7 @@ def get_data(path):
     if path.endswith('.json'):
         return json.loads(data)
     elif path.endswith('.tz'):
-        data = re.sub('\n\s*', ' ', data)
+        data = re.sub(r'\n\s*', ' ', data)
         data = data.replace('{  }', '{}')
         return data
     elif path.endswith('.hex'):
