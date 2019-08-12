@@ -136,8 +136,7 @@ len_tags = [
 
 
 def forge_int(value: int):
-    sign = '0' if value >= 0 else '1'
-    binary = format(value, 'b')
+    binary = format(abs(value), 'b')
 
     if (len(binary) - 6) % 7 == 0:
         pad = len(binary)
@@ -146,16 +145,15 @@ def forge_int(value: int):
     else:
         pad = len(binary) + 7 - (len(binary) - 6) % 7
 
-    s = binary.zfill(pad)
-    splitted = [s[i:i + 7] for i in range(0, len(s), 7)]
-    sp_reversed = splitted[::-1]
-    sp_reversed[0] = sign + sp_reversed[0]
+    binary = binary.zfill(pad)
+    septets = [binary[i:i + 7] for i in range(0, len(binary), 7)]
+    reversed_septets = septets[::-1]
+    reversed_septets[0] = ('0' if value >= 0 else '1') + reversed_septets[0]
 
     res = []
-    for idx in range(len(sp_reversed)):
-        prefix = '0' if idx == len(sp_reversed) - 1 else '1'
-        sstr = prefix + sp_reversed[idx]
-        res.append(int(sstr, 2).to_bytes(1, 'big'))
+    for i, septet in enumerate(reversed_septets):
+        prefix = '0' if i == len(reversed_septets) - 1 else '1'
+        res.append(int(prefix + septet, 2).to_bytes(1, 'big'))
 
     return b''.join(res)
 
@@ -177,7 +175,10 @@ def forge_micheline(data):
 
             if args_len > 0:
                 args = b''.join(map(forge_micheline, data['args']))
-                res.append(args if args_len < 3 else forge_array(args))
+                if args_len < 3:
+                    res.append(args)
+                else:
+                    res.append(forge_array(args))
 
             if annots_len > 0:
                 res.append(forge_array(' '.join(data['annots']).encode()))
