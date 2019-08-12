@@ -3,15 +3,15 @@ from os.path import join, dirname
 from collections import defaultdict
 from typing import Dict
 
-from pytezos import alphanet
+from pytezos.rpc import tzscan
 
 no_descr = '¯\\_(ツ)_/¯'
 
 
-def parse_describe_output(data):
+def parse_describe_output(data, root='/'):
     info = defaultdict(dict)  # type: Dict[str, dict]
 
-    def parse_node(node, path='/'):
+    def parse_node(node, path):
         assert isinstance(node, dict), node
         if 'static' in node:
             for k, v in node['static'].items():
@@ -43,13 +43,14 @@ def parse_describe_output(data):
         else:
             assert False, node
 
-    parse_node(data)
+    parse_node(data, root)
     return info
 
 
 if __name__ == '__main__':
-    shell_docs = parse_describe_output(alphanet.describe())
-    block_docs = parse_describe_output(alphanet.describe.chains.main.blocks.head())
+    shell_docs = parse_describe_output(tzscan.alphanet.describe(recurse=True))
+    block_docs = parse_describe_output(tzscan.alphanet.describe.chains.main.blocks.head(recurse=True),
+                                       root='/chains/{}/blocks/{}')
     docs = json.dumps({**shell_docs, **block_docs}, indent=2)
     output_path = join(dirname(dirname(__file__)), 'pytezos/rpc/docs.py')
     with open(output_path, 'w+') as f:

@@ -10,7 +10,7 @@ class MichelineCodingTestKT1Saw(TestCase):
     def setUpClass(cls):
         cls.maxDiff = None
         code = get_data(
-            path='/home/mickey/pytezos/tests/contracts/KT1SawqvsVdAbDzqc4KwPpaS1S1veuFgF9AN/code_KT1Saw.json')
+            path='contracts/KT1SawqvsVdAbDzqc4KwPpaS1S1veuFgF9AN/code_KT1Saw.json')
         cls.schema = dict(
             parameter=build_schema(code[0]),
             storage=build_schema(code[1])
@@ -18,56 +18,56 @@ class MichelineCodingTestKT1Saw(TestCase):
 
     def test_micheline_inverse_storage_KT1Saw(self):
         expected = get_data(
-            path='/home/mickey/pytezos/tests/contracts/KT1SawqvsVdAbDzqc4KwPpaS1S1veuFgF9AN/storage_KT1Saw.json')
+            path='contracts/KT1SawqvsVdAbDzqc4KwPpaS1S1veuFgF9AN/storage_KT1Saw.json')
         decoded = decode_micheline(expected, self.schema['storage'])
         actual = encode_micheline(decoded, self.schema['storage'])
         self.assertEqual(expected, actual)
 
     def test_micheline_inverse_parameter_opJ4wD(self):
         expected = get_data(
-            path='/home/mickey/pytezos/tests/contracts/KT1SawqvsVdAbDzqc4KwPpaS1S1veuFgF9AN/parameter_opJ4wD.json')
+            path='contracts/KT1SawqvsVdAbDzqc4KwPpaS1S1veuFgF9AN/parameter_opJ4wD.json')
         decoded = decode_micheline(expected, self.schema['parameter'])
         actual = encode_micheline(decoded, self.schema['parameter'])
         self.assertEqual(expected, actual)
 
     def test_micheline_inverse_parameter_oogN9U(self):
         expected = get_data(
-            path='/home/mickey/pytezos/tests/contracts/KT1SawqvsVdAbDzqc4KwPpaS1S1veuFgF9AN/parameter_oogN9U.json')
+            path='contracts/KT1SawqvsVdAbDzqc4KwPpaS1S1veuFgF9AN/parameter_oogN9U.json')
         decoded = decode_micheline(expected, self.schema['parameter'])
         actual = encode_micheline(decoded, self.schema['parameter'])
         self.assertEqual(expected, actual)
 
     def test_micheline_inverse_parameter_opYPFA(self):
         expected = get_data(
-            path='/home/mickey/pytezos/tests/contracts/KT1SawqvsVdAbDzqc4KwPpaS1S1veuFgF9AN/parameter_opYPFA.json')
+            path='contracts/KT1SawqvsVdAbDzqc4KwPpaS1S1veuFgF9AN/parameter_opYPFA.json')
         decoded = decode_micheline(expected, self.schema['parameter'])
         actual = encode_micheline(decoded, self.schema['parameter'])
         self.assertEqual(expected, actual)
 
     def test_micheline_inverse_parameter_oo6KsN(self):
         expected = get_data(
-            path='/home/mickey/pytezos/tests/contracts/KT1SawqvsVdAbDzqc4KwPpaS1S1veuFgF9AN/parameter_oo6KsN.json')
+            path='contracts/KT1SawqvsVdAbDzqc4KwPpaS1S1veuFgF9AN/parameter_oo6KsN.json')
         decoded = decode_micheline(expected, self.schema['parameter'])
         actual = encode_micheline(decoded, self.schema['parameter'])
         self.assertEqual(expected, actual)
 
     def test_micheline_inverse_parameter_opYHZ8(self):
         expected = get_data(
-            path='/home/mickey/pytezos/tests/contracts/KT1SawqvsVdAbDzqc4KwPpaS1S1veuFgF9AN/parameter_opYHZ8.json')
+            path='contracts/KT1SawqvsVdAbDzqc4KwPpaS1S1veuFgF9AN/parameter_opYHZ8.json')
         decoded = decode_micheline(expected, self.schema['parameter'])
         actual = encode_micheline(decoded, self.schema['parameter'])
         self.assertEqual(expected, actual)
 
     def test_micheline_inverse_parameter_onfaGG(self):
         expected = get_data(
-            path='/home/mickey/pytezos/tests/contracts/KT1SawqvsVdAbDzqc4KwPpaS1S1veuFgF9AN/parameter_onfaGG.json')
+            path='contracts/KT1SawqvsVdAbDzqc4KwPpaS1S1veuFgF9AN/parameter_onfaGG.json')
         decoded = decode_micheline(expected, self.schema['parameter'])
         actual = encode_micheline(decoded, self.schema['parameter'])
         self.assertEqual(expected, actual)
 
     def test_micheline_inverse_parameter_ooRTaE(self):
         expected = get_data(
-            path='/home/mickey/pytezos/tests/contracts/KT1SawqvsVdAbDzqc4KwPpaS1S1veuFgF9AN/parameter_ooRTaE.json')
+            path='contracts/KT1SawqvsVdAbDzqc4KwPpaS1S1veuFgF9AN/parameter_ooRTaE.json')
         decoded = decode_micheline(expected, self.schema['parameter'])
         actual = encode_micheline(decoded, self.schema['parameter'])
         self.assertEqual(expected, actual)

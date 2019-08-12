@@ -1,0 +1,357 @@
+{
+  "branch": "BLMLLiSucRqbcfUHJu9jBhAoEmwMRTFUWtidL5pL1kVWvNpRC5L",
+  "contents": [
+    {
+      "kind": "transaction",
+      "source": "tz1g3oS1UPgWFFpxrc2pEn4sgV3ky1Z6Qaz2",
+      "fee": "8312",
+      "counter": "59323",
+      "gas_limit": "76679",
+      "storage_limit": "122",
+      "amount": "0",
+      "destination": "KT1RvoWEU4MfDBrTbJh4JEAdh3giXtjxkR7k",
+      "parameters": {
+        "prim": "Right",
+        "args": [
+          {
+            "prim": "Left",
+            "args": [
+              {
+                "prim": "Right",
+                "args": [
+                  [
+                    {
+                      "prim": "PUSH",
+                      "args": [
+                        {
+                          "prim": "pair",
+                          "args": [
+                            {
+                              "prim": "string"
+                            },
+                            {
+                              "prim": "pair",
+                              "args": [
+                                {
+                                  "prim": "string"
+                                },
+                                {
+                                  "prim": "nat"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "prim": "Pair",
+                          "args": [
+                            {
+                              "string": "My DS Token"
+                            },
+                            {
+                              "prim": "Pair",
+                              "args": [
+                                {
+                                  "string": ""
+                                },
+                                {
+                                  "int": "6"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "prim": "PACK"
+                    },
+                    {
+                      "prim": "SOME"
+                    },
+                    {
+                      "prim": "PUSH",
+                      "args": [
+                        {
+                          "prim": "string"
+                        },
+                        {
+                          "string": "sMeta"
+                        }
+                      ]
+                    },
+                    {
+                      "prim": "PACK"
+                    },
+                    {
+                      "prim": "UPDATE"
+                    },
+                    {
+                      "prim": "PUSH",
+                      "args": [
+                        {
+                          "prim": "nat"
+                        },
+                        {
+                          "int": "0"
+                        }
+                      ]
+                    },
+                    {
+                      "prim": "PACK"
+                    },
+                    {
+                      "prim": "SOME"
+                    },
+                    {
+                      "prim": "PUSH",
+                      "args": [
+                        {
+                          "prim": "string"
+                        },
+                        {
+                          "string": "sTotal"
+                        }
+                      ]
+                    },
+                    {
+                      "prim": "PACK"
+                    },
+                    {
+                      "prim": "UPDATE"
+                    },
+                    {
+                      "prim": "PUSH",
+                      "args": [
+                        {
+                          "prim": "nat"
+                        },
+                        {
+                          "int": "100500"
+                        }
+                      ]
+                    },
+                    {
+                      "prim": "PACK"
+                    },
+                    {
+                      "prim": "SOME"
+                    },
+                    {
+                      "prim": "PUSH",
+                      "args": [
+                        {
+                          "prim": "string"
+                        },
+                        {
+                          "string": "sCap"
+                        }
+                      ]
+                    },
+                    {
+                      "prim": "PACK"
+                    },
+                    {
+                      "prim": "UPDATE"
+                    },
+                    {
+                      "prim": "PUSH",
+                      "args": [
+                        {
+                          "prim": "nat"
+                        },
+                        {
+                          "int": "0"
+                        }
+                      ]
+                    },
+                    {
+                      "prim": "PACK"
+                    },
+                    {
+                      "prim": "SOME"
+                    },
+                    {
+                      "prim": "PUSH",
+                      "args": [
+                        {
+                          "prim": "string"
+                        },
+                        {
+                          "string": "sTotalMinted"
+                        }
+                      ]
+                    },
+                    {
+                      "prim": "PACK"
+                    },
+                    {
+                      "prim": "UPDATE"
+                    },
+                    {
+                      "prim": "PUSH",
+                      "args": [
+                        {
+                          "prim": "nat"
+                        },
+                        {
+                          "int": "1"
+                        }
+                      ]
+                    },
+                    {
+                      "prim": "PUSH",
+                      "args": [
+                        {
+                          "prim": "address"
+                        },
+                        {
+                          "string": "tz1g3oS1UPgWFFpxrc2pEn4sgV3ky1Z6Qaz2"
+                        }
+                      ]
+                    },
+                    {
+                      "prim": "PUSH",
+                      "args": [
+                        {
+                          "prim": "string"
+                        },
+                        {
+                          "string": "sRoles"
+                        }
+                      ]
+                    },
+                    {
+                      "prim": "PAIR"
+                    },
+                    {
+                      "prim": "PACK"
+                    },
+                    {
+                      "prim": "DIP",
+                      "args": [
+                        [
+                          {
+                            "prim": "PACK"
+                          },
+                          {
+                            "prim": "SOME"
+                          }
+                        ]
+                      ]
+                    },
+                    {
+                      "prim": "UPDATE"
+                    },
+                    {
+                      "prim": "PUSH",
+                      "args": [
+                        {
+                          "prim": "address"
+                        },
+                        {
+                          "string": "tz1g3oS1UPgWFFpxrc2pEn4sgV3ky1Z6Qaz2"
+                        }
+                      ]
+                    },
+                    {
+                      "prim": "PACK"
+                    },
+                    {
+                      "prim": "SOME"
+                    },
+                    {
+                      "prim": "PUSH",
+                      "args": [
+                        {
+                          "prim": "string"
+                        },
+                        {
+                          "string": "sMaster"
+                        }
+                      ]
+                    },
+                    {
+                      "prim": "PACK"
+                    },
+                    {
+                      "prim": "UPDATE"
+                    },
+                    {
+                      "prim": "PUSH",
+                      "args": [
+                        {
+                          "prim": "bool"
+                        },
+                        {
+                          "prim": "False"
+                        }
+                      ]
+                    },
+                    {
+                      "prim": "PACK"
+                    },
+                    {
+                      "prim": "SOME"
+                    },
+                    {
+                      "prim": "PUSH",
+                      "args": [
+                        {
+                          "prim": "string"
+                        },
+                        {
+                          "string": "sPaused"
+                        }
+                      ]
+                    },
+                    {
+                      "prim": "PACK"
+                    },
+                    {
+                      "prim": "UPDATE"
+                    },
+                    {
+                      "prim": "PUSH",
+                      "args": [
+                        {
+                          "prim": "nat"
+                        },
+                        {
+                          "int": "0"
+                        }
+                      ]
+                    },
+                    {
+                      "prim": "PACK"
+                    },
+                    {
+                      "prim": "SOME"
+                    },
+                    {
+                      "prim": "PUSH",
+                      "args": [
+                        {
+                          "prim": "string"
+                        },
+                        {
+                          "string": "sNumberOfLastEvent"
+                        }
+                      ]
+                    },
+                    {
+                      "prim": "PACK"
+                    },
+                    {
+                      "prim": "UPDATE"
+                    }
+                  ]
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

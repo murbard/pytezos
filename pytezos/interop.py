@@ -1,3 +1,5 @@
+from os.path import isfile
+
 from pytezos.rpc import ShellQuery, mainnet, alphanet, zeronet
 from pytezos.crypto import Key
 from pytezos.encoding import is_key
@@ -30,6 +32,8 @@ class Interop:
         if isinstance(key, str):
             if is_key(key):
                 self.key = Key.from_encoded_key(key)
+            elif isfile(key):
+                self.key = Key.from_faucet(key)
             else:
                 self.key = Key.from_alias(key)
         elif isinstance(key, Key):
@@ -41,7 +45,4 @@ class Interop:
         raise NotImplementedError
 
     def using(self, shell: ShellQuery = None, key: Key = None):
-        return self._spawn(
-            shell=shell or self.shell,
-            key=key or self.key
-        )
+        return self._spawn(shell=shell, key=key)

@@ -1,0 +1,18 @@
+{
+  "branch": "BLeenZBt1RxUwsri8M2E1qPKXf9253pJY8GSAXgCvSQKuyfugtN",
+  "contents": [
+    {
+      "kind": "transaction",
+      "source": "tz1MUaNymPsJsWFHEATiL3pNiRCHBEgumWgE",
+      "fee": "50000",
+      "counter": "35725",
+      "gas_limit": "400000",
+      "storage_limit": "60000",
+      "amount": "0",
+      "destination": "KT1HCURdP2Xp48b6y1XFHCwBtmatJxDadfdT",
+      "parameters": {
+        "int": "10"
+      }
+    }
+  ]
+}

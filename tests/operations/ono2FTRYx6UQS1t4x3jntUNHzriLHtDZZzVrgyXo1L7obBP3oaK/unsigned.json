@@ -1,0 +1,15 @@
+{
+  "branch": "BLeWeG5LxYnMHTVFib7kMUk3PLTbEnLytx4KQA4THYUfoMWfVSd",
+  "contents": [
+    {
+      "kind": "origination",
+      "source": "tz1XVJ8bZUXs7r5NV8dHvuiBhzECvLRLR3jW",
+      "fee": "1265",
+      "counter": "30998",
+      "gas_limit": "10000",
+      "storage_limit": "257",
+      "manager_pubkey": "tz1XVJ8bZUXs7r5NV8dHvuiBhzECvLRLR3jW",
+      "balance": "0"
+    }
+  ]
+}

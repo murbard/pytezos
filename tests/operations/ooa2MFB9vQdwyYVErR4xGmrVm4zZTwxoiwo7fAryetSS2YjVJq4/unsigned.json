@@ -1,0 +1,18 @@
+{
+  "branch": "BMYrJEV7jDmrLE4temMjszTeqyogsAckdrvDiLy9PCrDESDxbbV",
+  "contents": [
+    {
+      "kind": "transaction",
+      "source": "tz1WpPzK6NwWVTJcXqFvYmoA6msQeVy1YP6z",
+      "fee": "100000",
+      "counter": "36070",
+      "gas_limit": "100000",
+      "storage_limit": "1000",
+      "amount": "10000",
+      "destination": "KT1VFmeV1J3qfum8jsczJRxcE8suCxcnMwoG",
+      "parameters": {
+        "int": "0"
+      }
+    }
+  ]
+}

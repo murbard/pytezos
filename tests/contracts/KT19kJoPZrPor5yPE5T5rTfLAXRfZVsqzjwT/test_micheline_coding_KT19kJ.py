@@ -10,7 +10,7 @@ class MichelineCodingTestKT19kJ(TestCase):
     def setUpClass(cls):
         cls.maxDiff = None
         code = get_data(
-            path='/home/mickey/pytezos/tests/contracts/KT19kJoPZrPor5yPE5T5rTfLAXRfZVsqzjwT/code_KT19kJ.json')
+            path='contracts/KT19kJoPZrPor5yPE5T5rTfLAXRfZVsqzjwT/code_KT19kJ.json')
         cls.schema = dict(
             parameter=build_schema(code[0]),
             storage=build_schema(code[1])
@@ -18,7 +18,7 @@ class MichelineCodingTestKT19kJ(TestCase):
 
     def test_micheline_inverse_storage_KT19kJ(self):
         expected = get_data(
-            path='/home/mickey/pytezos/tests/contracts/KT19kJoPZrPor5yPE5T5rTfLAXRfZVsqzjwT/storage_KT19kJ.json')
+            path='contracts/KT19kJoPZrPor5yPE5T5rTfLAXRfZVsqzjwT/storage_KT19kJ.json')
         decoded = decode_micheline(expected, self.schema['storage'])
         actual = encode_micheline(decoded, self.schema['storage'])
         self.assertEqual(expected, actual)

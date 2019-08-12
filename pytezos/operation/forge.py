@@ -82,7 +82,7 @@ def forge_origination(content):
     res += forge_nat(int(content['counter']))
     res += forge_nat(int(content['gas_limit']))
     res += forge_nat(int(content['storage_limit']))
-    res += forge_address(content['manager_pubkey'], tz_only=True)
+    res += forge_address(content.get('manager_pubkey', content.get('managerPubkey')), tz_only=True)
     res += forge_nat(int(content['balance']))
     res += forge_bool(content.get('spendable'))
     res += forge_bool(content.get('delegatable'))

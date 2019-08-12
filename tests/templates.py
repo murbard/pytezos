@@ -69,3 +69,23 @@ test_micheline_inverse = """
         actual = encode_micheline(decoded, self.schema['{section}'])
         self.assertEqual(expected, actual)
 """
+
+
+operation_forging_test_case = """from unittest import TestCase
+
+from tests import get_data
+from pytezos.operation.forge import forge_operation_group
+
+
+class OperationForgingTest{case}(TestCase):
+
+    def setUp(self):
+        self.maxDiff = None
+        
+    def test_forge_{case}(self):
+        expected = get_data(
+            path='{hex_path}')
+        actual = forge_operation_group(get_data(
+            path='{json_path}'))
+        self.assertEqual(expected, actual)
+"""

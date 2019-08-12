@@ -1,0 +1,14 @@
+{
+  "branch": "BMSpuiqWAAfKFraAm4yhJLoDfLWRRYWCXggX3KKKFbvorgqPNEC",
+  "contents": [
+    {
+      "kind": "delegation",
+      "source": "tz2DHCC7PGgzboZRNB6rYinjT61YbjWdjJum",
+      "fee": "4000",
+      "counter": "37854",
+      "gas_limit": "10100",
+      "storage_limit": "0",
+      "delegate": "tz2DHCC7PGgzboZRNB6rYinjT61YbjWdjJum"
+    }
+  ]
+}

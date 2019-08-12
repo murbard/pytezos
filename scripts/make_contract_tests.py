@@ -4,6 +4,7 @@ import json
 
 from conseil import conseil
 from pytezos import alphanet
+from tests import relpath
 from tests.templates import michelson_coding_test_case, micheline_coding_test_case, \
     test_michelson_parse,test_michelson_format, test_michelson_inverse, test_micheline_inverse
 
@@ -123,9 +124,9 @@ def make_michelson_tests(files: dict):
         for name, tz_path, json_path in files[section]:
             case = f'{section}_{name}'
             test_case.extend([
-                test_michelson_parse.format(case=case, json_path=json_path, tz_path=tz_path),
-                test_michelson_format.format(case=case, json_path=json_path, tz_path=tz_path),
-                test_michelson_inverse.format(case=case, json_path=json_path)
+                test_michelson_parse.format(case=case, json_path=relpath(json_path), tz_path=relpath(tz_path)),
+                test_michelson_format.format(case=case, json_path=relpath(json_path), tz_path=relpath(tz_path)),
+                test_michelson_inverse.format(case=case, json_path=relpath(json_path))
             ])
 
     with open(join(files['dir'], f'test_michelson_coding_{files["name"]}.py'), 'w+') as f:
@@ -134,14 +135,14 @@ def make_michelson_tests(files: dict):
 
 def make_micheline_tests(files: dict):
     test_case = [
-        micheline_coding_test_case.format(case=files['name'], json_path=files['code'][0][2])
+        micheline_coding_test_case.format(case=files['name'], json_path=relpath(files['code'][0][2]))
     ]
 
     for section in ['storage', 'parameter']:
         for name, tz_path, json_path in files[section]:
             case = f'{section}_{name}'
             test_case.append(
-                test_micheline_inverse.format(case=case, json_path=json_path, section=section)
+                test_micheline_inverse.format(case=case, json_path=relpath(json_path), section=section)
             )
 
     with open(join(files['dir'], f'test_micheline_coding_{files["name"]}.py'), 'w+') as f:

@@ -5,7 +5,7 @@ from functools import lru_cache
 from pytezos.operation.group import OperationGroup
 from pytezos.operation.content import ContentMixin
 from pytezos.michelson.interface import ContractInterface, Contract
-from pytezos.encoding import is_pkh, is_kt, is_key
+from pytezos.encoding import is_pkh, is_kt
 from pytezos.interop import Interop
 
 

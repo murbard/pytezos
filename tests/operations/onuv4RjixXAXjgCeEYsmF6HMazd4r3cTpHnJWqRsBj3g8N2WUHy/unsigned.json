@@ -1,0 +1,671 @@
+{
+  "branch": "BLNECbCmkkfe7dpZUokHWBbNYAB4t5ozEQwWSDXXRK4g2E5uKiM",
+  "contents": [
+    {
+      "kind": "origination",
+      "source": "tz1eDQgkR8bfzrqHJaX93EwqA4rTsJ1cmr4r",
+      "fee": "50000",
+      "counter": "67962",
+      "gas_limit": "400000",
+      "storage_limit": "60000",
+      "managerPubkey": "tz1eDQgkR8bfzrqHJaX93EwqA4rTsJ1cmr4r",
+      "balance": "50000000",
+      "spendable": false,
+      "delegatable": false,
+      "script": {
+        "code": [
+          {
+            "prim": "parameter",
+            "args": [
+              {
+                "prim": "pair",
+                "args": [
+                  {
+                    "prim": "string"
+                  },
+                  {
+                    "prim": "nat"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "prim": "storage",
+            "args": [
+              {
+                "prim": "list",
+                "args": [
+                  {
+                    "prim": "string"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "prim": "code",
+            "args": [
+              [
+                {
+                  "prim": "DUP"
+                },
+                {
+                  "prim": "DIP",
+                  "args": [
+                    [
+                      {
+                        "prim": "CDR",
+                        "annots": [
+                          "@traces_slash_1"
+                        ]
+                      }
+                    ]
+                  ]
+                },
+                {
+                  "prim": "CAR",
+                  "annots": [
+                    "@_path_cur_length_slash_2"
+                  ]
+                },
+                {
+                  "prim": "DUP"
+                },
+                {
+                  "prim": "CAR",
+                  "annots": [
+                    "@path"
+                  ]
+                },
+                {
+                  "prim": "PUSH",
+                  "args": [
+                    {
+                      "prim": "nat"
+                    },
+                    {
+                      "int": "30"
+                    }
+                  ]
+                },
+                [
+                  {
+                    "prim": "DIP",
+                    "args": [
+                      [
+                        [
+                          {
+                            "prim": "DIP",
+                            "args": [
+                              [
+                                [
+                                  {
+                                    "prim": "DIP",
+                                    "args": [
+                                      [
+                                        {
+                                          "prim": "DUP",
+                                          "annots": [
+                                            "@traces"
+                                          ]
+                                        }
+                                      ]
+                                    ]
+                                  },
+                                  {
+                                    "prim": "SWAP"
+                                  }
+                                ]
+                              ]
+                            ]
+                          },
+                          {
+                            "prim": "SWAP"
+                          }
+                        ]
+                      ]
+                    ]
+                  },
+                  {
+                    "prim": "SWAP"
+                  }
+                ],
+                {
+                  "prim": "SIZE"
+                },
+                {
+                  "prim": "COMPARE"
+                },
+                {
+                  "prim": "GE"
+                },
+                {
+                  "prim": "IF",
+                  "args": [
+                    [
+                      {
+                        "prim": "NIL",
+                        "args": [
+                          {
+                            "prim": "string"
+                          }
+                        ]
+                      },
+                      [
+                        {
+                          "prim": "DIP",
+                          "args": [
+                            [
+                              [
+                                {
+                                  "prim": "DIP",
+                                  "args": [
+                                    [
+                                      [
+                                        {
+                                          "prim": "DIP",
+                                          "args": [
+                                            [
+                                              {
+                                                "prim": "DUP",
+                                                "annots": [
+                                                  "@traces"
+                                                ]
+                                              }
+                                            ]
+                                          ]
+                                        },
+                                        {
+                                          "prim": "SWAP"
+                                        }
+                                      ]
+                                    ]
+                                  ]
+                                },
+                                {
+                                  "prim": "SWAP"
+                                }
+                              ]
+                            ]
+                          ]
+                        },
+                        {
+                          "prim": "SWAP"
+                        }
+                      ],
+                      {
+                        "prim": "ITER",
+                        "args": [
+                          [
+                            {
+                              "prim": "RENAME",
+                              "annots": [
+                                "@arg_slash_6"
+                              ]
+                            },
+                            {
+                              "prim": "DIP",
+                              "args": [
+                                [
+                                  {
+                                    "prim": "DUP"
+                                  }
+                                ]
+                              ]
+                            },
+                            {
+                              "prim": "DIP",
+                              "args": [
+                                [
+                                  {
+                                    "prim": "DIP",
+                                    "args": [
+                                      [
+                                        {
+                                          "prim": "DROP"
+                                        }
+                                      ]
+                                    ]
+                                  }
+                                ]
+                              ]
+                            },
+                            {
+                              "prim": "PAIR"
+                            },
+                            {
+                              "prim": "DUP"
+                            },
+                            {
+                              "prim": "CDR"
+                            },
+                            {
+                              "prim": "SWAP"
+                            },
+                            {
+                              "prim": "CAR"
+                            },
+                            {
+                              "prim": "CONS"
+                            }
+                          ]
+                        ]
+                      },
+                      {
+                        "prim": "NIL",
+                        "args": [
+                          {
+                            "prim": "operation"
+                          }
+                        ]
+                      },
+                      {
+                        "prim": "PAIR"
+                      }
+                    ],
+                    [
+                      [
+                        {
+                          "prim": "DIP",
+                          "args": [
+                            [
+                              [
+                                {
+                                  "prim": "DIP",
+                                  "args": [
+                                    [
+                                      {
+                                        "prim": "DUP",
+                                        "annots": [
+                                          "@traces"
+                                        ]
+                                      }
+                                    ]
+                                  ]
+                                },
+                                {
+                                  "prim": "SWAP"
+                                }
+                              ]
+                            ]
+                          ]
+                        },
+                        {
+                          "prim": "SWAP"
+                        }
+                      ],
+                      [
+                        {
+                          "prim": "DIP",
+                          "args": [
+                            [
+                              {
+                                "prim": "DUP",
+                                "annots": [
+                                  "@path"
+                                ]
+                              }
+                            ]
+                          ]
+                        },
+                        {
+                          "prim": "SWAP"
+                        }
+                      ],
+                      {
+                        "prim": "CONS"
+                      },
+                      {
+                        "prim": "PUSH",
+                        "args": [
+                          {
+                            "prim": "list",
+                            "args": [
+                              {
+                                "prim": "string"
+                              }
+                            ]
+                          },
+                          [
+                            {
+                              "string": "0"
+                            },
+                            {
+                              "string": "1"
+                            },
+                            {
+                              "string": "2"
+                            }
+                          ]
+                        ],
+                        "annots": [
+                          "@next"
+                        ]
+                      },
+                      {
+                        "prim": "MAP",
+                        "args": [
+                          [
+                            {
+                              "prim": "RENAME",
+                              "annots": [
+                                "@s_slash_8"
+                              ]
+                            },
+                            {
+                              "prim": "SELF",
+                              "annots": [
+                                "@c"
+                              ]
+                            },
+                            {
+                              "prim": "PUSH",
+                              "args": [
+                                {
+                                  "prim": "mutez"
+                                },
+                                {
+                                  "int": "1000000"
+                                }
+                              ]
+                            },
+                            [
+                              {
+                                "prim": "DIP",
+                                "args": [
+                                  [
+                                    [
+                                      {
+                                        "prim": "DIP",
+                                        "args": [
+                                          [
+                                            [
+                                              {
+                                                "prim": "DIP",
+                                                "args": [
+                                                  [
+                                                    [
+                                                      {
+                                                        "prim": "DIP",
+                                                        "args": [
+                                                          [
+                                                            [
+                                                              {
+                                                                "prim": "DIP",
+                                                                "args": [
+                                                                  [
+                                                                    [
+                                                                      {
+                                                                        "prim": "DIP",
+                                                                        "args": [
+                                                                          [
+                                                                            {
+                                                                              "prim": "DUP",
+                                                                              "annots": [
+                                                                                "@traces"
+                                                                              ]
+                                                                            }
+                                                                          ]
+                                                                        ]
+                                                                      },
+                                                                      {
+                                                                        "prim": "SWAP"
+                                                                      }
+                                                                    ]
+                                                                  ]
+                                                                ]
+                                                              },
+                                                              {
+                                                                "prim": "SWAP"
+                                                              }
+                                                            ]
+                                                          ]
+                                                        ]
+                                                      },
+                                                      {
+                                                        "prim": "SWAP"
+                                                      }
+                                                    ]
+                                                  ]
+                                                ]
+                                              },
+                                              {
+                                                "prim": "SWAP"
+                                              }
+                                            ]
+                                          ]
+                                        ]
+                                      },
+                                      {
+                                        "prim": "SWAP"
+                                      }
+                                    ]
+                                  ]
+                                ]
+                              },
+                              {
+                                "prim": "SWAP"
+                              }
+                            ],
+                            {
+                              "prim": "SIZE"
+                            },
+                            {
+                              "prim": "NIL",
+                              "args": [
+                                {
+                                  "prim": "string"
+                                }
+                              ]
+                            },
+                            [
+                              {
+                                "prim": "DIP",
+                                "args": [
+                                  [
+                                    [
+                                      {
+                                        "prim": "DIP",
+                                        "args": [
+                                          [
+                                            [
+                                              {
+                                                "prim": "DIP",
+                                                "args": [
+                                                  [
+                                                    [
+                                                      {
+                                                        "prim": "DIP",
+                                                        "args": [
+                                                          [
+                                                            {
+                                                              "prim": "DUP",
+                                                              "annots": [
+                                                                "@s"
+                                                              ]
+                                                            }
+                                                          ]
+                                                        ]
+                                                      },
+                                                      {
+                                                        "prim": "SWAP"
+                                                      }
+                                                    ]
+                                                  ]
+                                                ]
+                                              },
+                                              {
+                                                "prim": "SWAP"
+                                              }
+                                            ]
+                                          ]
+                                        ]
+                                      },
+                                      {
+                                        "prim": "SWAP"
+                                      }
+                                    ]
+                                  ]
+                                ]
+                              },
+                              {
+                                "prim": "SWAP"
+                              }
+                            ],
+                            {
+                              "prim": "DIP",
+                              "args": [
+                                [
+                                  {
+                                    "prim": "DIP",
+                                    "args": [
+                                      [
+                                        {
+                                          "prim": "DIP",
+                                          "args": [
+                                            [
+                                              {
+                                                "prim": "DIP",
+                                                "args": [
+                                                  [
+                                                    {
+                                                      "prim": "DIP",
+                                                      "args": [
+                                                        [
+                                                          {
+                                                            "prim": "DROP"
+                                                          }
+                                                        ]
+                                                      ]
+                                                    }
+                                                  ]
+                                                ]
+                                              }
+                                            ]
+                                          ]
+                                        }
+                                      ]
+                                    ]
+                                  }
+                                ]
+                              ]
+                            },
+                            {
+                              "prim": "CONS"
+                            },
+                            [
+                              {
+                                "prim": "DIP",
+                                "args": [
+                                  [
+                                    [
+                                      {
+                                        "prim": "DIP",
+                                        "args": [
+                                          [
+                                            [
+                                              {
+                                                "prim": "DIP",
+                                                "args": [
+                                                  [
+                                                    [
+                                                      {
+                                                        "prim": "DIP",
+                                                        "args": [
+                                                          [
+                                                            [
+                                                              {
+                                                                "prim": "DIP",
+                                                                "args": [
+                                                                  [
+                                                                    {
+                                                                      "prim": "DUP"
+                                                                    }
+                                                                  ]
+                                                                ]
+                                                              },
+                                                              {
+                                                                "prim": "SWAP"
+                                                              }
+                                                            ]
+                                                          ]
+                                                        ]
+                                                      },
+                                                      {
+                                                        "prim": "SWAP"
+                                                      }
+                                                    ]
+                                                  ]
+                                                ]
+                                              },
+                                              {
+                                                "prim": "SWAP"
+                                              }
+                                            ]
+                                          ]
+                                        ]
+                                      },
+                                      {
+                                        "prim": "SWAP"
+                                      }
+                                    ]
+                                  ]
+                                ]
+                              },
+                              {
+                                "prim": "SWAP"
+                              }
+                            ],
+                            {
+                              "prim": "CONS"
+                            },
+                            {
+                              "prim": "CONCAT"
+                            },
+                            {
+                              "prim": "PAIR"
+                            },
+                            {
+                              "prim": "TRANSFER_TOKENS"
+                            }
+                          ]
+                        ]
+                      },
+                      {
+                        "prim": "RENAME",
+                        "annots": [
+                          "@ops"
+                        ]
+                      },
+                      {
+                        "prim": "PAIR"
+                      }
+                    ]
+                  ]
+                },
+                {
+                  "prim": "DIP",
+                  "args": [
+                    [
+                      {
+                        "prim": "DROP"
+                      },
+                      {
+                        "prim": "DROP"
+                      },
+                      {
+                        "prim": "DROP"
+                      }
+                    ]
+                  ]
+                }
+              ]
+            ]
+          }
+        ],
+        "storage": []
+      }
+    }
+  ]
+}

@@ -33,7 +33,7 @@ def format_docstring(class_type, query_path):
                     docstring += f':param {arg["name"]}: {arg["descr"]}\n'
                 docstring += f':return: {rpc_doc[method]["ret"]}\n'
 
-            res.append(f'{method}{docstring}')
+            res.append(f'{func}{docstring}')
 
     if 'item' in rpc_doc:
         docstring = get_attr_docstring(class_type, '__getitem__')
@@ -51,7 +51,7 @@ def format_docstring(class_type, query_path):
         properties = list()
 
     helpers = filter(
-        lambda x: not x.startswith('_') and x not in properties,
+        lambda x: not x.startswith('_') and x not in properties and x.upper() not in methods,
         dir(class_type))
     for helper in helpers:
         if type(getattr(class_type, helper)) == property:

@@ -129,6 +129,7 @@ len_tags = [
         True: b'\x08'
     },
     {
+        False: b'\x09',
         True: b'\x09'
     }
 ]
@@ -180,15 +181,15 @@ def micheline_to_bytes(data):
             if annots_len > 0:
                 res.append(forge_array(' '.join(data['annots']).encode()))
 
-        elif data.get('bytes'):
+        elif data.get('bytes') is not None:
             res.append(b'\x0A')
             res.append(forge_array(bytes.fromhex(data['bytes'])))
 
-        elif data.get('int'):
+        elif data.get('int') is not None:
             res.append(b'\x00')
             res.append(forge_int(int(data['int'])))
 
-        elif data.get('string'):
+        elif data.get('string') is not None:
             res.append(b'\x01')
             res.append(forge_array(data['string'].encode()))
         else:

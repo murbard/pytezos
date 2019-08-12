@@ -11,63 +11,63 @@ class MichelsonCodingTestKT1WQA(TestCase):
 
     def test_michelson_parse_code_KT1WQA(self):
         expected = get_data(
-            path='/home/mickey/pytezos/tests/contracts/KT1WQAW1sRaykMPYEPpqiL4nrYvdnb8SWTV7/code_KT1WQA.json')
+            path='contracts/KT1WQAW1sRaykMPYEPpqiL4nrYvdnb8SWTV7/code_KT1WQA.json')
         actual = michelson_to_micheline(get_data(
-            path='/home/mickey/pytezos/tests/contracts/KT1WQAW1sRaykMPYEPpqiL4nrYvdnb8SWTV7/code_KT1WQA.tz'))
+            path='contracts/KT1WQAW1sRaykMPYEPpqiL4nrYvdnb8SWTV7/code_KT1WQA.tz'))
         self.assertEqual(expected, actual)
 
     def test_michelson_format_code_KT1WQA(self):
         expected = get_data(
-            path='/home/mickey/pytezos/tests/contracts/KT1WQAW1sRaykMPYEPpqiL4nrYvdnb8SWTV7/code_KT1WQA.tz')
+            path='contracts/KT1WQAW1sRaykMPYEPpqiL4nrYvdnb8SWTV7/code_KT1WQA.tz')
         actual = micheline_to_michelson(get_data(
-            path='/home/mickey/pytezos/tests/contracts/KT1WQAW1sRaykMPYEPpqiL4nrYvdnb8SWTV7/code_KT1WQA.json'), 
+            path='contracts/KT1WQAW1sRaykMPYEPpqiL4nrYvdnb8SWTV7/code_KT1WQA.json'), 
             inline=True)
         self.assertEqual(expected, actual)
 
     def test_michelson_inverse_code_KT1WQA(self):
         expected = get_data(
-            path='/home/mickey/pytezos/tests/contracts/KT1WQAW1sRaykMPYEPpqiL4nrYvdnb8SWTV7/code_KT1WQA.json')
+            path='contracts/KT1WQAW1sRaykMPYEPpqiL4nrYvdnb8SWTV7/code_KT1WQA.json')
         actual = michelson_to_micheline(micheline_to_michelson(expected))
         self.assertEqual(expected, actual)
 
     def test_michelson_parse_storage_KT1WQA(self):
         expected = get_data(
-            path='/home/mickey/pytezos/tests/contracts/KT1WQAW1sRaykMPYEPpqiL4nrYvdnb8SWTV7/storage_KT1WQA.json')
+            path='contracts/KT1WQAW1sRaykMPYEPpqiL4nrYvdnb8SWTV7/storage_KT1WQA.json')
         actual = michelson_to_micheline(get_data(
-            path='/home/mickey/pytezos/tests/contracts/KT1WQAW1sRaykMPYEPpqiL4nrYvdnb8SWTV7/storage_KT1WQA.tz'))
+            path='contracts/KT1WQAW1sRaykMPYEPpqiL4nrYvdnb8SWTV7/storage_KT1WQA.tz'))
         self.assertEqual(expected, actual)
 
     def test_michelson_format_storage_KT1WQA(self):
         expected = get_data(
-            path='/home/mickey/pytezos/tests/contracts/KT1WQAW1sRaykMPYEPpqiL4nrYvdnb8SWTV7/storage_KT1WQA.tz')
+            path='contracts/KT1WQAW1sRaykMPYEPpqiL4nrYvdnb8SWTV7/storage_KT1WQA.tz')
         actual = micheline_to_michelson(get_data(
-            path='/home/mickey/pytezos/tests/contracts/KT1WQAW1sRaykMPYEPpqiL4nrYvdnb8SWTV7/storage_KT1WQA.json'), 
+            path='contracts/KT1WQAW1sRaykMPYEPpqiL4nrYvdnb8SWTV7/storage_KT1WQA.json'), 
             inline=True)
         self.assertEqual(expected, actual)
 
     def test_michelson_inverse_storage_KT1WQA(self):
         expected = get_data(
-            path='/home/mickey/pytezos/tests/contracts/KT1WQAW1sRaykMPYEPpqiL4nrYvdnb8SWTV7/storage_KT1WQA.json')
+            path='contracts/KT1WQAW1sRaykMPYEPpqiL4nrYvdnb8SWTV7/storage_KT1WQA.json')
         actual = michelson_to_micheline(micheline_to_michelson(expected))
         self.assertEqual(expected, actual)
 
     def test_michelson_parse_parameter_onjMGH(self):
         expected = get_data(
-            path='/home/mickey/pytezos/tests/contracts/KT1WQAW1sRaykMPYEPpqiL4nrYvdnb8SWTV7/parameter_onjMGH.json')
+            path='contracts/KT1WQAW1sRaykMPYEPpqiL4nrYvdnb8SWTV7/parameter_onjMGH.json')
         actual = michelson_to_micheline(get_data(
-            path='/home/mickey/pytezos/tests/contracts/KT1WQAW1sRaykMPYEPpqiL4nrYvdnb8SWTV7/parameter_onjMGH.tz'))
+            path='contracts/KT1WQAW1sRaykMPYEPpqiL4nrYvdnb8SWTV7/parameter_onjMGH.tz'))
         self.assertEqual(expected, actual)
 
     def test_michelson_format_parameter_onjMGH(self):
         expected = get_data(
-            path='/home/mickey/pytezos/tests/contracts/KT1WQAW1sRaykMPYEPpqiL4nrYvdnb8SWTV7/parameter_onjMGH.tz')
+            path='contracts/KT1WQAW1sRaykMPYEPpqiL4nrYvdnb8SWTV7/parameter_onjMGH.tz')
         actual = micheline_to_michelson(get_data(
-            path='/home/mickey/pytezos/tests/contracts/KT1WQAW1sRaykMPYEPpqiL4nrYvdnb8SWTV7/parameter_onjMGH.json'), 
+            path='contracts/KT1WQAW1sRaykMPYEPpqiL4nrYvdnb8SWTV7/parameter_onjMGH.json'), 
             inline=True)
         self.assertEqual(expected, actual)
 
     def test_michelson_inverse_parameter_onjMGH(self):
         expected = get_data(
-            path='/home/mickey/pytezos/tests/contracts/KT1WQAW1sRaykMPYEPpqiL4nrYvdnb8SWTV7/parameter_onjMGH.json')
+            path='contracts/KT1WQAW1sRaykMPYEPpqiL4nrYvdnb8SWTV7/parameter_onjMGH.json')
         actual = michelson_to_micheline(micheline_to_michelson(expected))
         self.assertEqual(expected, actual)
