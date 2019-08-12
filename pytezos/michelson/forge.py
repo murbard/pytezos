@@ -129,7 +129,6 @@ len_tags = [
         True: b'\x08'
     },
     {
-        False: b'\x09',
         True: b'\x09'
     }
 ]
@@ -160,12 +159,12 @@ def forge_int(value: int):
     return b''.join(res)
 
 
-def micheline_to_bytes(data):
+def forge_micheline(data):
     res = []
 
     if isinstance(data, list):
         res.append(b'\x02')
-        res.append(forge_array(b''.join(map(micheline_to_bytes, data))))
+        res.append(forge_array(b''.join(map(forge_micheline, data))))
 
     elif isinstance(data, dict):
         if data.get('prim'):
@@ -176,7 +175,7 @@ def micheline_to_bytes(data):
             res.append(prim_tags[data['prim']])
 
             if args_len > 0:
-                res.append(b''.join(map(micheline_to_bytes, data['args'])))
+                res.append(b''.join(map(forge_micheline, data['args'])))
 
             if annots_len > 0:
                 res.append(forge_array(' '.join(data['annots']).encode()))
@@ -193,14 +192,14 @@ def micheline_to_bytes(data):
             res.append(b'\x01')
             res.append(forge_array(data['string'].encode()))
         else:
-            raise NotImplementedError(data)
+            assert False, data
     else:
-        raise ValueError(data)
+        assert False, data
 
     return b''.join(res)
 
 
 def forge_script(script):
-    code = micheline_to_bytes(script['code'])
-    storage = micheline_to_bytes(script['storage'])
+    code = forge_micheline(script['code'])
+    storage = forge_micheline(script['storage'])
     return forge_array(code) + forge_array(storage)

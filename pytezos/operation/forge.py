@@ -1,6 +1,6 @@
 from pytezos.encoding import forge_address, forge_bool, forge_nat, forge_array, forge_public_key, \
     forge_base58
-from pytezos.michelson.forge import micheline_to_bytes, forge_script
+from pytezos.michelson.forge import forge_micheline, forge_script
 
 operation_tags = {
     'endorsement': 0,
@@ -68,7 +68,7 @@ def forge_transaction(content):
 
     if content.get('parameters'):
         res += forge_bool(True)
-        res += forge_array(micheline_to_bytes(content['parameters']))
+        res += forge_array(forge_micheline(content['parameters']))
     else:
         res += forge_bool(False)
 
