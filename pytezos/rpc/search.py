@@ -2,7 +2,8 @@ from typing import Any, Callable, Generator
 from loguru import logger
 
 from pytezos.rpc.node import RpcError
-from pytezos.rpc.query import RpcQuery, get_attr_docstring
+from pytezos.rpc.query import RpcQuery
+from pytezos.tools.docstring import get_attr_docstring
 from pytezos.encoding import is_bh
 
 

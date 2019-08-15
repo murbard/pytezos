@@ -2,6 +2,8 @@ from pytezos.encoding import forge_address, forge_bool, forge_nat, forge_array, 
     forge_base58
 from pytezos.michelson.forge import forge_micheline, forge_script
 
+# TODO: https://tezos.gitlab.io/master/protocols/005_PsBABY5H.html#changes-to-the-binary-format-of-operations
+
 operation_tags = {
     'endorsement': 0,
     'proposal': 5,

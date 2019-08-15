@@ -49,9 +49,11 @@ def parse_describe_output(data, root='/'):
 
 if __name__ == '__main__':
     shell_docs = parse_describe_output(tzscan.alphanet.describe(recurse=True))
+    chain_docs = parse_describe_output(tzscan.alphanet.describe.chains.main.mempool(recurse=True),
+                                       root='/chains/{}/mempool')
     block_docs = parse_describe_output(tzscan.alphanet.describe.chains.main.blocks.head(recurse=True),
                                        root='/chains/{}/blocks/{}')
-    docs = json.dumps({**shell_docs, **block_docs}, indent=2)
+    docs = json.dumps({**shell_docs, **chain_docs, **block_docs}, indent=2)
     output_path = join(dirname(dirname(__file__)), 'pytezos/rpc/docs.py')
     with open(output_path, 'w+') as f:
         f.write(f'rpc_docs = {docs}\n')

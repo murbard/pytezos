@@ -247,17 +247,32 @@ class OperationListListQuery(RpcQuery, path=['/chains/{}/blocks/{}/operations'])
         """
         return self[3]
 
-    def proposal(self, proposal_id):
+    def find_proposal(self, proposal_id):
+        """
+
+        :param proposal_id:
+        :return:
+        """
         def is_proposal(op):
             return any(map(lambda x: proposal_id in x.get('proposals', []), op['contents']))
         return next(filter(is_proposal, self.votes()))
 
-    def ballots(self, proposal_id) -> list:
+    def find_ballots(self, proposal_id) -> list:
+        """
+
+        :param proposal_id:
+        :return:
+        """
         def is_ballot(op):
             return any(map(lambda x: proposal_id == x.get('proposal'), op['contents']))
         return list(filter(is_ballot, self.votes()))
 
-    def origination(self, contract_id):
+    def find_origination(self, contract_id):
+        """
+
+        :param contract_id:
+        :return:
+        """
         def is_origination(op):
             def is_it(x):
                 return x['kind'] == 'origination' \
@@ -269,6 +284,10 @@ class OperationListListQuery(RpcQuery, path=['/chains/{}/blocks/{}/operations'])
 class OperationQuery(RpcQuery, path=['/chains/{}/blocks/{}/operations/{}/{}']):
 
     def unsigned(self):
+        """
+
+        :return:
+        """
         data = self()
         return {
             'branch': data['branch'],
@@ -280,9 +299,7 @@ class OperationQuery(RpcQuery, path=['/chains/{}/blocks/{}/operations/{}/{}']):
 
 
 class ProposalQuery(RpcQuery, path='/chains/{}/blocks/{}/votes/proposals/{}'):
-    """
-    Extended query
-    """
+
     def __call__(self):
         """
         Roll count for this proposal
@@ -309,6 +326,9 @@ class ProposalsQuery(RpcQuery, path='/chains/{}/blocks/{}/votes/proposals'):
         )
 
     def __repr__(self):
-        docstring = super(ProposalsQuery, self).__repr__()
-        docstring += f'[]\n{ProposalsQuery.__getitem__.__doc__}'
-        return docstring
+        res = [
+            super(ProposalsQuery, self).__repr__(),
+            '[]\n',
+            ProposalsQuery.__getitem__.__doc__
+        ]
+        return '\n'.join(res)

@@ -7,6 +7,7 @@ from pytezos.operation.forge import forge_operation_group
 from pytezos.operation.fees import FeesProvider
 from pytezos.encoding import forge_base58, base58_encode
 from pytezos.interop import Interop
+from pytezos.tools.docstring import get_class_docstring, InlineDocstring
 
 validation_passes = {
     'endorsement': 0,
@@ -23,7 +24,7 @@ validation_passes = {
 }
 
 
-class OperationGroup(Interop, ContentMixin):
+class OperationGroup(Interop, ContentMixin, metaclass=InlineDocstring):
 
     def __init__(self, contents=None, protocol=None, branch=None, signature=None, shell=None, key=None):
         super(OperationGroup, self).__init__(shell=shell, key=key)
@@ -33,7 +34,14 @@ class OperationGroup(Interop, ContentMixin):
         self.signature = signature
 
     def __repr__(self):
-        return pformat(self.json_payload())
+        res = [
+            super(OperationGroup, self).__repr__(),
+            '\nPayload',
+            pformat(self.json_payload()),
+            '\nHelpers',
+            get_class_docstring(self.__class__)
+        ]
+        return '\n'.join(res)
 
     def _spawn(self, **kwargs):
         return OperationGroup(
@@ -45,11 +53,11 @@ class OperationGroup(Interop, ContentMixin):
             key=kwargs.get('key', self.key)
         )
 
-    @property
-    def validation_pass(self):
-        return validation_passes[self.contents[0]['kind']] if self.contents else None
-
-    def json_payload(self):
+    def json_payload(self) -> dict:
+        """
+        Get json payload used for preapply.
+        :return: dic
+        """
         return {
             'protocol': self.protocol,
             'branch': self.branch,
@@ -57,19 +65,30 @@ class OperationGroup(Interop, ContentMixin):
             'signature': self.signature
         }
 
-    def binary_payload(self):
+    def binary_payload(self) -> bytes:
+        """
+        Get binary payload used for injection/hash calculation.
+        :return: bytes
+        """
         if not self.signature:
             raise ValueError('Not signed')
 
         return bytes.fromhex(self.forge()) + forge_base58(self.signature)
 
     def operation(self, content):
-        if self.contents and validation_passes[content['kind']] != self.validation_pass:
-            raise ValueError('Mixed validation passes')
-
+        """
+        Create new operation group with extra content added.
+        :param content: Kind-specific operation body
+        :return: OperationGroup
+        """
         return self._spawn(contents=self.contents + [content])
 
     def fill(self):
+        """
+        Try to fill all fields left unfilled, use approximate fees
+        (not optimal, use `autofill` to simulate operation and get precise values).
+        :return: OperationGroup
+        """
         branch = self.branch or self.shell.head.predecessor.hash()
         protocol = self.protocol or self.shell.head.header()['protocol']
         source = self.key.public_key_hash()
@@ -84,7 +103,7 @@ class OperationGroup(Interop, ContentMixin):
             'secret': lambda x: self.key.activation_code,
             'period': lambda x: str(self.shell.head.voting_period()),
             'public_key': lambda x: self.key.public_key(),
-            'manager_pubkey': lambda x: self.key.public_key(),
+            'manager_pubkey': source,  # I know, it hurts
             'fee': lambda x: str(fees_provider.fee(x)),
             'gas_limit': lambda x: str(fees_provider.gas_limit(x)),
             'storage_limit': lambda x: str(fees_provider.storage_limit(x)),
@@ -104,6 +123,10 @@ class OperationGroup(Interop, ContentMixin):
         )
 
     def run(self):
+        """
+        Simulate operation without signature checks.
+        :return: RPC response
+        """
         return self.shell.head.helpers.scripts.run_operation.post({
             'branch': self.branch,
             'contents': self.contents,
@@ -111,6 +134,11 @@ class OperationGroup(Interop, ContentMixin):
         })
 
     def forge(self, validate=True):
+        """
+        Convert json representation of the operation group into bytes
+        :param validate: Forge remotely also and compare results, default is True
+        :return: Hex string
+        """
         payload = {
             'branch': self.branch,
             'contents': self.contents
@@ -125,6 +153,10 @@ class OperationGroup(Interop, ContentMixin):
         return local_data
 
     def autofill(self):
+        """
+        Fill the gaps and then simulate the operation in order to calculate fee, gas/storage limits.
+        :return: OperationGroup
+        """
         opg = self.fill()
         opg_with_metadata = opg.run()
         fees_provider = FeesProvider.from_protocol(opg.protocol)
@@ -154,7 +186,15 @@ class OperationGroup(Interop, ContentMixin):
         return opg
 
     def sign(self):
-        if self.validation_pass == 0:
+        """
+        Sign the operation group with the key specified by `using`.
+        :return: OperationGroup
+        """
+        validation_pass = validation_passes[self.contents[0]['kind']]
+        if any(map(lambda x: validation_passes[x['kind']] != validation_pass, self.contents)):
+            raise ValueError('Mixed validation passes')
+
+        if validation_pass == 0:
             chain_watermark = bytes.fromhex(self.shell.chains.main.watermark())
             watermark = b'\x02' + chain_watermark
         else:
@@ -166,17 +206,30 @@ class OperationGroup(Interop, ContentMixin):
         return self._spawn(signature=signature)
 
     def hash(self):
+        """
+        Calculate the Base58 encoded operation group hash.
+        :return: str
+        """
         hash_digest = blake2b_32(self.binary_payload()).digest()
         return base58_encode(hash_digest, b'o').decode()
 
     def preapply(self):
+        """
+        Preapply signed operation group.
+        :return: RPC response
+        """
         if not self.signature:
             raise ValueError('Not signed')
 
         return self.shell.head.helpers.preapply.operations.post(
-            operatios=[self.json_payload()])
+            operations=[self.json_payload()])
 
     def inject(self, _async=False):
+        """
+        Inject signed operation group.
+        :param _async: default is False
+        :return: RPC response (operation group hash)
+        """
         try:
             self.preapply()
         except RpcError as e:

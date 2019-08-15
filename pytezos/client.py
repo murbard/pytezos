@@ -1,34 +1,21 @@
-import os
-import json
 from functools import lru_cache
 
 from pytezos.operation.group import OperationGroup
 from pytezos.operation.content import ContentMixin
-from pytezos.michelson.interface import ContractInterface, Contract
-from pytezos.encoding import is_pkh, is_kt
+from pytezos.michelson.interface import ContractInterface
 from pytezos.interop import Interop
+from pytezos.tools.docstring import get_class_docstring, InlineDocstring
 
 
-def get_address(identity, tezos_client_dir='~/.tezos-client'):
-    if is_pkh(identity) or is_kt(identity):
-        return identity
+class PyTezosClient(Interop, ContentMixin, metaclass=InlineDocstring):
 
-    addresses = []
-    for filename in ['contracts', 'public_key_hashs']:
-        path = os.path.expanduser(os.path.join(tezos_client_dir, filename))
-        with open(path) as f:
-            data = json.loads(f.read())
-
-        addresses.extend([x['value'] for x in data if x['name'] == identity])
-
-    if len(addresses) > 1:
-        raise ValueError(f'More than one address found for {identity}')
-    if len(addresses) == 0:
-        raise ValueError(f'Not found: {identity}')
-    return addresses[0]
-
-
-class PyTezosClient(Interop, ContentMixin):
+    def __repr__(self):
+        res = [
+            super(PyTezosClient, self).__repr__(),
+            '\nHelpers',
+            get_class_docstring(self.__class__)
+        ]
+        return '\n'.join(res)
 
     def _spawn(self, **kwargs):
         return PyTezosClient(
@@ -37,6 +24,15 @@ class PyTezosClient(Interop, ContentMixin):
         )
 
     def operation_group(self, protocol=None, branch=None, contents=None, signature=None) -> OperationGroup:
+        """
+        Create new operation group (multiple contents).
+        You can leave all fields empty in order to create an empty operation group.
+        :param protocol: Leave None for autocomplete, otherwise you know what to do
+        :param branch: Leave None for autocomplete
+        :param contents: List of operation contents (optional)
+        :param signature: Can be set later
+        :return: OperationGroup
+        """
         return OperationGroup(
             protocol=protocol,
             branch=branch,
@@ -47,53 +43,35 @@ class PyTezosClient(Interop, ContentMixin):
         )
 
     def operation(self, content: dict) -> OperationGroup:
+        """
+        Create an operation group with single content
+        :param content: Operation body (depending on `kind`)
+        :return: OperationGroup
+        """
         return OperationGroup(
             contents=[content],
             shell=self.shell,
             key=self.key
         )
 
-    def account(self, account_id=None):
-        address = get_address(account_id) if account_id else self.key.public_key_hash()
+    def account(self, account_id=None) -> dict:
+        """
+        Shortcut for RPC contract request
+        :param account_id: tz/KT address, leave None to show info about current key
+        :return: dict
+        """
+        address = account_id or self.key.public_key_hash()
         return self.shell.contracts[address]()
-
-    def activate(self):
-        return self.activate_account().autofill().sign()
-
-    def reveal_public_key(self, source=''):
-        if source:
-            source = get_address(source)
-        return self.reveal(source=source).autofill().sign()
-
-    def register_delegate(self):
-        return self.delegation().autofill().sign()
-
-    def transfer(self, destination, amount, source=None):
-        return self.transaction(
-            source=get_address(source) if source else '',
-            destination=get_address(destination),
-            amount=amount
-        ).autofill().sign()
-
-    def deploy(self, code, storage=None, balance=0):
-        if os.path.isfile(code):
-            contract = Contract.from_file(code)
-        else:
-            contract = Contract.from_michelson(code)
-
-        if storage is None:
-            storage = contract.storage.default()
-
-        return self.origination(
-            code=contract.code,
-            storage=storage,
-            balance=balance
-        )
 
     @lru_cache(maxsize=None)
     def contract(self, contract_id) -> ContractInterface:
+        """
+        Get a high-level interface for a given smart contract id.
+        :param contract_id: KT address of a smart contract
+        :return: ContractInterface
+        """
         return ContractInterface(
-            address=get_address(contract_id),
+            address=contract_id,
             shell=self.shell,
             key=self.key
         )

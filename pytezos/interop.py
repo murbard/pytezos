@@ -45,4 +45,10 @@ class Interop:
         raise NotImplementedError
 
     def using(self, shell: ShellQuery = None, key: Key = None):
+        """
+        Change current rpc endpoint and account (private key)
+        :param shell: one of 'alphanet', 'mainnet', 'zeronet', instance of `ShellQuery`
+        :param key: base58 encoded key or instance of `Key`
+        :return: A copy of current object with changes applied
+        """
         return self._spawn(shell=shell, key=key)

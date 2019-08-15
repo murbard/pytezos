@@ -4,6 +4,7 @@ import re
 import json
 
 # Inspired by https://github.com/jansorg/tezos-intellij/blob/master/grammar/michelson.bnf
+# TODO: sync primitives with BABY
 
 
 class Sequence(list):

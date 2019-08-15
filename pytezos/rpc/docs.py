@@ -606,6 +606,64 @@ rpc_docs = {
       "ret": "Object"
     }
   },
+  "/chains/{}/mempool": {
+    "props": [
+      "filter",
+      "monitor_operations",
+      "pending_operations",
+      "request_operations"
+    ]
+  },
+  "/chains/{}/mempool/filter": {
+    "GET": {
+      "descr": "Get the configuration of the mempool filter.",
+      "args": [],
+      "ret": "Object"
+    },
+    "POST": {
+      "descr": "Set the configuration of the mempool filter.",
+      "args": [],
+      "ret": "Object"
+    }
+  },
+  "/chains/{}/mempool/monitor_operations": {
+    "GET": {
+      "descr": "Monitor the mempool operations.",
+      "args": [
+        {
+          "name": "applied",
+          "descr": "Include applied operations (set by default)"
+        },
+        {
+          "name": "refused",
+          "descr": "Include refused operations"
+        },
+        {
+          "name": "branch_refused",
+          "descr": "Include branch refused operations"
+        },
+        {
+          "name": "branch_delayed",
+          "descr": "Include branch delayed operations (set by default)"
+        }
+      ],
+      "ret": "Array"
+    }
+  },
+  "/chains/{}/mempool/pending_operations": {
+    "GET": {
+      "descr": "List the prevalidated operations.",
+      "args": [],
+      "ret": "Object"
+    }
+  },
+  "/chains/{}/mempool/request_operations": {
+    "POST": {
+      "descr": "Request the operations of your peers.",
+      "args": [],
+      "ret": "Object"
+    }
+  },
   "/chains/{}/blocks/{}": {
     "GET": {
       "descr": "All the information about a block.",

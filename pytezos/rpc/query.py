@@ -1,17 +1,8 @@
-import re
 from os.path import dirname
 
 from pytezos.rpc.node import RpcNode
 from pytezos.rpc.docs import rpc_docs
-
-
-def get_attr_docstring(class_type, attr_name):
-    if attr_name == 'get':
-        attr_name = '__call__'
-
-    attr = getattr(class_type, attr_name, None)
-    if attr and attr.__doc__:
-        return re.sub(r' {3,}', '', attr.__doc__)
+from pytezos.tools.docstring import get_attr_docstring, get_class_docstring, InlineDocstring
 
 
 def format_docstring(class_type, query_path):
@@ -28,7 +19,7 @@ def format_docstring(class_type, query_path):
         if method in rpc_doc:
             docstring = get_attr_docstring(class_type, method.lower())
             if not docstring:
-                docstring = f'\n{rpc_doc[method]["descr"]}\n'
+                docstring = f'{rpc_doc[method]["descr"]}\n'
                 for arg in rpc_doc[method]['args']:
                     docstring += f':param {arg["name"]}: {arg["descr"]}\n'
                 docstring += f':return: {rpc_doc[method]["ret"]}\n'
@@ -50,21 +41,17 @@ def format_docstring(class_type, query_path):
     else:
         properties = list()
 
-    helpers = filter(
-        lambda x: not x.startswith('_') and x not in properties and x.upper() not in methods,
-        dir(class_type))
-    for helper in helpers:
-        if type(getattr(class_type, helper)) == property:
-            name = f'.{helper}'
-        else:
-            name = f'.{helper}()'
-        docstring = get_attr_docstring(class_type, helper) or '\n'
-        res.append(f'{name}{docstring}')
+    helpers = get_class_docstring(
+        class_type=class_type,
+        attr_filter=lambda x: not x.startswith('_') and x not in properties and x.upper() not in methods
+    )
+    if helpers:
+        res.append(f'Helpers\n{helpers}')
 
     return '\n'.join(res)
 
 
-class RpcQuery:
+class RpcQuery(metaclass=InlineDocstring):
     __extensions__ = dict()
 
     @classmethod
@@ -82,12 +69,17 @@ class RpcQuery:
         self._caching = caching
         self._timeout = timeout
         self._params = params or list()
-        self.__doc__ = self._get_docstring()
+        self.__doc__ = format_docstring(self.__class__, self._path)
 
-    def _get_docstring(self):
-        docstring = f'Path\n{self._query_path or "/"}\n\n'
-        docstring += format_docstring(self.__class__, self._path)
-        return docstring
+    def __repr__(self):
+        res = [
+            super(RpcQuery, self).__repr__(),
+            '\nPath',
+            self._query_path or "/",
+            '\n',
+            self.__doc__
+        ]
+        return '\n'.join(res)
 
     def _spawn_query(self, path, params):
         child_class = self.__extensions__.get(path, RpcQuery)
@@ -128,9 +120,6 @@ class RpcQuery:
             path=self._path + '/{}',
             params=self._params + [child_id]
         )
-
-    def __repr__(self):
-        return self.__doc__
 
     def _get(self, params=None):
         return self._node.get(

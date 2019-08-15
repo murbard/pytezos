@@ -4,7 +4,8 @@ from functools import lru_cache
 from binascii import hexlify
 
 from pytezos.encoding import base58_decode
-from pytezos.rpc.query import RpcQuery, get_attr_docstring
+from pytezos.rpc.query import RpcQuery
+from pytezos.tools.docstring import get_attr_docstring
 from pytezos.rpc.search import CyclesQuery
 
 

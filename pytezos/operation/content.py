@@ -1,8 +1,5 @@
 from decimal import Decimal
 
-from pytezos.michelson.coding import michelson_to_micheline
-from pytezos.michelson.contract import Contract
-
 
 def format_mutez(value):
     if value is None:
@@ -23,7 +20,7 @@ class ContentMixin:
         """
         Endorse a block
         :param level: Endorsed level
-        :return: Operation content
+        :return: dict or OperationGroup
         """
         return self.operation({
             'kind': 'endorsement',
@@ -36,7 +33,7 @@ class ContentMixin:
         More info https://tezos.stackexchange.com/questions/567/what-are-nonce-revelations
         :param level: When nonce hash was committed
         :param nonce: Hex string
-        :return: Operation content
+        :return: dict or OperationGroup
         """
         return self.operation({
             'kind': 'seed_nonce_revelation',
@@ -56,7 +53,7 @@ class ContentMixin:
             "signature"?: $Signature
         }
         :param op2: Inline endorsement
-        :return: Operation content
+        :return: dict or OperationGroup
         """
         return self.operation({
             'kind': 'double_endorsement_evidence',
@@ -69,7 +66,7 @@ class ContentMixin:
         Provide evidence of double baking (two different blocks at the same height).
         :param bh1: First block hash
         :param bh2: Second block hash
-        :return: Operation content
+        :return: dict or OperationGroup
         """
         return self.operation({
             'kind': 'double_baking_evidence',
@@ -81,9 +78,9 @@ class ContentMixin:
         """
         Activate recommended allocations for contributions to the TF fundraiser.
         More info https://activate.tezos.com/
-        :param pkh: Public key hash
-        :param activation_code: Secret code from pdf
-        :return: Operation content
+        :param pkh: Public key hash, leave empty for autocomplete
+        :param activation_code: Secret code from pdf, leave empty for autocomplete
+        :return: dict or OperationGroup
         """
         return self.operation({
             'kind': 'activate_account',
@@ -98,9 +95,9 @@ class ContentMixin:
         Can only be submitted during a proposal period.
         More info https://tezos.gitlab.io/master/whitedoc/voting.html
         :param proposals: List of proposal hashes or single proposal hash
-        :param source: Public key hash (of the signatory), leave none for autocomplete
-        :param period: Number of the current voting period, leave none for autocomplete
-        :return: Operation content
+        :param source: Public key hash (of the signatory), leave None for autocomplete
+        :param period: Number of the current voting period, leave 0 for autocomplete
+        :return: dict or OperationGroup
         """
         if not isinstance(proposals, list):
             proposals = [proposals]
@@ -120,9 +117,9 @@ class ContentMixin:
         More info https://tezos.gitlab.io/master/whitedoc/voting.html
         :param proposal: Hash of the proposal
         :param ballot: 'Yay', 'Nay' or 'Pass'
-        :param source: Public key hash (of the signatory), leave none for autocomplete
-        :param period: Number of the current voting period, leave none for autocomplete
-        :return:
+        :param source: Public key hash (of the signatory), leave None for autocomplete
+        :param period: Number of the current voting period, leave None for autocomplete
+        :return: dict or OperationGroup
         """
         return self.operation({
             'kind': 'ballot',
@@ -137,13 +134,13 @@ class ContentMixin:
         """
         Reveal the public key associated with a tz address.
         :param public_key: Public key to reveal, Base58 encoded
-        :param source:
-        :param counter: Current michelson counter, leave none for autocomplete
+        :param source: Public key hash of the key revealed, leave None to use signatory address
+        :param counter: Current account counter, leave None for autocomplete
         (More info https://tezos.stackexchange.com/questions/632/how-counter-grows)
-        :param fee: Leave none for autocomplete
-        :param gas_limit: Leave none for autocomplete
-        :param storage_limit: Leave none for autocomplete
-        :return:
+        :param fee: Leave None for autocomplete
+        :param gas_limit: Leave None for autocomplete
+        :param storage_limit: Leave None for autocomplete
+        :return: dict or OperationGroup
         """
         return self.operation({
             'kind': 'reveal',
@@ -158,21 +155,18 @@ class ContentMixin:
     def transaction(self, destination, amount=0, parameters=None,
                     source='', counter=0, fee=0, gas_limit=0, storage_limit=0):
         """
-        Transfer tezzies to an account (implicit or originated).
-        If the receiver is an originated account (KT1…), then optional parameters may be passed.
-        :param source:
-        :param destination:
-        :param amount:
-        :param counter:
-        :param parameters:
-        :param fee:
-        :param gas_limit:
-        :param storage_limit:
-        :return: Operation content
+        Transfer tezzies to a given address (implicit or originated).
+        If the receiver is a smart contract, then optional parameters may be passed.
+        :param source: Address from which funds will be sent, leave None to use signatory address
+        :param destination: Address
+        :param amount: Amount to send in microtez (int) or tez (Decimal) (optional)
+        :param counter: Current account counter, leave None for autocomplete
+        :param parameters: Micheline expression (optional)
+        :param fee: Leave None for autocomplete
+        :param gas_limit: Leave None for autocomplete
+        :param storage_limit: Leave None for autocomplete
+        :return: dict or OperationGroup
         """
-        if isinstance(parameters, str):
-            parameters = michelson_to_micheline(parameters)
-
         return self.operation({
             'kind': 'transaction',
             'source': source,
@@ -185,35 +179,36 @@ class ContentMixin:
             'parameters': parameters or {}
         })
 
-    def origination(self, code=None, storage=None, manager_pubkey='', balance=0,
+    def origination(self, code=None, storage=None, manager_pubkey='', balance=0, delegatable=None, spendable=None,
                     source='', counter=0, fee=0, gas_limit=0, storage_limit=0):
         """
-        :param code:
-        :param storage:
-        :param manager_pubkey:
-        :param balance:
-        :param source:
-        :param counter:
-        :param fee:
-        :param gas_limit:
-        :param storage_limit:
-        :return:
+        Deploy smart contract (scriptless KT accounts are not used for delegation since Babylon)
+        :param code: Micheline expression (array of three elements: [{parameter}, {storage}, {code}])
+        :param storage: Micheline expression, keep None if you want to use default (autogenerated)
+        :param manager_pubkey: Public key hash of the manager's address, leave None to use signatory address
+        :param balance: Amount transferred on the balance, WARNING: there is no default way to withdraw funds.
+        More info: https://tezos.stackexchange.com/questions/1315/can-i-withdraw-funds-from-an-empty-smart-contract
+        :param delegatable: Whether funds can be delegated from this account (defaults: False for smart contract)
+        :param spendable: Whether funds can be withdrawn by manager (defaults: False for smart contract)
+        :param source: Address from which funds will be sent, leave None to use signatory address
+        :param counter: Current account counter, leave None for autocomplete
+        :param fee: Leave None for autocomplete
+        :param gas_limit: Leave None for autocomplete
+        :param storage_limit: Leave None for autocomplete
+        :return: dict or OperationGroup
         """
         if code:
-            if isinstance(code, str):
-                code = michelson_to_micheline(code)
-
-            if isinstance(storage, str):
-                storage = michelson_to_micheline(storage)
-            elif storage is None:
-                storage = Contract.from_micheline(code).default_storage(output='micheline')
-
             script = {'code': code, 'storage': storage}
         else:
             script = {}
 
+        if delegatable is None:
+            delegatable = code is None
+        if spendable is None:
+            spendable = code is None
+
         return self.operation({
-            'kind': 'transaction',
+            'kind': 'origination',
             'source': source,
             'fee': format_mutez(fee),
             'counter': str(counter),
@@ -221,20 +216,22 @@ class ContentMixin:
             'storage_limit': str(storage_limit),
             'manager_pubkey': manager_pubkey,
             'balance': format_mutez(balance),
-            'script': script
+            'script': script,
+            'spendable': spendable,
+            'delegatable': delegatable
         })
 
     def delegation(self, delegate='',
                    source='', counter=0, fee=0, gas_limit=0, storage_limit=0):
         """
-
-        :param delegate:
-        :param source:
-        :param counter:
-        :param fee:
-        :param gas_limit:
-        :param storage_limit:
-        :return:
+        Delegate funds or register yourself as a delegate.
+        :param delegate: tz address of delegate, leave None to register yourself as a delegate
+        :param source: Address from which funds will be delegated, leave None to use signatory address
+        :param counter: Current account counter, leave None for autocomplete
+        :param fee: Leave None for autocomplete
+        :param gas_limit: Leave None for autocomplete
+        :param storage_limit: Leave None for autocomplete
+        :return: dict or OperationGroup
         """
         return self.operation({
             'kind': 'delegation',
