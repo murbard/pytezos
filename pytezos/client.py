@@ -4,10 +4,10 @@ from pytezos.operation.group import OperationGroup
 from pytezos.operation.content import ContentMixin
 from pytezos.michelson.interface import ContractInterface
 from pytezos.interop import Interop
-from pytezos.tools.docstring import get_class_docstring, InlineDocstring
+from pytezos.tools.docstring import get_class_docstring
 
 
-class PyTezosClient(Interop, ContentMixin, metaclass=InlineDocstring):
+class PyTezosClient(Interop, ContentMixin):
 
     def __repr__(self):
         res = [

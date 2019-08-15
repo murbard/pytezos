@@ -3,12 +3,13 @@ from os.path import isfile
 from pytezos.rpc import ShellQuery, mainnet, alphanet, zeronet
 from pytezos.crypto import Key
 from pytezos.encoding import is_key
+from pytezos.tools.docstring import InlineDocstring
 
 default_shell = 'alphanet'
 default_key = 'edsk33N474hxzA4sKeWVM6iuGNGDpX2mGwHNxEA4UbWS8sW3Ta3NKH'  # please, use responsibly
 
 
-class Interop:
+class Interop(metaclass=InlineDocstring):
 
     def __init__(self, shell=None, key=None):
         if shell is None:

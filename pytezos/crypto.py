@@ -14,6 +14,7 @@ from pyblake2 import blake2b
 from mnemonic import Mnemonic
 
 from pytezos.encoding import scrub_input, base58_decode, base58_encode
+from pytezos.tools.docstring import InlineDocstring, get_class_docstring
 
 
 def blake2b_32(v=b''):
@@ -38,7 +39,7 @@ def validate_mnemonic(mnemonic, language='english'):
         raise ValueError('Failed checksum.')
 
 
-class Key(object):
+class Key(metaclass=InlineDocstring):
     """
     Represents a public or secret key for Tezos. Ed25519, Secp256k1 and P256
     are supported.
@@ -50,7 +51,14 @@ class Key(object):
         self.activation_code = activation_code
 
     def __repr__(self):
-        return self.public_key_hash()
+        res = [
+            super(Key, self).__repr__(),
+            f'\nPublic key hash',
+            self.public_key_hash(),
+            '\nHelpers',
+            get_class_docstring(self.__class__)
+        ]
+        return '\n'.join(res)
 
     @property
     def is_secret(self):

@@ -13,6 +13,7 @@ from typing import List, Tuple
 from pytezos.crypto import blake2b_32
 from pytezos.encoding import base58_encode
 from pytezos.tools.diff import make_patch, apply_patch, generate_unidiff_html
+from pytezos.tools.docstring import get_class_docstring, InlineDocstring
 
 
 def dir_to_files(path) -> List[Tuple[str, str]]:
@@ -129,13 +130,18 @@ def proto_to_bytes(proto: dict) -> bytes:
     return res
 
 
-class Proto:
+class Proto(metaclass=InlineDocstring):
 
     def __init__(self, proto):
         self._proto = proto
 
     def __repr__(self):
-        return str(self._proto)
+        res = [
+            super(Proto, self).__repr__(),
+            '\nHelpers',
+            get_class_docstring(self.__class__)
+        ]
+        return '\n'.join(res)
 
     def __iter__(self):
         return iter(proto_to_files(self._proto))

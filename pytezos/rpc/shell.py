@@ -24,12 +24,14 @@ class ShellQuery(RpcQuery, path=''):
     def block(self):
         """
         Cached head block, useful if you just want to explore things.
-        :return: `BlockQuery`
         """
         return self.blocks[self.head.hash()]
 
     @property
     def cycles(self):
+        """
+        Operate on cycles rather than blocks.
+        """
         return CyclesQuery(
             node=self._node,
             path=self._path + '/chains/{}/blocks',
@@ -49,8 +51,7 @@ class ChainQuery(RpcQuery, path='/chains/{}'):
 
     def watermark(self):
         """
-        Chain watermark
-        :return: Hex encoded value
+        Chain watermark, hex encoded
         """
         data = self.chain_id()
         return hexlify(base58_decode(data.encode())).decode()
@@ -66,6 +67,7 @@ class MempoolQuery(RpcQuery, path='/chains/{}/mempool'):
 
     def post(self, configuration):
         """
+        Set operation filter rules.
         :param configuration: a JSON dictionary, known keys are `minimal_fees`, `minimal_nanotez_per_gas_unit`,
         `minimal_nanotez_per_byte`
         """
@@ -76,9 +78,8 @@ class PendingOperationsQuery(RpcQuery, path='/chains/{}/mempool/pending_operatio
 
     def __getitem__(self, item):
         """
-        Search for operation in node's mempool by hash
-        :param item: operation group hash, base58 encoded
-        :return: operation with status field if found, StopIteration raised otherwise
+        Search for operation in node's mempool by hash.
+        :param item: operation group hash (base58)
         """
         operations_dict = self()
         for status, operations in operations_dict.items():
@@ -92,17 +93,19 @@ class DescribeQuery(RpcQuery, path='/describe'):
 
     def __call__(self, recurse=True):
         """
-        RPCs documentation and input/output schema.
+        Get RPCs documentation and input/output schema.
         :param recurse: Show information for child elements, default is True.
         In some cases doesn't work without this flag.
-        :return: Object
         """
         return super(DescribeQuery, self).__call__(recurse=recurse)
 
     def __repr__(self):
-        docstring = get_attr_docstring(DescribeQuery, '__call__')
-        additional = 'Can be followed by any path:\n.chains\n.network.connections\netc\n'
-        return f'Path\n/describe\n\n(){docstring}\n{additional}'
+        res = [
+            super(DescribeQuery, self).__repr__(),
+            f'(){get_attr_docstring(DescribeQuery, "__call__")}',
+            'Can be followed by any path:\n.chains\n.network.connections\netc\n'
+        ]
+        return '\n'.join(res)
 
 
 class BlockInjectionQuery(RpcQuery, path='/injection/block'):
@@ -215,9 +218,11 @@ class MonitorQuery(RpcQuery, path=['/monitor/active_chains',
         ))
 
     def __repr__(self):
-        docstring = super(MonitorQuery, self).__repr__()
-        docstring += '\nNOTE\nReturned object is a generator.'
-        return docstring
+        res = [
+            super(MonitorQuery, self).__repr__(),
+            'NOTE: Returned object is a generator.'
+        ]
+        return '\n'.join(res)
 
 
 class ConnectionQuery(RpcQuery, path='/network/connections/{}'):
@@ -233,4 +238,13 @@ class NetworkItems(RpcQuery, path=['/network/peers', '/network/points']):
 
 
 class NetworkLogQuery(RpcQuery, path=['/network/peers/{}/log', '/network/points/{}/log']):
-    pass
+
+    def __call__(self, monitor=False):
+        if monitor:
+            return ResponseGenerator(self._node.request(
+                method='GET',
+                path=self._query_path,
+                stream=True
+            ))
+        else:
+            return self._get()

@@ -6,7 +6,7 @@ from pytezos.tools.docstring import get_attr_docstring, get_class_docstring, Inl
 
 
 def format_docstring(class_type, query_path):
-    res = list()
+    res = ['']
     methods = {
         'GET': '()',
         'POST': '.post()',
@@ -19,7 +19,7 @@ def format_docstring(class_type, query_path):
         if method in rpc_doc:
             docstring = get_attr_docstring(class_type, method.lower())
             if not docstring:
-                docstring = f'{rpc_doc[method]["descr"]}\n'
+                docstring = f'\n{rpc_doc[method]["descr"]}\n'
                 for arg in rpc_doc[method]['args']:
                     docstring += f':param {arg["name"]}: {arg["descr"]}\n'
                 docstring += f':return: {rpc_doc[method]["ret"]}\n'
@@ -76,7 +76,6 @@ class RpcQuery(metaclass=InlineDocstring):
             super(RpcQuery, self).__repr__(),
             '\nPath',
             self._query_path or "/",
-            '\n',
             self.__doc__
         ]
         return '\n'.join(res)

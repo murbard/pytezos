@@ -41,21 +41,22 @@ def get_class_docstring(class_type, attr_filter=default_attr_filter, extended=Fa
 
 
 def inline_doc(method):
+    doc = [repr(method)]
+    if method.__doc__:
+        doc.append(re.sub(r' {3,}', '', method.__doc__))
+
     class CustomReprDescriptor:
         def __get__(self, instance, owner):
             class MethodWrapper:
                 def __init__(self):
                     self.class_instance = instance
+                    self.doc = '\n'.join(doc)
 
                 def __call__(self, *args, **kwargs):
                     return method(self.class_instance, *args, **kwargs)
 
                 def __repr__(self):
-                    res = repr(method)
-                    if method.__doc__:
-                        doc = re.sub(r' {3,}', '', method.__doc__)
-                        res = f'{res}\n{doc}'
-                    return res
+                    return self.doc
 
             return update_wrapper(MethodWrapper(), method)
 

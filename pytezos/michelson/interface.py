@@ -5,10 +5,10 @@ from pytezos.michelson.contract import Contract, micheline_to_michelson
 from pytezos.operation.group import OperationGroup
 from pytezos.operation.content import format_mutez
 from pytezos.interop import Interop
-from pytezos.tools.docstring import get_class_docstring, InlineDocstring
+from pytezos.tools.docstring import get_class_docstring
 
 
-class ContractCall(Interop, metaclass=InlineDocstring):
+class ContractCall(Interop):
 
     def __init__(self, parameters, address, amount=0, shell=None, key=None):
         super(ContractCall, self).__init__(shell=shell, key=key)
@@ -72,7 +72,7 @@ class ContractCall(Interop, metaclass=InlineDocstring):
         return f'transfer {amount} from {source} to {self.address} -arg "{arg}"'
 
 
-class ContractEntrypoint(Interop, metaclass=InlineDocstring):
+class ContractEntrypoint(Interop):
 
     def __init__(self, name, address, contract: Contract = None, shell=None, key=None):
         super(ContractEntrypoint, self).__init__(shell=shell, key=key)
@@ -124,7 +124,7 @@ class ContractEntrypoint(Interop, metaclass=InlineDocstring):
         )
 
 
-class ContractInterface(Interop, metaclass=InlineDocstring):
+class ContractInterface(Interop):
     __default_entry__ = 'call'
 
     def __init__(self, address, contract: Contract = None, shell=None, key=None):

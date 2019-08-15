@@ -1,5 +1,7 @@
 from decimal import Decimal
 
+from pytezos.tools.docstring import inline_doc
+
 
 def format_mutez(value):
     if value is None:
@@ -16,6 +18,7 @@ class ContentMixin:
     def operation(self, content):
         return content
 
+    @inline_doc
     def endorsement(self, level: int):
         """
         Endorse a block
@@ -27,6 +30,7 @@ class ContentMixin:
             'level': str(level)
         })
 
+    @inline_doc
     def seed_nonce_revelation(self, level: int, nonce):
         """
         Reveal the nonce committed operation in the previous cycle.
@@ -41,6 +45,7 @@ class ContentMixin:
             'nonce': nonce
         })
 
+    @inline_doc
     def double_endorsement_evidence(self, op1: dict, op2: dict):
         """
         Provide evidence of double endorsement (endorsing two different blocks at the same block height).
@@ -61,6 +66,7 @@ class ContentMixin:
             'op2': op2
         })
 
+    @inline_doc
     def double_baking_evidence(self, bh1, bh2):
         """
         Provide evidence of double baking (two different blocks at the same height).
@@ -74,6 +80,7 @@ class ContentMixin:
             'bh2': bh2
         })
 
+    @inline_doc
     def activate_account(self, activation_code='', pkh=''):
         """
         Activate recommended allocations for contributions to the TF fundraiser.
@@ -88,6 +95,7 @@ class ContentMixin:
             'secret': activation_code
         })
 
+    @inline_doc
     def proposals(self, proposals,
                   source='', period=0):
         """
@@ -109,6 +117,7 @@ class ContentMixin:
             'proposals': proposals
         })
 
+    @inline_doc
     def ballot(self, proposal, ballot,
                source='', period=0):
         """
@@ -129,6 +138,7 @@ class ContentMixin:
             'ballot': ballot
         })
 
+    @inline_doc
     def reveal(self, public_key='',
                source='', counter=0, fee=0, gas_limit=0, storage_limit=0):
         """
@@ -152,6 +162,7 @@ class ContentMixin:
             'public_key': public_key
         })
 
+    @inline_doc
     def transaction(self, destination, amount=0, parameters=None,
                     source='', counter=0, fee=0, gas_limit=0, storage_limit=0):
         """
@@ -179,6 +190,7 @@ class ContentMixin:
             'parameters': parameters or {}
         })
 
+    @inline_doc
     def origination(self, code=None, storage=None, manager_pubkey='', balance=0, delegatable=None, spendable=None,
                     source='', counter=0, fee=0, gas_limit=0, storage_limit=0):
         """
@@ -221,6 +233,7 @@ class ContentMixin:
             'delegatable': delegatable
         })
 
+    @inline_doc
     def delegation(self, delegate='',
                    source='', counter=0, fee=0, gas_limit=0, storage_limit=0):
         """

@@ -30,7 +30,7 @@ class BlocksQuery(RpcQuery, path='/chains/{}/blocks'):
         :param head: An empty argument requests blocks from the current heads.
         A non empty list allow to request specific fragment of the chain.
         :param min_date: When `min_date` is provided, heads with a timestamp before `min_date` are filtered out
-        :return: Array of arrays of block hashes
+        :return: list[list[str]]
         """
         if isinstance(head, str) and not is_bh(head):
             head = self.__getitem__(head).calculate_hash()
@@ -43,9 +43,12 @@ class BlocksQuery(RpcQuery, path='/chains/{}/blocks'):
 
     def __getitem__(self, block_id):
         """
-        Advanced indexing
-        :param block_id: integer
-        :return:
+        Construct block query or get a block range.
+        :param block_id: Block identity or block range
+          int -> Block level or offset from the head if negative;
+          str -> Block hash (base58) or special names (head, genesis), expressions like `head~1` etc;
+          slice [:] -> First value (start) must be int, second (stop) can be any Block ID or empty.
+        :return: BlockQuery or BlockSliceQuery
         """
         if isinstance(block_id, slice):
             if not isinstance(block_id.start, int):
@@ -66,7 +69,7 @@ class BlocksQuery(RpcQuery, path='/chains/{}/blocks'):
 
     def voting_period(self):
         """
-
+        Get block range for the current voting period.
         :return: BlockSliceQuery
         """
         metadata = self.head.metadata()
@@ -80,7 +83,7 @@ class BlocksQuery(RpcQuery, path='/chains/{}/blocks'):
 
     def cycle(self):
         """
-
+        Get block range for the current cycle.
         :return: BlockSliceQuery
         """
         metadata = self.head.metadata()
@@ -102,39 +105,43 @@ class BlockQuery(RpcQuery, path='/chains/{}/blocks/{}'):
     @property
     def predecessor(self):
         """
-        Queries previous block hash from node and returns new query.
-        :return: `BlockQuery` instance
+        Query previous block.
+        :return: BlockQuery
         """
         return self._parent[self.header()['predecessor']]
 
     @property
     def baker(self):
+        """
+        Query block producer (baker).
+        :return: ContractQuery
+        """
         return self.context.contracts[self.metadata()['baker']]
 
     def voting_period(self):
+        """
+        Get voting period for this block from metadata.
+        """
         return self.metadata()['level']['voting_period']
 
     def level(self) -> int:
         """
-        Level for this block from metadata.
-        :return: Integer
+        Get level for this block from metadata.
         """
         return self.metadata()['level']['level']
 
     def cycle(self) -> int:
         """
-        Cycle for this block from metadata.
-        :return: Integer
+        Get cycle for this block from metadata.
         """
         return self.metadata()['level']['cycle']
 
 
 class ContractQuery(RpcQuery, path='/chains/{}/blocks/{}/context/contracts/{}'):
 
-    def public_key(self):
+    def public_key(self) -> str:
         """
-        Retrieves the owner's public key
-        :return: base58 encoded public key
+        Retrieve the contract manager's public key (base58 encoded)
         """
         pkh = self._params[-1]
         if pkh.startswith('KT'):
@@ -147,6 +154,9 @@ class ContractQuery(RpcQuery, path='/chains/{}/blocks/{}/context/contracts/{}'):
         return pk
 
     def count(self) -> Iterator:
+        """
+        Get contract counter iterator: it returns incremented value on each call.
+        """
         return count(start=int(self.counter()) + 1, step=1)
 
 
@@ -154,7 +164,7 @@ class BigMapGetQuery(RpcQuery, path='/chains/{}/blocks/{}/context/contracts/{}/b
 
     def post(self, query: dict):
         """
-        Access the value associated with a key in the big map storage  of the michelson.
+        Access the value associated with a key in the big map storage of the michelson.
         :param query: {
             key: { $key_type : <key> },
             type: { "prim" : $key_prim }
@@ -172,11 +182,10 @@ class ContextRawBytesQuery(RpcQuery, path='/chains/{}/blocks/{}/context/raw/byte
         kwargs.update(timeout=60)
         super(ContextRawBytesQuery, self).__init__(*args, **kwargs)
 
-    def __call__(self, depth=1):
+    def __call__(self, depth=1) -> dict:
         """
-        Returns the raw context.
-        :param depth: default is 1
-        :return:
+        Return the raw context.
+        :param depth: Context is a tree structure, default depth is 1
         """
         return super(ContextRawBytesQuery, self).__call__(depth=depth)
 
@@ -191,12 +200,20 @@ class ContextRawJsonQuery(RpcQuery, path='/chains/{}/blocks/{}/context/raw/json'
 class ContextSeedQuery(RpcQuery, path='/chains/{}/blocks/{}/context/seed'):
 
     def post(self):
+        """
+        Get seed of the cycle to which the block belongs.
+        """
         return self._post()
 
 
 class OperationListListQuery(RpcQuery, path=['/chains/{}/blocks/{}/operations']):
 
     def __getitem__(self, item):
+        """
+        Find operation by hash
+        :param item: Operation group hash (base58)
+        :return: OperationQuery
+        """
         if isinstance(item, tuple):
             return self[item[0]][item[1]]
 
@@ -249,9 +266,8 @@ class OperationListListQuery(RpcQuery, path=['/chains/{}/blocks/{}/operations'])
 
     def find_proposal(self, proposal_id):
         """
-
-        :param proposal_id:
-        :return:
+        Find proposal injection.
+        :param proposal_id: Proposal hash (base58)
         """
         def is_proposal(op):
             return any(map(lambda x: proposal_id in x.get('proposals', []), op['contents']))
@@ -259,9 +275,8 @@ class OperationListListQuery(RpcQuery, path=['/chains/{}/blocks/{}/operations'])
 
     def find_ballots(self, proposal_id) -> list:
         """
-
-        :param proposal_id:
-        :return:
+        Find operations of kind `ballot` for given proposal
+        :param proposal_id: Proposal hash (base58)
         """
         def is_ballot(op):
             return any(map(lambda x: proposal_id == x.get('proposal'), op['contents']))
@@ -269,9 +284,8 @@ class OperationListListQuery(RpcQuery, path=['/chains/{}/blocks/{}/operations'])
 
     def find_origination(self, contract_id):
         """
-
-        :param contract_id:
-        :return:
+        Find origination of the contract.
+        :param contract_id: Contract ID (KT-address)
         """
         def is_origination(op):
             def is_it(x):
@@ -283,10 +297,9 @@ class OperationListListQuery(RpcQuery, path=['/chains/{}/blocks/{}/operations'])
 
 class OperationQuery(RpcQuery, path=['/chains/{}/blocks/{}/operations/{}/{}']):
 
-    def unsigned(self):
+    def unsigned(self) -> dict:
         """
-
-        :return:
+        Get operation group data without metadata and signature.
         """
         data = self()
         return {
@@ -300,10 +313,9 @@ class OperationQuery(RpcQuery, path=['/chains/{}/blocks/{}/operations/{}/{}']):
 
 class ProposalQuery(RpcQuery, path='/chains/{}/blocks/{}/votes/proposals/{}'):
 
-    def __call__(self):
+    def __call__(self) -> int:
         """
-        Roll count for this proposal
-        :return: integer
+        Roll count for this proposal.
         """
         proposals = self._parent.proposals()
         proposal_id = self._params[-1]
@@ -313,11 +325,11 @@ class ProposalQuery(RpcQuery, path='/chains/{}/blocks/{}/votes/proposals/{}'):
 
 class ProposalsQuery(RpcQuery, path='/chains/{}/blocks/{}/votes/proposals'):
 
-    def __getitem__(self, proposal_id):
+    def __getitem__(self, proposal_id) -> ProposalQuery:
         """
         Roll count for the selected proposal
         :param proposal_id: Base58-encoded proposal ID
-        :return: Integer
+        :return: ProposalQuery
         """
         return ProposalQuery(
             path=self._path + '/{}',
@@ -328,7 +340,7 @@ class ProposalsQuery(RpcQuery, path='/chains/{}/blocks/{}/votes/proposals'):
     def __repr__(self):
         res = [
             super(ProposalsQuery, self).__repr__(),
-            '[]\n',
+            '\n[]',
             ProposalsQuery.__getitem__.__doc__
         ]
         return '\n'.join(res)

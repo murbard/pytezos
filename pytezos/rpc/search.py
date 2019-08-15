@@ -68,14 +68,16 @@ class BlockSliceQuery(RpcQuery):
         self._stop = stop or 'head'
 
     def __repr__(self):
-        docstring = f'Range\n{self._start} - {self._stop}\n\n'
-        docstring += f'()\n{get_attr_docstring(BlockSliceQuery, "__call__")}'
-        return docstring
+        res = [
+            super(BlockSliceQuery, self).__repr__(),
+            f'\nBlock range\n`{self._start}` — `{self._stop}`',
+            f'\n(){get_attr_docstring(BlockSliceQuery, "__call__")}'
+        ]
+        return '\n'.join(res)
 
-    def __call__(self):
+    def __call__(self) -> list:
         """
-        Slice
-        :return: Array of block hashes
+        Get block hashes (base58) for this interval
         """
         if is_bh(self._stop):
             head = self._stop
@@ -91,6 +93,9 @@ class BlockSliceQuery(RpcQuery):
         return super(BlockSliceQuery, self).__call__(length=length, head=head)
 
     def get_range(self):
+        """
+        Get block level range.
+        """
         if isinstance(self._start, int):
             last = self._start
         else:
@@ -101,10 +106,14 @@ class BlockSliceQuery(RpcQuery):
         else:
             head = self[self._stop].header()['level']
 
-        return head, last
+        return last, head
 
     def find_proposal(self, proposal_id):
-        head, last = self.get_range()
+        """
+        Find proposal injection.
+        :param proposal_id: Proposal hash (base58)
+        """
+        last, head = self.get_range()
         level, _ = find_state_change(
             head=head,
             last=last,
@@ -115,7 +124,12 @@ class BlockSliceQuery(RpcQuery):
         return self[level].operations.proposal(proposal_id)
 
     def find_ballots(self, proposal_id) -> Generator:
-        head, last = self.get_range()
+        """
+        Find voting operations for the given proposal.
+        :param proposal_id: Proposal hash (base58)
+        :return: Generator (lazy)
+        """
+        last, head = self.get_range()
         for level, _ in find_state_changes(
                 head=head,
                 last=last,
@@ -125,6 +139,10 @@ class BlockSliceQuery(RpcQuery):
                 yield ballot
 
     def find_origination(self, contract_id):
+        """
+        Find contract origination
+        :param contract_id: Contract ID (KT-address)
+        """
         def get_counter(x):
             try:
                 return self.blocks[x].context.contracts[contract_id].counter()
@@ -143,17 +161,17 @@ class BlockSliceQuery(RpcQuery):
 
 class CyclesQuery(RpcQuery):
 
-    def __repr__(self):
-        return f'()\n{get_attr_docstring(CyclesQuery, "__getitem__")}'
-
     def __call__(self, **params):
+        """
+        Get current cycle
+        """
         return self.head.cycle()
 
-    def __getitem__(self, item):
+    def __getitem__(self, item) -> BlockSliceQuery:
         """
-
-        :param item:
-        :return:
+        Get block range by cycle/cycle range.
+        :param item: Cycle number or range (slice), range start/stop can be empty or negative
+        :return: BlockSliceQuery
         """
         lvl = self.head.metadata()['level']
         blocks_per_cycle = int((lvl['level'] - lvl['cycle_position'] - 1) / lvl['cycle'])

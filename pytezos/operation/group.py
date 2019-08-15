@@ -7,7 +7,7 @@ from pytezos.operation.forge import forge_operation_group
 from pytezos.operation.fees import FeesProvider
 from pytezos.encoding import forge_base58, base58_encode
 from pytezos.interop import Interop
-from pytezos.tools.docstring import get_class_docstring, InlineDocstring
+from pytezos.tools.docstring import get_class_docstring
 
 validation_passes = {
     'endorsement': 0,
@@ -24,7 +24,7 @@ validation_passes = {
 }
 
 
-class OperationGroup(Interop, ContentMixin, metaclass=InlineDocstring):
+class OperationGroup(Interop, ContentMixin):
 
     def __init__(self, contents=None, protocol=None, branch=None, signature=None, shell=None, key=None):
         super(OperationGroup, self).__init__(shell=shell, key=key)
