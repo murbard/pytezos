@@ -33,7 +33,7 @@ class ShellQuery(RpcQuery, path=''):
         Operate on cycles rather than blocks.
         """
         return CyclesQuery(
-            node=self._node,
+            node=self.node,
             path=self._path + '/chains/{}/blocks',
             params=self._params + ['main']
         )
@@ -87,6 +87,13 @@ class PendingOperationsQuery(RpcQuery, path='/chains/{}/mempool/pending_operatio
                 if operation['hash'] == item:
                     return {'status': status, **operation}
         raise StopIteration
+
+    def __repr__(self):
+        res = [
+            super(PendingOperationsQuery, self).__repr__(),
+            '[]' + get_attr_docstring(self.__class__, '__getitem__')
+        ]
+        return '\n'.join(res)
 
 
 class DescribeQuery(RpcQuery, path='/describe'):
@@ -210,7 +217,7 @@ class MonitorQuery(RpcQuery, path=['/monitor/active_chains',
                                    '/monitor/valid_blocks']):
 
     def __call__(self, *args, **kwargs):
-        return ResponseGenerator(self._node.request(
+        return ResponseGenerator(self.node.request(
             method='GET',
             path=self._query_path,
             params=kwargs,
@@ -241,7 +248,7 @@ class NetworkLogQuery(RpcQuery, path=['/network/peers/{}/log', '/network/points/
 
     def __call__(self, monitor=False):
         if monitor:
-            return ResponseGenerator(self._node.request(
+            return ResponseGenerator(self.node.request(
                 method='GET',
                 path=self._query_path,
                 stream=True

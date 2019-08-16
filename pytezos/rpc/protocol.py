@@ -57,7 +57,7 @@ class BlocksQuery(RpcQuery, path='/chains/{}/blocks'):
             return BlockSliceQuery(
                 start=block_id.start,
                 stop=block_id.stop,
-                node=self._node,
+                node=self.node,
                 path=self._path,
                 params=self._params
             )
@@ -76,7 +76,7 @@ class BlocksQuery(RpcQuery, path='/chains/{}/blocks'):
         return BlockSliceQuery(
             start=-metadata['level']['voting_period_position'],
             head='head',
-            node=self._node,
+            node=self.node,
             path=self._path,
             params=self._params
         )
@@ -90,7 +90,7 @@ class BlocksQuery(RpcQuery, path='/chains/{}/blocks'):
         return BlockSliceQuery(
             start=-metadata['level']['cycle_position'],
             head='head',
-            node=self._node,
+            node=self.node,
             path=self._path,
             params=self._params
         )
@@ -334,7 +334,7 @@ class ProposalsQuery(RpcQuery, path='/chains/{}/blocks/{}/votes/proposals'):
         return ProposalQuery(
             path=self._path + '/{}',
             params=self._params + [proposal_id],
-            node=self._node
+            node=self.node
         )
 
     def __repr__(self):

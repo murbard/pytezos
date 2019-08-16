@@ -12,10 +12,18 @@ class RpcProvider:
 
     @lru_cache(maxsize=None)
     def __getattr__(self, network) -> ShellQuery:
-        return ShellQuery(node=RpcNode(self.urls[network]))
+        return ShellQuery(node=RpcNode(uri=self.urls[network], network=network))
 
     def __dir__(self):
         return list(super(RpcProvider, self).__dir__()) + list(self.urls.keys())
+
+    def __repr__(self):
+        res = [
+            super(RpcProvider, self).__repr__(),
+            '\nNetworks',
+            *list(map(lambda x: f'.{x[0]}  # {x[1]}', self.urls.items()))
+        ]
+        return '\n'.join(res)
 
 
 localhost = RpcProvider(

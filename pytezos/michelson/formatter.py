@@ -30,8 +30,8 @@ def is_script(node):
 
 def format_node(node, indent='', inline=False, is_root=False, wrapped=False):
     if isinstance(node, list):
-        seq_indent = indent + ' ' * 2
         is_script_root = is_root and is_script(node)
+        seq_indent = indent if is_script_root else indent + ' ' * 2
         items = list(map(lambda x: format_node(x, seq_indent, inline, wrapped=True), node))
         if items:
             length = len(indent) + sum(map(len, items)) + 4

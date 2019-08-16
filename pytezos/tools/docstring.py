@@ -4,6 +4,14 @@ import types
 from functools import update_wrapper
 
 
+def is_interactive():
+    import __main__ as main
+    return not hasattr(main, '__file__')
+
+
+__interactive_mode__ = is_interactive()
+
+
 def get_attr_docstring(class_type, attr_name):
     if attr_name == 'get':
         attr_name = '__call__'
@@ -41,6 +49,9 @@ def get_class_docstring(class_type, attr_filter=default_attr_filter, extended=Fa
 
 
 def inline_doc(method):
+    if not __interactive_mode__:
+        return method
+
     doc = [repr(method)]
     if method.__doc__:
         doc.append(re.sub(r' {3,}', '', method.__doc__))

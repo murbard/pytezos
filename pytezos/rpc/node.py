@@ -20,18 +20,26 @@ class RpcError(ValueError):
 
 class RpcNode:
 
-    def __init__(self, uri):
-        self._uri = uri
+    def __init__(self, uri, network=''):
+        self.uri = uri
+        self.network = network
         self._cache = dict()
         self._session = requests.Session()
 
     def __repr__(self):
-        return f'Node address\n{self._uri}\n\nCached items\n' + '\n'.join(self._cache.keys())
+        res = [
+            super(RpcNode, self).__repr__(),
+            '\nNode address',
+            f'{self.uri} ({self.network})',
+            '\nCached urls',
+            *list(self._cache.keys())
+        ]
+        return '\n'.join(res)
 
     def request(self, method, path, **kwargs) -> requests.Response:
         res = self._session.request(
             method=method,
-            url=urljoin(self._uri, path),
+            url=urljoin(self.uri, path),
             headers={
                 'content-type': 'application/json',
                 'user-agent': 'PyTezos'

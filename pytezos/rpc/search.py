@@ -158,6 +158,21 @@ class BlockSliceQuery(RpcQuery):
         )
         return self[level].operations.origination(contract_id)
 
+    def find_operation(self, operation_group_hash):
+        """
+        Find operation by hash
+        :param operation_group_hash: base58
+        :return: dict
+        """
+        last, head = self.get_range()
+        for block_level in range(head, max(1, last - 1), -1):
+            try:
+                return self[block_level].operations[operation_group_hash]()
+            except StopIteration:
+                continue
+
+        raise StopIteration(operation_group_hash)
+
 
 class CyclesQuery(RpcQuery):
 
@@ -198,7 +213,7 @@ class CyclesQuery(RpcQuery):
         return BlockSliceQuery(
             start=start,
             stop=stop,
-            node=self._node,
+            node=self.node,
             path=self._path,
             params=self._params
         )

@@ -64,7 +64,7 @@ class RpcQuery(metaclass=InlineDocstring):
             cls.__extensions__[path] = cls
 
     def __init__(self, node: RpcNode, path='', caching=False, params=None, timeout=None):
-        self._node = node
+        self.node = node
         self._path = path
         self._caching = caching
         self._timeout = timeout
@@ -84,7 +84,7 @@ class RpcQuery(metaclass=InlineDocstring):
         child_class = self.__extensions__.get(path, RpcQuery)
         return child_class(
             path=path,
-            node=self._node,
+            node=self.node,
             caching=self._caching,
             params=params
         )
@@ -94,7 +94,7 @@ class RpcQuery(metaclass=InlineDocstring):
         return self._path.format(*self._params)
 
     def __call__(self, **params):
-        return self._node.get(
+        return self.node.get(
             path=self._query_path,
             params=params,
             caching=self._caching
@@ -121,7 +121,7 @@ class RpcQuery(metaclass=InlineDocstring):
         )
 
     def _get(self, params=None):
-        return self._node.get(
+        return self.node.get(
             path=self._query_path,
             params=params,
             caching=self._caching,
@@ -129,7 +129,7 @@ class RpcQuery(metaclass=InlineDocstring):
         )
 
     def _post(self, json=None, params=None):
-        return self._node.post(
+        return self.node.post(
             path=self._query_path,
             params=params,
             json=json,
@@ -137,13 +137,13 @@ class RpcQuery(metaclass=InlineDocstring):
         )
 
     def _put(self, params=None):
-        return self._node.put(
+        return self.node.put(
             path=self._query_path,
             params=params
         )
 
     def _delete(self, params=None):
-        return self._node.delete(
+        return self.node.delete(
             path=self._query_path,
             params=params
         )

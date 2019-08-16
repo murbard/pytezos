@@ -168,17 +168,20 @@ class OperationGroup(Interop, ContentMixin):
             return int(res.get('consumed_gas', 0)), int(res.get('paid_storage_size_diff', 0))
 
         def fill_content(content):
-            consumed = [res_limits(content['metadata']['operation_result'])] \
-                + list(map(res_limits, content['metadata'].get('internal_operation_result', [])))
+            operation_result = content['metadata'].get('operation_result')
+            if operation_result:
+                internal_operation_result = content['metadata'].get('internal_operation_result', [])
 
-            consumed_gas, paid_storage_diff = tuple(map(sum, zip(*consumed)))
-            fee = fees_provider.calculate_fee(content, consumed_gas, extra_size)
+                consumed = [res_limits(operation_result)] + list(map(res_limits, internal_operation_result))
+                consumed_gas, paid_storage_diff = tuple(map(sum, zip(*consumed)))
+                fee = fees_provider.calculate_fee(content, consumed_gas, extra_size)
 
-            content.update(
-                gas_limit=str(consumed_gas),
-                storage_limit=str(paid_storage_diff),
-                fee=str(fee)
-            )
+                content.update(
+                    gas_limit=str(consumed_gas),
+                    storage_limit=str(paid_storage_diff + fees_provider.burn_cap(content)),
+                    fee=str(fee)
+                )
+
             content.pop('metadata')
             return content
 

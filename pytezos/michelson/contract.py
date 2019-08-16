@@ -1,5 +1,5 @@
 from functools import lru_cache
-from os.path import basename
+from os.path import basename, exists, expanduser
 
 from pytezos.tools.docstring import get_class_docstring, InlineDocstring
 from pytezos.michelson.coding import build_schema, decode_micheline, encode_micheline, Schema, \
@@ -327,3 +327,32 @@ class Contract(metaclass=InlineDocstring):
         """
         with open(path) as f:
             return cls.from_michelson(f.read())
+
+    def save_file(self, path, overwrite=False):
+        """
+        Save Michelson code to file
+        :param path: Output path
+        :param overwrite: Default is False
+        """
+        path = expanduser(path)
+        if exists(path) and not overwrite:
+            raise FileExistsError(path)
+
+        with open(path, 'w+') as f:
+            f.write(self.text)
+
+    def script(self, storage=None):
+        """
+        Generate script for contract origination
+        :param storage: Python object, leave None to generate empty
+        :return: {"code": $Micheline, "storage": $Micheline}
+        """
+        if storage is None:
+            storage = self.storage.default()
+        else:
+            storage = self.storage.encode(storage)
+
+        return {
+            "code": self.code,
+            "storage": storage
+        }
