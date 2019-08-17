@@ -54,6 +54,6 @@ tulip = RpcProvider(
     zeronet='https://rpc.tulip.tools/zeronet/'
 )
 
-mainnet = tzbeta.mainnet
+mainnet = tzscan.mainnet
 alphanet = cryptonomic.alphanet
 zeronet = tzscan.zeronet

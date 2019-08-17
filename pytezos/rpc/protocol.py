@@ -4,6 +4,7 @@ from datetime import datetime
 from itertools import count
 from typing import Iterator
 
+from pytezos.tools.docstring import get_attr_docstring
 from pytezos.rpc.search import BlockSliceQuery
 from pytezos.rpc.query import RpcQuery
 from pytezos.encoding import is_bh, is_ogh
@@ -67,29 +68,31 @@ class BlocksQuery(RpcQuery, path='/chains/{}/blocks'):
 
         return super(BlocksQuery, self).__getitem__(block_id)
 
-    def voting_period(self):
+    @property
+    def current_voting_period(self):
         """
         Get block range for the current voting period.
         :return: BlockSliceQuery
         """
         metadata = self.head.metadata()
         return BlockSliceQuery(
-            start=-metadata['level']['voting_period_position'],
-            head='head',
+            start=metadata['level']['level'] - metadata['level']['voting_period_position'],
+            stop='head',
             node=self.node,
             path=self._path,
             params=self._params
         )
 
-    def cycle(self):
+    @property
+    def current_cycle(self):
         """
         Get block range for the current cycle.
         :return: BlockSliceQuery
         """
         metadata = self.head.metadata()
         return BlockSliceQuery(
-            start=-metadata['level']['cycle_position'],
-            head='head',
+            start=metadata['level']['level'] - metadata['level']['cycle_position'],
+            stop='head',
             node=self.node,
             path=self._path,
             params=self._params
@@ -264,23 +267,16 @@ class OperationListListQuery(RpcQuery, path=['/chains/{}/blocks/{}/operations'])
         """
         return self[3]
 
-    def find_proposal(self, proposal_id):
+    def find_votes(self, proposal_id) -> list:
         """
-        Find proposal injection.
+        Find operations of kind `ballot` and `proposal` for given proposal
         :param proposal_id: Proposal hash (base58)
         """
-        def is_proposal(op):
-            return any(map(lambda x: proposal_id in x.get('proposals', []), op['contents']))
-        return next(filter(is_proposal, self.votes()))
-
-    def find_ballots(self, proposal_id) -> list:
-        """
-        Find operations of kind `ballot` for given proposal
-        :param proposal_id: Proposal hash (base58)
-        """
-        def is_ballot(op):
-            return any(map(lambda x: proposal_id == x.get('proposal'), op['contents']))
-        return list(filter(is_ballot, self.votes()))
+        def is_vote(op):
+            return any(map(
+                lambda x: proposal_id == x.get('proposal') or proposal_id in x.get('proposals', []),
+                op['contents']))
+        return list(filter(is_vote, self.votes()))
 
     def find_origination(self, contract_id):
         """
@@ -317,7 +313,7 @@ class ProposalQuery(RpcQuery, path='/chains/{}/blocks/{}/votes/proposals/{}'):
         """
         Roll count for this proposal.
         """
-        proposals = self._parent.proposals()
+        proposals = self._parent()
         proposal_id = self._params[-1]
         roll_count = next((x[1] for x in proposals if x[0] == proposal_id), 0)
         return roll_count
@@ -340,7 +336,6 @@ class ProposalsQuery(RpcQuery, path='/chains/{}/blocks/{}/votes/proposals'):
     def __repr__(self):
         res = [
             super(ProposalsQuery, self).__repr__(),
-            '\n[]',
-            ProposalsQuery.__getitem__.__doc__
+            f'[]{get_attr_docstring(self.__class__, "__getitem__")}',
         ]
         return '\n'.join(res)
