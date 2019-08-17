@@ -43,19 +43,14 @@ Properties
 .shell -> https://tezos-dev.cryptonomic-infra.tech/ (alphanet)
 
 Helpers
-.Contract()
-.Key()
-.Proto()
 .account()
 .activate_account()
-.alphanet()
 .ballot()
 .contract()
 .delegation()
 .double_baking_evidence()
 .double_endorsement_evidence()
 .endorsement()
-.mainnet()
 .operation()
 .operation_group()
 .origination()
@@ -64,7 +59,6 @@ Helpers
 .seed_nonce_revelation()
 .transaction()
 .using()
-.zeronet()
 ```
 
 ### About
