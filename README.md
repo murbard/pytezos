@@ -32,7 +32,7 @@ $ pip install pytezos
 
 ### Usage
 
-Read [quick start guide](https://baking-bad.github.com/pytezos), or just enjoy surfing the interactive documentation using Python console/Jupyter:
+Read [quick start guide](https://baking-bad.github.io/pytezos), or just enjoy surfing the interactive documentation using Python console/Jupyter:
 ```python
 >>> from pytezos import pytezos
 >>> pytezos

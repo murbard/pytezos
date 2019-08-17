@@ -6,6 +6,7 @@ license = "MIT"
 authors = ["Michael Zaikin <mz@baking-bad.org>", "Arthur Breitman", "Roman Serikov"]
 readme = "README.md"
 repository = "https://github.com/baking-bad/pytezos"
+website = "https://baking-bad.github.io/pytezos/"
 keywords = ['tezos', 'crypto', 'blockchain', 'xtz']
 classifiers = [
     "Programming Language :: Python :: 3",
