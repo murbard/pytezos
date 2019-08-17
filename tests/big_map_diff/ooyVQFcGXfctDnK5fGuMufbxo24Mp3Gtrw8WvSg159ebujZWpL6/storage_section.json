@@ -1,0 +1,27 @@
+{
+  "prim": "storage",
+  "args": [
+    {
+      "prim": "pair",
+      "args": [
+        {
+          "prim": "big_map",
+          "args": [
+            {
+              "prim": "int"
+            },
+            {
+              "prim": "int"
+            }
+          ]
+        },
+        {
+          "prim": "unit"
+        }
+      ],
+      "annots": [
+        ":storage"
+      ]
+    }
+  ]
+}

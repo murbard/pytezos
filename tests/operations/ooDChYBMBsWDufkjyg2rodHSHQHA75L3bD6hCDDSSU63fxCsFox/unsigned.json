@@ -1,0 +1,10 @@
+{
+  "branch": "BMEifkNYSJhLSmRJX5RyQZ4Xv5C4wMiiyKf2frK7kfrry3KC7V3",
+  "contents": [
+    {
+      "kind": "activate_account",
+      "pkh": "tz1aLEbS1EMazedUoxxR7C6wBXZjpB9zEAgt",
+      "secret": "318211b3ec1f1f4f5049631c28d2907d02354dcb"
+    }
+  ]
+}

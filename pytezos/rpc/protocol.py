@@ -1,245 +1,346 @@
-import os
-import tarfile
-import requests
-import io
-import netstruct
-import simplejson as json
-from tempfile import TemporaryDirectory
-from functools import lru_cache
-from binascii import hexlify
-from collections import OrderedDict
-from typing import List, Tuple
-from tqdm import tqdm
+import pendulum
+from pendulum.parsing.exceptions import ParserError
+from datetime import datetime
+from itertools import count
+from typing import Iterator
 
-from pytezos.rpc.node import RpcQuery
-from pytezos.crypto import blake2b_32
-from pytezos.encoding import base58_encode
-from pytezos.tools.diff import make_patch, apply_patch, generate_unidiff_html
+from pytezos.rpc.search import BlockSliceQuery
+from pytezos.rpc.query import RpcQuery
+from pytezos.encoding import is_bh, is_ogh
 
 
-def dir_to_files(path) -> List[Tuple[str, str]]:
-    files = list()
-
-    with open(os.path.join(path, 'TEZOS_PROTOCOL')) as f:
-        index = json.load(f)
-
-    for module in index['modules']:
-        for ext in ['mli', 'ml']:
-            name = f'{module.lower()}.{ext}'
-
-            filename = os.path.join(path, name)
-            if not os.path.exists(filename):
-                continue
-
-            with open(filename, 'r') as file:
-                text = file.read()
-                files.append((name, text))
-
-    return files
+def to_timestamp(v):
+    try:
+        v = pendulum.parse(v)
+    except ParserError:
+        pass
+    if isinstance(v, datetime):
+        v = int(v.timestamp())
+    return v
 
 
-def tar_to_files(path=None, raw=None) -> List[Tuple[str, str]]:
-    assert path or raw
+class BlocksQuery(RpcQuery, path='/chains/{}/blocks'):
 
-    fileobj = io.BytesIO(raw) if raw else None
-    with tarfile.open(name=path, fileobj=fileobj) as tar:
-        with TemporaryDirectory() as tmp_dir:
-            tar.extractall(tmp_dir)
-            files = dir_to_files(tmp_dir)
+    def __call__(self, length=1, head=None, min_date=None):
+        """
+        Lists known heads of the blockchain sorted with decreasing fitness.
+        Optional arguments allows to returns the list of predecessors for known heads
+        or the list of predecessors for a given list of blocks.
+        :param length: The requested number of predecessors to returns (per requested head).
+        :param head: An empty argument requests blocks from the current heads.
+        A non empty list allow to request specific fragment of the chain.
+        :param min_date: When `min_date` is provided, heads with a timestamp before `min_date` are filtered out
+        :return: list[list[str]]
+        """
+        if isinstance(head, str) and not is_bh(head):
+            head = self.__getitem__(head).calculate_hash()
 
-    return files
+        if min_date and not isinstance(min_date, int):
+            min_date = to_timestamp(min_date)
 
+        return super(BlocksQuery, self).__call__(
+            length=length, head=head, min_date=min_date)
 
-def url_to_files(url) -> List[Tuple[str, str]]:
-    res = requests.get(url, stream=True)
-    raw = b''
+    def __getitem__(self, block_id):
+        """
+        Construct block query or get a block range.
+        :param block_id: Block identity or block range
+          int -> Block level or offset from the head if negative;
+          str -> Block hash (base58) or special names (head, genesis), expressions like `head~1` etc;
+          slice [:] -> First value (start) must be int, second (stop) can be any Block ID or empty.
+        :return: BlockQuery or BlockSliceQuery
+        """
+        if isinstance(block_id, slice):
+            if not isinstance(block_id.start, int):
+                raise NotImplementedError('Slice start should be an integer.')
 
-    for data in tqdm(res.iter_content()):
-        raw += data
+            return BlockSliceQuery(
+                start=block_id.start,
+                stop=block_id.stop,
+                node=self.node,
+                path=self._path,
+                params=self._params
+            )
 
-    return tar_to_files(raw=raw)
+        if isinstance(block_id, int) and block_id < 0:
+            return self.blocks[f'head~{block_id}']
 
+        return super(BlocksQuery, self).__getitem__(block_id)
 
-def files_to_proto(files: List[Tuple[str, str]]) -> dict:
-    components = OrderedDict()
+    def voting_period(self):
+        """
+        Get block range for the current voting period.
+        :return: BlockSliceQuery
+        """
+        metadata = self.head.metadata()
+        return BlockSliceQuery(
+            start=-metadata['level']['voting_period_position'],
+            head='head',
+            node=self.node,
+            path=self._path,
+            params=self._params
+        )
 
-    for filename, text in files:
-        name, ext = filename.split('.')
-        key = {'mli': 'interface', 'ml': 'implementation'}[ext]
-        name = name.capitalize()
-        data = hexlify(text.encode()).decode()
-
-        if name in components:
-            components[name][key] = data
-        else:
-            components[name] = {'name': name, key: data}
-
-    proto = {
-        'expected_env_version': 0,  # TODO: this is V1
-        'components': list(components.values())
-    }
-    return proto
-
-
-def files_to_tar(files: List[Tuple[str, str]], output_path=None):
-    fileobj = io.BytesIO() if output_path is None else None
-    nameparts = os.path.basename(output_path).split('.')
-    mode = 'w'
-    if len(nameparts) == 3:
-        mode = f'w:{nameparts[-1]}'
-
-    with tarfile.open(name=output_path, fileobj=fileobj, mode=mode) as tar:
-        for filename, text in files:
-            file = io.BytesIO(text.encode())
-            ti = tarfile.TarInfo(filename)
-            ti.size = len(file.getvalue())
-            tar.addfile(ti, file)
-
-    if fileobj:
-        return fileobj.getvalue()
-
-
-def proto_to_files(proto: dict) -> List[Tuple[str, str]]:
-    files = list()
-    extensions = {'interface': 'mli', 'implementation': 'ml'}
-
-    for component in proto.get('components', []):
-        for key, ext in extensions.items():
-            if key in component:
-                filename = f'{component["name"].lower()}.{ext}'
-                text = bytes.fromhex(component[key]).decode()
-                files.append((filename, text))
-
-    return files
-
-
-def proto_to_bytes(proto: dict) -> bytes:
-    res = b''
-
-    for component in proto.get('components', []):
-        res += netstruct.pack(b'I$', component['name'].encode())
-
-        if component.get('interface'):
-            res += b'\xff' + netstruct.pack(b'I$', bytes.fromhex(component['interface']))
-        else:
-            res += b'\x00'
-
-        # we should also handle patch case
-        res += netstruct.pack(b'I$', bytes.fromhex(component.get('implementation', '')))
-
-    res = netstruct.pack(b'hI$', proto['expected_env_version'], res)
-    return res
+    def cycle(self):
+        """
+        Get block range for the current cycle.
+        :return: BlockSliceQuery
+        """
+        metadata = self.head.metadata()
+        return BlockSliceQuery(
+            start=-metadata['level']['cycle_position'],
+            head='head',
+            node=self.node,
+            path=self._path,
+            params=self._params
+        )
 
 
-class Protocol(RpcQuery):
+class BlockQuery(RpcQuery, path='/chains/{}/blocks/{}'):
 
-    def __init__(self, data=None, *args, **kwargs):
-        super(Protocol, self).__init__(*args, **kwargs)
-        self._data = data
+    def __init__(self, *args, **kwargs):
+        super(BlockQuery, self).__init__(*args, **kwargs)
+        self._caching = self._caching or 'head' not in self._params
+
+    @property
+    def predecessor(self):
+        """
+        Query previous block.
+        :return: BlockQuery
+        """
+        return self._parent[self.header()['predecessor']]
+
+    @property
+    def baker(self):
+        """
+        Query block producer (baker).
+        :return: ContractQuery
+        """
+        return self.context.contracts[self.metadata()['baker']]
+
+    def voting_period(self):
+        """
+        Get voting period for this block from metadata.
+        """
+        return self.metadata()['level']['voting_period']
+
+    def level(self) -> int:
+        """
+        Get level for this block from metadata.
+        """
+        return self.metadata()['level']['level']
+
+    def cycle(self) -> int:
+        """
+        Get cycle for this block from metadata.
+        """
+        return self.metadata()['level']['cycle']
+
+
+class ContractQuery(RpcQuery, path='/chains/{}/blocks/{}/context/contracts/{}'):
+
+    def public_key(self) -> str:
+        """
+        Retrieve the contract manager's public key (base58 encoded)
+        """
+        pkh = self._params[-1]
+        if pkh.startswith('KT'):
+            pkh = self.manager_key().get('manager')
+
+        pk = self._parent[pkh].manager_key().get('key')
+        if not pk:
+            raise ValueError('Public key is not revealed.')
+
+        return pk
+
+    def count(self) -> Iterator:
+        """
+        Get contract counter iterator: it returns incremented value on each call.
+        """
+        return count(start=int(self.counter()) + 1, step=1)
+
+
+class BigMapGetQuery(RpcQuery, path='/chains/{}/blocks/{}/context/contracts/{}/big_map_get'):
+
+    def post(self, query: dict):
+        """
+        Access the value associated with a key in the big map storage of the michelson.
+        :param query: {
+            key: { $key_type : <key> },
+            type: { "prim" : $key_prim }
+        }
+        $key_type: Provided key encoding, e.g. "string", "bytes" for hex-encoded string, "int"
+        key_prim: Expected high-level data type, e.g. "address", "nat", "mutez" (see storage section in code)
+        :return: Micheline expression
+        """
+        return self._post(json=query)
+
+
+class ContextRawBytesQuery(RpcQuery, path='/chains/{}/blocks/{}/context/raw/bytes'):
+
+    def __init__(self, *args, **kwargs):
+        kwargs.update(timeout=60)
+        super(ContextRawBytesQuery, self).__init__(*args, **kwargs)
+
+    def __call__(self, depth=1) -> dict:
+        """
+        Return the raw context.
+        :param depth: Context is a tree structure, default depth is 1
+        """
+        return super(ContextRawBytesQuery, self).__call__(depth=depth)
+
+
+class ContextRawJsonQuery(RpcQuery, path='/chains/{}/blocks/{}/context/raw/json'):
+
+    def __init__(self, *args, **kwargs):
+        kwargs.update(timeout=60)
+        super(ContextRawJsonQuery, self).__init__(*args, **kwargs)
+
+
+class ContextSeedQuery(RpcQuery, path='/chains/{}/blocks/{}/context/seed'):
+
+    def post(self):
+        """
+        Get seed of the cycle to which the block belongs.
+        """
+        return self._post()
+
+
+class OperationListListQuery(RpcQuery, path=['/chains/{}/blocks/{}/operations']):
+
+    def __getitem__(self, item):
+        """
+        Find operation by hash
+        :param item: Operation group hash (base58)
+        :return: OperationQuery
+        """
+        if isinstance(item, tuple):
+            return self[item[0]][item[1]]
+
+        if isinstance(item, str) and is_ogh(item):
+            operation_hashes = self._parent.operation_hashes()
+
+            def find_index():
+                for i, validation_pass in enumerate(operation_hashes):
+                    for j, og_hash in enumerate(validation_pass):
+                        if og_hash == item:
+                            return i, j
+                raise StopIteration('Operation group hash not found')
+
+            return self[find_index()]
+
+        return super(OperationListListQuery, self).__getitem__(item)
+
+    @property
+    def endorsements(self):
+        """
+        Operations with content of type: `endorsement`
+        :return: OperationListQuery
+        """
+        return self[0]
+
+    @property
+    def votes(self):
+        """
+        Operations with content of type: `proposal`, `ballot`
+        :return: OperationListQuery
+        """
+        return self[1]
+
+    @property
+    def anonymous(self):
+        """
+        Operations with content of type: `seed_nonce_revelation`, `double_endorsement_evidence`,
+            `double_baking_evidence`, `activate_account`
+        :return: OperationListQuery
+        """
+        return self[2]
+
+    @property
+    def managers(self):
+        """
+        Operations with content of type: `reveal`, `transaction`, `origination`, `delegation`
+        :return: OperationListQuery
+        """
+        return self[3]
+
+    def find_proposal(self, proposal_id):
+        """
+        Find proposal injection.
+        :param proposal_id: Proposal hash (base58)
+        """
+        def is_proposal(op):
+            return any(map(lambda x: proposal_id in x.get('proposals', []), op['contents']))
+        return next(filter(is_proposal, self.votes()))
+
+    def find_ballots(self, proposal_id) -> list:
+        """
+        Find operations of kind `ballot` for given proposal
+        :param proposal_id: Proposal hash (base58)
+        """
+        def is_ballot(op):
+            return any(map(lambda x: proposal_id == x.get('proposal'), op['contents']))
+        return list(filter(is_ballot, self.votes()))
+
+    def find_origination(self, contract_id):
+        """
+        Find origination of the contract.
+        :param contract_id: Contract ID (KT-address)
+        """
+        def is_origination(op):
+            def is_it(x):
+                return x['kind'] == 'origination' \
+                       and contract_id in x['metadata']['operation_result']['originated_contracts']
+            return any(map(is_it, op['contents']))
+        return next(filter(is_origination, self.managers()))
+
+
+class OperationQuery(RpcQuery, path=['/chains/{}/blocks/{}/operations/{}/{}']):
+
+    def unsigned(self) -> dict:
+        """
+        Get operation group data without metadata and signature.
+        """
+        data = self()
+        return {
+            'branch': data['branch'],
+            'contents': [
+                {k: v for k, v in content.items() if k != 'metadata'}
+                for content in data['contents']
+            ]
+        }
+
+
+class ProposalQuery(RpcQuery, path='/chains/{}/blocks/{}/votes/proposals/{}'):
+
+    def __call__(self) -> int:
+        """
+        Roll count for this proposal.
+        """
+        proposals = self._parent.proposals()
+        proposal_id = self._params[-1]
+        roll_count = next((x[1] for x in proposals if x[0] == proposal_id), 0)
+        return roll_count
+
+
+class ProposalsQuery(RpcQuery, path='/chains/{}/blocks/{}/votes/proposals'):
+
+    def __getitem__(self, proposal_id) -> ProposalQuery:
+        """
+        Roll count for the selected proposal
+        :param proposal_id: Base58-encoded proposal ID
+        :return: ProposalQuery
+        """
+        return ProposalQuery(
+            path=self._path + '/{}',
+            params=self._params + [proposal_id],
+            node=self.node
+        )
 
     def __repr__(self):
-        if self._data:
-            return str(self._data)
-        return super(Protocol, self).__repr__()
-
-    def __call__(self, *args, **kwargs):
-        if self._data:
-            return self._data
-        return super(Protocol, self).__call__(*args, **kwargs)
-
-    def __iter__(self):
-        return iter(proto_to_files(self()))
-
-    @classmethod
-    @lru_cache(maxsize=None)
-    def from_uri(cls, uri):
-        """
-        Loads protocol implementation from various sources and converts it to the RPC-like format
-        :param uri: link/path to a tar archive or path to a folder with extracted contents
-        :return: Protocol instance
-        """
-        if uri.startswith('http'):
-            files = url_to_files(uri)
-        elif os.path.isfile(uri):
-            files = tar_to_files(uri)
-        elif os.path.isdir(uri):
-            files = dir_to_files(uri)
-        else:
-            raise ValueError(uri)
-
-        return Protocol(data=files_to_proto(files))
-
-    def index(self) -> dict:
-        """
-        Generates TEZOS_PROTOCOL file
-        :return: dict with protocol hash and modules
-        """
-        proto = self()
-        data = {
-            'hash': self.calculate_hash(),
-            'modules': list(map(lambda x: x['name'], proto.get('components', [])))
-        }
-        return data
-
-    def export_tar(self, output_path=None):
-        """
-        Creates a tarball and dumps to a file or returns bytes
-        :param output_path: Path to the tarball [optional]. You can add .bz2 or .gz extension to make it compressed
-        :return: bytes if path is None or nothing
-        """
-        files = proto_to_files(self())
-        files.append(('TEZOS_PROTOCOL', json.dumps(self.index())))
-        return files_to_tar(files, output_path)
-
-    def export_html(self, output_path=None):
-        """
-        Generates github-like side-by-side diff viewe, powered by diff2html.js
-        :param output_path: will write to this file if specified
-        :return: html string if path is not specified
-        """
-        diffs = [text for filename, text in self if text]
-        return generate_unidiff_html(diffs, output_path=output_path)
-
-    def diff(self, proto, context_size=3):
-        """
-        Calculates file diff between two protocol versions
-        :param proto: an instance of Protocol
-        :param context_size: number of context lines before and after the change
-        :return: patch in proto format
-        """
-        files = list()
-        yours = dict(iter(self))
-        theirs = proto_to_files(proto())
-
-        for filename, their_text in theirs:
-            patch = make_patch(
-                a=yours.get(filename, ''),
-                b=their_text,
-                filename=filename,
-                context_size=context_size
-            )
-            files.append((filename, patch))
-
-        return Protocol(data=files_to_proto(files))
-
-    def apply(self, patch):
-        """
-        Applies unified diff and returns full-fledged protocol
-        :param patch: an instance of Protocol containing diff of files
-        :return: Protocol instance
-        """
-        files = list()
-        yours = dict(iter(self))
-        diff = proto_to_files(patch())
-
-        for filename, diff_text in diff:
-            text = yours.get(filename, '')
-            if diff_text:
-                text = apply_patch(text, diff_text)
-            files.append((filename, text))
-
-        return Protocol(data=files_to_proto(files))
-
-    def calculate_hash(self):
-        hash_digest = blake2b_32(proto_to_bytes(self())).digest()
-        return base58_encode(hash_digest, b'P').decode()
+        res = [
+            super(ProposalsQuery, self).__repr__(),
+            '\n[]',
+            ProposalsQuery.__getitem__.__doc__
+        ]
+        return '\n'.join(res)

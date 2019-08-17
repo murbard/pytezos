@@ -1,0 +1,38 @@
+{
+  "prim": "Right",
+  "args": [
+    {
+      "prim": "Right",
+      "args": [
+        {
+          "prim": "Right",
+          "args": [
+            {
+              "prim": "Right",
+              "args": [
+                {
+                  "prim": "Right",
+                  "args": [
+                    {
+                      "prim": "Right",
+                      "args": [
+                        {
+                          "prim": "Right",
+                          "args": [
+                            {
+                              "string": "my_vote2"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,15 +1,20 @@
 [tool.poetry]
 name = "pytezos"
-version = "1.2.2"
-description = "Python utils for Tezos"
-authors = ["Arthur Breitman, Michael Zaikin <baking-bad.org>"]
+version = "2.0.0"
+description = "Python toolkit for Tezos"
 license = "MIT"
+authors = ["Michael Zaikin <mz@baking-bad.org>", "Arthur Breitman", "Roman Serikov"]
 readme = "README.md"
 repository = "https://github.com/baking-bad/pytezos"
 keywords = ['tezos', 'crypto', 'blockchain', 'xtz']
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
 
 [tool.poetry.dependencies]
-python = "^3.5"
+python = "^3.6"
 pysodium = "^0.7.1"
 pyblake2 = "^1.1.2"
 base58 = "^1.0.3"

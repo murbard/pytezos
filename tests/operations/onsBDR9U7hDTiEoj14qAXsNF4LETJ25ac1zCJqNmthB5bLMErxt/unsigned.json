@@ -1,0 +1,15 @@
+{
+  "branch": "BLv8zEaAqRNysH5dfgpcS6dEezunUDBW2EucfFFCiKCbxxqgu6M",
+  "contents": [
+    {
+      "kind": "transaction",
+      "source": "tz1Y1TaZzMBqdehUhMGg27PKXMnAjg3hehSJ",
+      "fee": "1000000",
+      "counter": "74229",
+      "gas_limit": "10600",
+      "storage_limit": "277",
+      "amount": "2000000",
+      "destination": "tz1LuxkxGkXx5v5YQ1Mvu9GE91oHhnKTE81Z"
+    }
+  ]
+}

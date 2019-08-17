@@ -1,66 +1,257 @@
+import requests
+import simplejson as json
 from functools import lru_cache
+from binascii import hexlify
 
-from pytezos.rpc.node import Node, RpcQuery
-from pytezos.rpc.chain import Chain, OperationsDict, Mempool
-from pytezos.rpc.block import Block
-from pytezos.rpc.context import Context
-from pytezos.rpc.helpers import HelpersMixin
-from pytezos.rpc.protocol import Protocol
+from pytezos.encoding import base58_decode
+from pytezos.rpc.query import RpcQuery
+from pytezos.tools.docstring import get_attr_docstring
+from pytezos.rpc.search import CyclesQuery
 
 
-class Shell(RpcQuery, HelpersMixin):
-
-    def __init__(self, node=Node()):
-        super(Shell, self).__init__(node=node)
-
-    @property
-    @lru_cache(maxsize=None)
-    def chains(self):
-        return RpcQuery(
-            path='chains',
-            node=self._node,
-            child_class=Chain,
-            properties=['main']
-        )
-
-    @property
-    def main(self) -> Chain:
-        return self.chains.main
-
-    @property
-    def test(self) -> Chain:
-        return self.chains.test
+class ShellQuery(RpcQuery, path=''):
 
     @property
     def blocks(self):
-        return self.main.blocks
+        return self.chains.main.blocks
 
     @property
-    def head(self) -> Block:
-        return self.main.head
+    def head(self):
+        return self.blocks.head
 
     @property
-    def context(self) -> Context:
-        return self.head.context
+    @lru_cache(maxsize=None)
+    def block(self):
+        """
+        Cached head block, useful if you just want to explore things.
+        """
+        return self.blocks[self.head.hash()]
 
     @property
-    def mempool(self) -> Mempool:
-        return self.main.mempool
-
-    @property
-    def pending_operations(self) -> OperationsDict:
-        return self.main.mempool.pending_operations
-
-    @property
-    def protocols(self):
-        return RpcQuery(
-            path='protocols',
-            node=self._node,
-            child_class=Protocol
+    def cycles(self):
+        """
+        Operate on cycles rather than blocks.
+        """
+        return CyclesQuery(
+            node=self.node,
+            path=self._path + '/chains/{}/blocks',
+            params=self._params + ['main']
         )
 
-    def level(self) -> int:
-        return self.head.level()
+    @property
+    def contracts(self):
+        return self.head.context.contracts
 
-    def cycle(self) -> int:
-        return self.head.cycle()
+    @property
+    def mempool(self):
+        return self.chains.main.mempool
+
+
+class ChainQuery(RpcQuery, path='/chains/{}'):
+
+    def watermark(self):
+        """
+        Chain watermark, hex encoded
+        """
+        data = self.chain_id()
+        return hexlify(base58_decode(data.encode())).decode()
+
+
+class InvalidBlockQuery(RpcQuery, path='/chains/{}/invalid_blocks/{}'):
+
+    def delete(self):
+        return self._delete()
+
+
+class MempoolQuery(RpcQuery, path='/chains/{}/mempool'):
+
+    def post(self, configuration):
+        """
+        Set operation filter rules.
+        :param configuration: a JSON dictionary, known keys are `minimal_fees`, `minimal_nanotez_per_gas_unit`,
+        `minimal_nanotez_per_byte`
+        """
+        return self._post(json=configuration)
+
+
+class PendingOperationsQuery(RpcQuery, path='/chains/{}/mempool/pending_operations'):
+
+    def __getitem__(self, item):
+        """
+        Search for operation in node's mempool by hash.
+        :param item: operation group hash (base58)
+        """
+        operations_dict = self()
+        for status, operations in operations_dict.items():
+            for operation in operations:
+                if operation['hash'] == item:
+                    return {'status': status, **operation}
+        raise StopIteration
+
+    def __repr__(self):
+        res = [
+            super(PendingOperationsQuery, self).__repr__(),
+            '[]' + get_attr_docstring(self.__class__, '__getitem__')
+        ]
+        return '\n'.join(res)
+
+
+class DescribeQuery(RpcQuery, path='/describe'):
+
+    def __call__(self, recurse=True):
+        """
+        Get RPCs documentation and input/output schema.
+        :param recurse: Show information for child elements, default is True.
+        In some cases doesn't work without this flag.
+        """
+        return super(DescribeQuery, self).__call__(recurse=recurse)
+
+    def __repr__(self):
+        res = [
+            super(DescribeQuery, self).__repr__(),
+            f'(){get_attr_docstring(DescribeQuery, "__call__")}',
+            'Can be followed by any path:\n.chains\n.network.connections\netc\n'
+        ]
+        return '\n'.join(res)
+
+
+class BlockInjectionQuery(RpcQuery, path='/injection/block'):
+
+    def post(self, block, _async=False, force=False, chain=None):
+        """
+        Inject a block in the node and broadcast it.
+        The `operations` embedded in `blockHeader` might be pre-validated using a contextual RPCs from the latest block
+        (e.g. '/blocks/head/context/preapply').
+        :param block: Json input:
+        {
+            "data": <hex-encoded block header>,
+            "operations": [ [ {
+                "branch": <block_hash>,
+                "data": <hex-encoded operation>
+            } ... ] ... ]
+        }
+        :param _async: By default, the RPC will wait for the block to be validated before answering,
+        set True if you don't want to.
+        :param force:
+        :param chain: Optionally you can specify the chain
+        :return: ID of the block
+        """
+        return self._post(
+            params={
+                'async': _async,
+                'force': force,
+                'chain': chain
+            },
+            json=block
+        )
+
+
+class OperationInjectionQuery(RpcQuery, path='/injection/operation'):
+
+    def post(self, operation, _async=False, chain=None):
+        """
+        Inject an operation in node and broadcast it.
+        The `signedOperationContents` should be constructed using a contextual RPCs from the latest block
+        and signed by the client.
+        :param operation: Hex-encoded operation data or bytes
+        :param _async: By default, the RPC will wait for the operation to be (pre-)validated before answering,
+        set True if you don't want to.
+        :param chain: Optionally you can specify the chain
+        :return: ID of the operation
+        """
+        if isinstance(operation, bytes):
+            operation = operation.hex()
+
+        return self._post(
+            params={
+                'async': _async,
+                'chain': chain
+            },
+            json=operation
+        )
+
+
+class ProtocolInjectionQuery(RpcQuery, path='/injection/protocol'):
+
+    def post(self, protocol, _async=False, force=False):
+        """
+        Inject a protocol in node.
+        :param protocol: Json input:
+        {
+            "expected_env_version": <integer>,
+            "components": [{
+                "name": <unistring>,
+                "interface"?: <hex-encoded data>,
+                "implementation": <hex-encoded data> }
+                 ...
+            ]}
+        }
+        :param _async:
+        :param force:
+        :return: ID of the protocol
+        """
+        return self._post(
+            params={
+                'async': _async,
+                'force': force
+            },
+            json=protocol
+        )
+
+
+class ResponseGenerator:
+
+    def __init__(self, res: requests.Response):
+        self._lines = res.iter_lines()
+
+    def __iter__(self):
+        for line in self._lines:
+            yield json.loads(line.decode())
+
+
+class MonitorQuery(RpcQuery, path=['/monitor/active_chains',
+                                   '/monitor/bootstrapped',
+                                   '/monitor/commit_hash',
+                                   '/monitor/heads/{}',
+                                   '/monitor/protocols',
+                                   '/monitor/valid_blocks']):
+
+    def __call__(self, *args, **kwargs):
+        return ResponseGenerator(self.node.request(
+            method='GET',
+            path=self._query_path,
+            params=kwargs,
+            stream=True
+        ))
+
+    def __repr__(self):
+        res = [
+            super(MonitorQuery, self).__repr__(),
+            'NOTE: Returned object is a generator.'
+        ]
+        return '\n'.join(res)
+
+
+class ConnectionQuery(RpcQuery, path='/network/connections/{}'):
+
+    def delete(self, wait=False):
+        return self._delete(params=dict(wait=wait))
+
+
+class NetworkItems(RpcQuery, path=['/network/peers', '/network/points']):
+
+    def __call__(self, _filter=None):
+        return self._get(params={'filter': _filter})
+
+
+class NetworkLogQuery(RpcQuery, path=['/network/peers/{}/log', '/network/points/{}/log']):
+
+    def __call__(self, monitor=False):
+        if monitor:
+            return ResponseGenerator(self.node.request(
+                method='GET',
+                path=self._query_path,
+                stream=True
+            ))
+        else:
+            return self._get()

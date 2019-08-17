@@ -1,0 +1,141 @@
+{
+  "branch": "BLY55kTpPW9yHo9RvGBUK4YMdkqrtiNi3Gws7SwpEDc9WFmrNuJ",
+  "contents": [
+    {
+      "kind": "transaction",
+      "source": "tz1aXqjfCT8pCfecBxzTCLcSiPf8oiA3UZ7u",
+      "fee": "7402",
+      "counter": "75315",
+      "gas_limit": "70396",
+      "storage_limit": "0",
+      "amount": "1000000",
+      "destination": "KT19fth8xoanAobcfdbssDjRTv7So1BCSQt4",
+      "parameters": {
+        "prim": "Right",
+        "args": [
+          {
+            "prim": "Left",
+            "args": [
+              {
+                "prim": "Right",
+                "args": [
+                  [
+                    {
+                      "prim": "PUSH",
+                      "args": [
+                        {
+                          "prim": "lambda",
+                          "args": [
+                            {
+                              "prim": "pair",
+                              "args": [
+                                {
+                                  "prim": "pair",
+                                  "args": [
+                                    {
+                                      "prim": "string"
+                                    },
+                                    {
+                                      "prim": "bytes"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "prim": "big_map",
+                                  "args": [
+                                    {
+                                      "prim": "bytes"
+                                    },
+                                    {
+                                      "prim": "bytes"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "prim": "pair",
+                              "args": [
+                                {
+                                  "prim": "list",
+                                  "args": [
+                                    {
+                                      "prim": "operation"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "prim": "big_map",
+                                  "args": [
+                                    {
+                                      "prim": "bytes"
+                                    },
+                                    {
+                                      "prim": "bytes"
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        [
+                          {
+                            "prim": "CAR"
+                          },
+                          {
+                            "prim": "CAR"
+                          },
+                          {
+                            "prim": "PUSH",
+                            "args": [
+                              {
+                                "prim": "string"
+                              },
+                              {
+                                "string": "NoSuchEntryPoint"
+                              }
+                            ]
+                          },
+                          {
+                            "prim": "PAIR"
+                          },
+                          {
+                            "prim": "FAILWITH"
+                          }
+                        ]
+                      ]
+                    },
+                    {
+                      "prim": "PACK"
+                    },
+                    {
+                      "prim": "SOME"
+                    },
+                    {
+                      "prim": "PUSH",
+                      "args": [
+                        {
+                          "prim": "string"
+                        },
+                        {
+                          "string": "fallback"
+                        }
+                      ]
+                    },
+                    {
+                      "prim": "PACK"
+                    },
+                    {
+                      "prim": "UPDATE"
+                    }
+                  ]
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

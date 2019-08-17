@@ -1,0 +1,14 @@
+{
+  "branch": "BLAryyHwQhJX7DYjwismH1aCKQpVGxqQuiDBRokyhxewsvyiRhh",
+  "contents": [
+    {
+      "kind": "delegation",
+      "source": "tz1agVvtocCEwKr1t3tZcWwupWz2YWAQTmfQ",
+      "fee": "4000",
+      "counter": "37855",
+      "gas_limit": "10100",
+      "storage_limit": "0",
+      "delegate": "tz1agVvtocCEwKr1t3tZcWwupWz2YWAQTmfQ"
+    }
+  ]
+}

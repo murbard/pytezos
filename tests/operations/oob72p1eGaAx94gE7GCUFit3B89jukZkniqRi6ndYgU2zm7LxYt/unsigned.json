@@ -1,0 +1,25 @@
+{
+  "branch": "BKyqKZvyV8N164Sd7kVYzkPyqWcT4DdWAHbQzyHR8GTLzZSEGWQ",
+  "contents": [
+    {
+      "kind": "reveal",
+      "source": "tz1a1mkWN3hvV12YBTxRHRAm9siuFeissCpR",
+      "fee": "1269",
+      "counter": "461215",
+      "gas_limit": "10000",
+      "storage_limit": "0",
+      "public_key": "edpkufaky1NM4ai37TF2AQjiCkFBrr7rAmWfYKQihqEg12WyqMbgto"
+    },
+    {
+      "kind": "origination",
+      "source": "tz1a1mkWN3hvV12YBTxRHRAm9siuFeissCpR",
+      "fee": "1300",
+      "counter": "461216",
+      "gas_limit": "10100",
+      "storage_limit": "277",
+      "manager_pubkey": "tz1a1mkWN3hvV12YBTxRHRAm9siuFeissCpR",
+      "balance": "1001740430",
+      "delegate": "tz3WXYtyDUNL91qfiCJtVUX746QpNv5i5ve5"
+    }
+  ]
+}

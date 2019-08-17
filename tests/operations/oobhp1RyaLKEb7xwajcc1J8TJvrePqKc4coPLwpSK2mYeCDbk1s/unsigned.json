@@ -1,0 +1,495 @@
+{
+  "branch": "BL4R3WhjjTdoKc7i94PraoLvDxYkJnLK8LHfJ3sQphGRhCUJJQp",
+  "contents": [
+    {
+      "kind": "origination",
+      "source": "tz1eDV7PxrCz2FeyB37C9S7F2KWi2KVYQb1y",
+      "fee": "50000",
+      "counter": "33480",
+      "gas_limit": "400000",
+      "storage_limit": "60000",
+      "managerPubkey": "tz1eDV7PxrCz2FeyB37C9S7F2KWi2KVYQb1y",
+      "balance": "10000000",
+      "spendable": false,
+      "delegatable": false,
+      "script": {
+        "code": [
+          {
+            "prim": "parameter",
+            "args": [
+              {
+                "prim": "string"
+              }
+            ]
+          },
+          {
+            "prim": "storage",
+            "args": [
+              {
+                "prim": "string"
+              }
+            ]
+          },
+          {
+            "prim": "code",
+            "args": [
+              [
+                {
+                  "prim": "DUP"
+                },
+                {
+                  "prim": "DIP",
+                  "args": [
+                    [
+                      {
+                        "prim": "CDR",
+                        "annots": [
+                          "@votes_slash_1"
+                        ]
+                      }
+                    ]
+                  ]
+                },
+                {
+                  "prim": "CAR",
+                  "annots": [
+                    "@id_slash_2"
+                  ]
+                },
+                {
+                  "prim": "SELF",
+                  "annots": [
+                    "@c"
+                  ]
+                },
+                {
+                  "prim": "PUSH",
+                  "args": [
+                    {
+                      "prim": "string"
+                    },
+                    {
+                      "string": "0"
+                    }
+                  ]
+                },
+                [
+                  {
+                    "prim": "DIP",
+                    "args": [
+                      [
+                        [
+                          {
+                            "prim": "DIP",
+                            "args": [
+                              [
+                                {
+                                  "prim": "DUP",
+                                  "annots": [
+                                    "@id"
+                                  ]
+                                }
+                              ]
+                            ]
+                          },
+                          {
+                            "prim": "SWAP"
+                          }
+                        ]
+                      ]
+                    ]
+                  },
+                  {
+                    "prim": "SWAP"
+                  }
+                ],
+                {
+                  "prim": "COMPARE"
+                },
+                {
+                  "prim": "EQ"
+                },
+                {
+                  "prim": "IF",
+                  "args": [
+                    [
+                      [
+                        {
+                          "prim": "DIP",
+                          "args": [
+                            [
+                              [
+                                {
+                                  "prim": "DIP",
+                                  "args": [
+                                    [
+                                      {
+                                        "prim": "DUP",
+                                        "annots": [
+                                          "@votes"
+                                        ]
+                                      }
+                                    ]
+                                  ]
+                                },
+                                {
+                                  "prim": "SWAP"
+                                }
+                              ]
+                            ]
+                          ]
+                        },
+                        {
+                          "prim": "SWAP"
+                        }
+                      ],
+                      {
+                        "prim": "NIL",
+                        "args": [
+                          {
+                            "prim": "operation"
+                          }
+                        ]
+                      },
+                      [
+                        {
+                          "prim": "DIP",
+                          "args": [
+                            [
+                              [
+                                {
+                                  "prim": "DIP",
+                                  "args": [
+                                    [
+                                      {
+                                        "prim": "DUP",
+                                        "annots": [
+                                          "@c"
+                                        ]
+                                      }
+                                    ]
+                                  ]
+                                },
+                                {
+                                  "prim": "SWAP"
+                                }
+                              ]
+                            ]
+                          ]
+                        },
+                        {
+                          "prim": "SWAP"
+                        }
+                      ],
+                      {
+                        "prim": "PUSH",
+                        "args": [
+                          {
+                            "prim": "mutez"
+                          },
+                          {
+                            "int": "1000000"
+                          }
+                        ]
+                      },
+                      {
+                        "prim": "PUSH",
+                        "args": [
+                          {
+                            "prim": "string"
+                          },
+                          {
+                            "string": "12"
+                          }
+                        ]
+                      },
+                      {
+                        "prim": "TRANSFER_TOKENS"
+                      },
+                      {
+                        "prim": "CONS"
+                      },
+                      [
+                        {
+                          "prim": "DIP",
+                          "args": [
+                            [
+                              [
+                                {
+                                  "prim": "DIP",
+                                  "args": [
+                                    [
+                                      {
+                                        "prim": "DUP",
+                                        "annots": [
+                                          "@c"
+                                        ]
+                                      }
+                                    ]
+                                  ]
+                                },
+                                {
+                                  "prim": "SWAP"
+                                }
+                              ]
+                            ]
+                          ]
+                        },
+                        {
+                          "prim": "SWAP"
+                        }
+                      ],
+                      {
+                        "prim": "PUSH",
+                        "args": [
+                          {
+                            "prim": "mutez"
+                          },
+                          {
+                            "int": "1000000"
+                          }
+                        ]
+                      },
+                      {
+                        "prim": "PUSH",
+                        "args": [
+                          {
+                            "prim": "string"
+                          },
+                          {
+                            "string": "11"
+                          }
+                        ]
+                      },
+                      {
+                        "prim": "TRANSFER_TOKENS"
+                      },
+                      {
+                        "prim": "CONS"
+                      },
+                      {
+                        "prim": "PAIR"
+                      }
+                    ],
+                    [
+                      {
+                        "prim": "PUSH",
+                        "args": [
+                          {
+                            "prim": "string"
+                          },
+                          {
+                            "string": "11"
+                          }
+                        ]
+                      },
+                      [
+                        {
+                          "prim": "DIP",
+                          "args": [
+                            [
+                              [
+                                {
+                                  "prim": "DIP",
+                                  "args": [
+                                    [
+                                      {
+                                        "prim": "DUP",
+                                        "annots": [
+                                          "@id"
+                                        ]
+                                      }
+                                    ]
+                                  ]
+                                },
+                                {
+                                  "prim": "SWAP"
+                                }
+                              ]
+                            ]
+                          ]
+                        },
+                        {
+                          "prim": "SWAP"
+                        }
+                      ],
+                      {
+                        "prim": "COMPARE"
+                      },
+                      {
+                        "prim": "EQ"
+                      },
+                      {
+                        "prim": "IF",
+                        "args": [
+                          [
+                            [
+                              {
+                                "prim": "DIP",
+                                "args": [
+                                  [
+                                    [
+                                      {
+                                        "prim": "DIP",
+                                        "args": [
+                                          [
+                                            {
+                                              "prim": "DUP",
+                                              "annots": [
+                                                "@votes"
+                                              ]
+                                            }
+                                          ]
+                                        ]
+                                      },
+                                      {
+                                        "prim": "SWAP"
+                                      }
+                                    ]
+                                  ]
+                                ]
+                              },
+                              {
+                                "prim": "SWAP"
+                              }
+                            ],
+                            {
+                              "prim": "NIL",
+                              "args": [
+                                {
+                                  "prim": "operation"
+                                }
+                              ]
+                            },
+                            [
+                              {
+                                "prim": "DIP",
+                                "args": [
+                                  [
+                                    [
+                                      {
+                                        "prim": "DIP",
+                                        "args": [
+                                          [
+                                            {
+                                              "prim": "DUP",
+                                              "annots": [
+                                                "@c"
+                                              ]
+                                            }
+                                          ]
+                                        ]
+                                      },
+                                      {
+                                        "prim": "SWAP"
+                                      }
+                                    ]
+                                  ]
+                                ]
+                              },
+                              {
+                                "prim": "SWAP"
+                              }
+                            ],
+                            {
+                              "prim": "PUSH",
+                              "args": [
+                                {
+                                  "prim": "mutez"
+                                },
+                                {
+                                  "int": "1000000"
+                                }
+                              ]
+                            },
+                            {
+                              "prim": "PUSH",
+                              "args": [
+                                {
+                                  "prim": "string"
+                                },
+                                {
+                                  "string": "21"
+                                }
+                              ]
+                            },
+                            {
+                              "prim": "TRANSFER_TOKENS"
+                            },
+                            {
+                              "prim": "CONS"
+                            },
+                            {
+                              "prim": "PAIR"
+                            }
+                          ],
+                          [
+                            [
+                              {
+                                "prim": "DIP",
+                                "args": [
+                                  [
+                                    {
+                                      "prim": "DUP",
+                                      "annots": [
+                                        "@id"
+                                      ]
+                                    }
+                                  ]
+                                ]
+                              },
+                              {
+                                "prim": "SWAP"
+                              }
+                            ],
+                            {
+                              "prim": "NIL",
+                              "args": [
+                                {
+                                  "prim": "operation"
+                                }
+                              ]
+                            },
+                            {
+                              "prim": "PAIR"
+                            }
+                          ]
+                        ]
+                      }
+                    ]
+                  ]
+                },
+                {
+                  "prim": "DIP",
+                  "args": [
+                    [
+                      {
+                        "prim": "DROP"
+                      }
+                    ]
+                  ]
+                },
+                {
+                  "prim": "DIP",
+                  "args": [
+                    [
+                      {
+                        "prim": "DROP"
+                      },
+                      {
+                        "prim": "DROP"
+                      }
+                    ]
+                  ]
+                }
+              ]
+            ]
+          }
+        ],
+        "storage": {
+          "string": "0"
+        }
+      }
+    }
+  ]
+}

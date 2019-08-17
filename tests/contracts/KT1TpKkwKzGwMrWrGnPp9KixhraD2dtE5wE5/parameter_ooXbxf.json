@@ -1,0 +1,16 @@
+{
+  "prim": "Left",
+  "args": [
+    {
+      "prim": "Pair",
+      "args": [
+        {
+          "int": "25"
+        },
+        {
+          "string": "minute"
+        }
+      ]
+    }
+  ]
+}

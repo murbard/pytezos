@@ -1,4 +1,5 @@
 site_name: PyTezos
 nav:
-    - Home: index.md
+    - Quick start: index.md
+    - Developer guide: guide.md
 theme: readthedocs

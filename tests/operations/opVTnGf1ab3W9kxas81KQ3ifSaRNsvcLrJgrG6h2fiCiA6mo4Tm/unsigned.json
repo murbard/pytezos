@@ -1,0 +1,24 @@
+{
+  "branch": "BLxKKLGfKbSDGxXddg2XBhaJJAqMDE1EKLUaAkgnbqq8n7hcqt8",
+  "contents": [
+    {
+      "kind": "reveal",
+      "source": "KT1VZDySzWRbcnPrzUB5oHdQ1FseSohgZUad",
+      "fee": "1300",
+      "counter": "1",
+      "gas_limit": "10000",
+      "storage_limit": "0",
+      "public_key": "edpkui4FTpypRtbtx4LB857cnbsMfeYK2Wd4A6bDo2jkhSTy9YeSeU"
+    },
+    {
+      "kind": "transaction",
+      "source": "KT1VZDySzWRbcnPrzUB5oHdQ1FseSohgZUad",
+      "fee": "1420",
+      "counter": "2",
+      "gas_limit": "10300",
+      "storage_limit": "300",
+      "amount": "1337000",
+      "destination": "tz1RR6wETy9BeXG3Fjk25YmkSMGHxTtKkhpX"
+    }
+  ]
+}

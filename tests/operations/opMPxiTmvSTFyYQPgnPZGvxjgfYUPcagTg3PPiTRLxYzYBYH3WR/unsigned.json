@@ -1,0 +1,82 @@
+{
+  "branch": "BL8Mi1JKUnVD9Xj2PvAefcKZX3SVzHzrN7AqbUNdDGSBXQbrNd2",
+  "contents": [
+    {
+      "kind": "transaction",
+      "source": "tz1caGhGfM5hh1R7MKMnCyX9k2Y9oruhJ8A3",
+      "fee": "2568",
+      "counter": "75258",
+      "gas_limit": "10200",
+      "storage_limit": "0",
+      "amount": "10",
+      "destination": "tz2L2HuhaaSnf6ShEDdhTEAr5jGPWPNwpvcB"
+    },
+    {
+      "kind": "origination",
+      "source": "tz1caGhGfM5hh1R7MKMnCyX9k2Y9oruhJ8A3",
+      "fee": "0",
+      "counter": "75259",
+      "gas_limit": "11651",
+      "storage_limit": "323",
+      "manager_pubkey": "tz1caGhGfM5hh1R7MKMnCyX9k2Y9oruhJ8A3",
+      "balance": "5",
+      "spendable": false,
+      "delegatable": false,
+      "script": {
+        "code": [
+          {
+            "prim": "parameter",
+            "args": [
+              {
+                "prim": "contract",
+                "args": [
+                  {
+                    "prim": "unit"
+                  }
+                ],
+                "annots": [
+                  ":X"
+                ]
+              }
+            ]
+          },
+          {
+            "prim": "storage",
+            "args": [
+              {
+                "prim": "unit"
+              }
+            ]
+          },
+          {
+            "prim": "code",
+            "args": [
+              [
+                {
+                  "prim": "CDR",
+                  "annots": [
+                    "@storage_slash_1"
+                  ]
+                },
+                {
+                  "prim": "NIL",
+                  "args": [
+                    {
+                      "prim": "operation"
+                    }
+                  ]
+                },
+                {
+                  "prim": "PAIR"
+                }
+              ]
+            ]
+          }
+        ],
+        "storage": {
+          "prim": "Unit"
+        }
+      }
+    }
+  ]
+}

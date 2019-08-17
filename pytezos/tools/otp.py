@@ -11,19 +11,19 @@ class OTP:
         """
         :param key: secret key (encrypted/unencrypted), public key or public key hash, all base58 encoded
         :param interval: number of blocks to check (tolerance)
-        :param shell: Shell instance
+        :param shell: ShellQuery instance
         """
         if not isinstance(key, Key):
             if is_pkh(key):
-                key = shell.get_public_key(key)
-            key = Key.from_key(key)
+                key = shell.public_key(key)
+            key = Key.from_encoded_key(key)
 
         self._key = key
         self._interval = interval
         self._shell = shell
 
     def now(self) -> str:
-        if not self._key.is_secret:
+        if not self._key.secret_exponent:
             raise ValueError('Cannot generate OTP without a secret key')
 
         message = self._shell.head.calculate_hash()

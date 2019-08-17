@@ -1,0 +1,74 @@
+{
+  "branch": "BMKNyRqqd9p5W44FZSK7VwsAYyqCfedxtFZCTKhQo1ApWPx4hxs",
+  "contents": [
+    {
+      "kind": "transaction",
+      "source": "tz1QZ6KY7d3BuZDT1d19dUxoQrtFPN2QJ3hn",
+      "fee": "12674",
+      "counter": "36545",
+      "gas_limit": "123443",
+      "storage_limit": "0",
+      "amount": "0",
+      "destination": "KT19FGyz47Fh9zEpLQwuqYureeFdUuyzXo9e",
+      "parameters": {
+        "prim": "Right",
+        "args": [
+          {
+            "prim": "Right",
+            "args": [
+              {
+                "prim": "Right",
+                "args": [
+                  {
+                    "prim": "Right",
+                    "args": [
+                      {
+                        "prim": "Right",
+                        "args": [
+                          {
+                            "prim": "Right",
+                            "args": [
+                              {
+                                "prim": "Right",
+                                "args": [
+                                  {
+                                    "prim": "Right",
+                                    "args": [
+                                      {
+                                        "prim": "Left",
+                                        "args": [
+                                          {
+                                            "prim": "Pair",
+                                            "args": [
+                                              {
+                                                "string": "tz1QZ6KY7d3BuZDT1d19dUxoQrtFPN2QJ3hn"
+                                              },
+                                              {
+                                                "int": "100"
+                                              }
+                                            ]
+                                          }
+                                        ],
+                                        "annots": [
+                                          "%mint"
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

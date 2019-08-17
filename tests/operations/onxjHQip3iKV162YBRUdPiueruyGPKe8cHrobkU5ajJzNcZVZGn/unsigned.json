@@ -1,0 +1,15 @@
+{
+  "branch": "BKnw3CKfHXGpzbSk72taRmB6Js9wphWS3iJgJ9DmPuKiyVCBGrD",
+  "contents": [
+    {
+      "kind": "transaction",
+      "source": "KT1XHCnCnTfCBdo4W24ABLP695UxtywzcJir",
+      "fee": "1420",
+      "counter": "491",
+      "gas_limit": "10300",
+      "storage_limit": "300",
+      "amount": "41078385",
+      "destination": "KT1N5HpSwsDUB3iT9B6zaTWenFGbPuNhmt5Q"
+    }
+  ]
+}

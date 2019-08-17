@@ -1,0 +1,24 @@
+{
+  "prim": "Left",
+  "args": [
+    {
+      "prim": "Pair",
+      "args": [
+        {
+          "bytes": "12"
+        },
+        {
+          "prim": "Pair",
+          "args": [
+            {
+              "bytes": "21"
+            },
+            {
+              "int": "5"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,876 @@
+{
+  "branch": "BL3gPTw5pKmWKf5723jwMDEX9QVuUmEMDqeb34YCnoxV7zrW4b8",
+  "contents": [
+    {
+      "kind": "transaction",
+      "source": "tz1aXqjfCT8pCfecBxzTCLcSiPf8oiA3UZ7u",
+      "fee": "10814",
+      "counter": "75327",
+      "gas_limit": "95501",
+      "storage_limit": "0",
+      "amount": "1000000",
+      "destination": "KT19fth8xoanAobcfdbssDjRTv7So1BCSQt4",
+      "parameters": {
+        "prim": "Right",
+        "args": [
+          {
+            "prim": "Left",
+            "args": [
+              {
+                "prim": "Right",
+                "args": [
+                  [
+                    {
+                      "prim": "PUSH",
+                      "args": [
+                        {
+                          "prim": "lambda",
+                          "args": [
+                            {
+                              "prim": "pair",
+                              "args": [
+                                {
+                                  "prim": "bytes"
+                                },
+                                {
+                                  "prim": "big_map",
+                                  "args": [
+                                    {
+                                      "prim": "bytes"
+                                    },
+                                    {
+                                      "prim": "bytes"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "prim": "pair",
+                              "args": [
+                                {
+                                  "prim": "list",
+                                  "args": [
+                                    {
+                                      "prim": "operation"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "prim": "big_map",
+                                  "args": [
+                                    {
+                                      "prim": "bytes"
+                                    },
+                                    {
+                                      "prim": "bytes"
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        [
+                          {
+                            "prim": "DUP"
+                          },
+                          {
+                            "prim": "CAR"
+                          },
+                          {
+                            "prim": "DIP",
+                            "args": [
+                              [
+                                {
+                                  "prim": "CDR"
+                                }
+                              ]
+                            ]
+                          },
+                          {
+                            "prim": "UNPACK",
+                            "args": [
+                              {
+                                "prim": "or",
+                                "args": [
+                                  {
+                                    "prim": "or",
+                                    "args": [
+                                      {
+                                        "prim": "pair",
+                                        "args": [
+                                          {
+                                            "prim": "address"
+                                          },
+                                          {
+                                            "prim": "lambda",
+                                            "args": [
+                                              {
+                                                "prim": "nat"
+                                              },
+                                              {
+                                                "prim": "nat"
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "prim": "pair",
+                                        "args": [
+                                          {
+                                            "prim": "unit"
+                                          },
+                                          {
+                                            "prim": "lambda",
+                                            "args": [
+                                              {
+                                                "prim": "nat"
+                                              },
+                                              {
+                                                "prim": "nat"
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "prim": "or",
+                                    "args": [
+                                      {
+                                        "prim": "pair",
+                                        "args": [
+                                          {
+                                            "prim": "unit"
+                                          },
+                                          {
+                                            "prim": "lambda",
+                                            "args": [
+                                              {
+                                                "prim": "nat"
+                                              },
+                                              {
+                                                "prim": "nat"
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "prim": "pair",
+                                        "args": [
+                                          {
+                                            "prim": "unit"
+                                          },
+                                          {
+                                            "prim": "lambda",
+                                            "args": [
+                                              {
+                                                "prim": "pair",
+                                                "args": [
+                                                  {
+                                                    "prim": "string"
+                                                  },
+                                                  {
+                                                    "prim": "pair",
+                                                    "args": [
+                                                      {
+                                                        "prim": "string"
+                                                      },
+                                                      {
+                                                        "prim": "nat"
+                                                      }
+                                                    ]
+                                                  }
+                                                ]
+                                              },
+                                              {
+                                                "prim": "pair",
+                                                "args": [
+                                                  {
+                                                    "prim": "string"
+                                                  },
+                                                  {
+                                                    "prim": "pair",
+                                                    "args": [
+                                                      {
+                                                        "prim": "string"
+                                                      },
+                                                      {
+                                                        "prim": "nat"
+                                                      }
+                                                    ]
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "prim": "IF_NONE",
+                            "args": [
+                              [
+                                {
+                                  "prim": "PUSH",
+                                  "args": [
+                                    {
+                                      "prim": "pair",
+                                      "args": [
+                                        {
+                                          "prim": "string"
+                                        },
+                                        {
+                                          "prim": "unit"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "prim": "Pair",
+                                      "args": [
+                                        {
+                                          "string": "ArgumentUnpackFailed"
+                                        },
+                                        {
+                                          "prim": "Unit"
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                },
+                                {
+                                  "prim": "FAILWITH"
+                                }
+                              ],
+                              []
+                            ]
+                          },
+                          {
+                            "prim": "PAIR"
+                          },
+                          {
+                            "prim": "DUP"
+                          },
+                          {
+                            "prim": "CAR"
+                          },
+                          {
+                            "prim": "DIP",
+                            "args": [
+                              [
+                                {
+                                  "prim": "CDR"
+                                }
+                              ]
+                            ]
+                          },
+                          {
+                            "prim": "IF_LEFT",
+                            "args": [
+                              [
+                                {
+                                  "prim": "IF_LEFT",
+                                  "args": [
+                                    [
+                                      {
+                                        "prim": "DUP"
+                                      },
+                                      {
+                                        "prim": "CAR"
+                                      },
+                                      {
+                                        "prim": "DIP",
+                                        "args": [
+                                          [
+                                            {
+                                              "prim": "CDR"
+                                            }
+                                          ]
+                                        ]
+                                      },
+                                      {
+                                        "prim": "SWAP"
+                                      },
+                                      {
+                                        "prim": "DIP",
+                                        "args": [
+                                          [
+                                            {
+                                              "prim": "PUSH",
+                                              "args": [
+                                                {
+                                                  "prim": "string"
+                                                },
+                                                {
+                                                  "string": "sWalletsBalances"
+                                                }
+                                              ]
+                                            },
+                                            {
+                                              "prim": "PAIR"
+                                            },
+                                            {
+                                              "prim": "PACK"
+                                            },
+                                            {
+                                              "prim": "GET"
+                                            },
+                                            {
+                                              "prim": "IF_NONE",
+                                              "args": [
+                                                [
+                                                  {
+                                                    "prim": "NONE",
+                                                    "args": [
+                                                      {
+                                                        "prim": "nat"
+                                                      }
+                                                    ]
+                                                  }
+                                                ],
+                                                [
+                                                  {
+                                                    "prim": "UNPACK",
+                                                    "args": [
+                                                      {
+                                                        "prim": "nat"
+                                                      }
+                                                    ]
+                                                  },
+                                                  {
+                                                    "prim": "IF_NONE",
+                                                    "args": [
+                                                      [
+                                                        {
+                                                          "prim": "PUSH",
+                                                          "args": [
+                                                            {
+                                                              "prim": "string"
+                                                            },
+                                                            {
+                                                              "string": "UStore: failed to unpack sWalletsBalances"
+                                                            }
+                                                          ]
+                                                        },
+                                                        {
+                                                          "prim": "FAILWITH"
+                                                        }
+                                                      ],
+                                                      []
+                                                    ]
+                                                  },
+                                                  {
+                                                    "prim": "SOME"
+                                                  }
+                                                ]
+                                              ]
+                                            },
+                                            {
+                                              "prim": "IF_NONE",
+                                              "args": [
+                                                [
+                                                  {
+                                                    "prim": "PUSH",
+                                                    "args": [
+                                                      {
+                                                        "prim": "nat"
+                                                      },
+                                                      {
+                                                        "int": "0"
+                                                      }
+                                                    ]
+                                                  }
+                                                ],
+                                                []
+                                              ]
+                                            }
+                                          ]
+                                        ]
+                                      },
+                                      {
+                                        "prim": "SWAP"
+                                      },
+                                      {
+                                        "prim": "EXEC"
+                                      },
+                                      {
+                                        "prim": "PUSH",
+                                        "args": [
+                                          {
+                                            "prim": "string"
+                                          },
+                                          {
+                                            "string": "VoidResult"
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "prim": "PAIR"
+                                      },
+                                      {
+                                        "prim": "FAILWITH"
+                                      }
+                                    ],
+                                    [
+                                      {
+                                        "prim": "DUP"
+                                      },
+                                      {
+                                        "prim": "CAR"
+                                      },
+                                      {
+                                        "prim": "DIP",
+                                        "args": [
+                                          [
+                                            {
+                                              "prim": "CDR"
+                                            }
+                                          ]
+                                        ]
+                                      },
+                                      {
+                                        "prim": "SWAP"
+                                      },
+                                      {
+                                        "prim": "DIP",
+                                        "args": [
+                                          [
+                                            {
+                                              "prim": "DROP"
+                                            },
+                                            {
+                                              "prim": "PUSH",
+                                              "args": [
+                                                {
+                                                  "prim": "string"
+                                                },
+                                                {
+                                                  "string": "sTotalMinted"
+                                                }
+                                              ]
+                                            },
+                                            {
+                                              "prim": "PACK"
+                                            },
+                                            {
+                                              "prim": "GET"
+                                            },
+                                            {
+                                              "prim": "IF_NONE",
+                                              "args": [
+                                                [
+                                                  {
+                                                    "prim": "PUSH",
+                                                    "args": [
+                                                      {
+                                                        "prim": "string"
+                                                      },
+                                                      {
+                                                        "string": "UStore: no field sTotalMinted"
+                                                      }
+                                                    ]
+                                                  },
+                                                  {
+                                                    "prim": "FAILWITH"
+                                                  }
+                                                ],
+                                                []
+                                              ]
+                                            },
+                                            {
+                                              "prim": "UNPACK",
+                                              "args": [
+                                                {
+                                                  "prim": "nat"
+                                                }
+                                              ]
+                                            },
+                                            {
+                                              "prim": "IF_NONE",
+                                              "args": [
+                                                [
+                                                  {
+                                                    "prim": "PUSH",
+                                                    "args": [
+                                                      {
+                                                        "prim": "string"
+                                                      },
+                                                      {
+                                                        "string": "UStore: failed to unpack sTotalMinted"
+                                                      }
+                                                    ]
+                                                  },
+                                                  {
+                                                    "prim": "FAILWITH"
+                                                  }
+                                                ],
+                                                []
+                                              ]
+                                            }
+                                          ]
+                                        ]
+                                      },
+                                      {
+                                        "prim": "SWAP"
+                                      },
+                                      {
+                                        "prim": "EXEC"
+                                      },
+                                      {
+                                        "prim": "PUSH",
+                                        "args": [
+                                          {
+                                            "prim": "string"
+                                          },
+                                          {
+                                            "string": "VoidResult"
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "prim": "PAIR"
+                                      },
+                                      {
+                                        "prim": "FAILWITH"
+                                      }
+                                    ]
+                                  ]
+                                }
+                              ],
+                              [
+                                {
+                                  "prim": "IF_LEFT",
+                                  "args": [
+                                    [
+                                      {
+                                        "prim": "DUP"
+                                      },
+                                      {
+                                        "prim": "CAR"
+                                      },
+                                      {
+                                        "prim": "DIP",
+                                        "args": [
+                                          [
+                                            {
+                                              "prim": "CDR"
+                                            }
+                                          ]
+                                        ]
+                                      },
+                                      {
+                                        "prim": "SWAP"
+                                      },
+                                      {
+                                        "prim": "DIP",
+                                        "args": [
+                                          [
+                                            {
+                                              "prim": "DROP"
+                                            },
+                                            {
+                                              "prim": "PUSH",
+                                              "args": [
+                                                {
+                                                  "prim": "string"
+                                                },
+                                                {
+                                                  "string": "sTotal"
+                                                }
+                                              ]
+                                            },
+                                            {
+                                              "prim": "PACK"
+                                            },
+                                            {
+                                              "prim": "GET"
+                                            },
+                                            {
+                                              "prim": "IF_NONE",
+                                              "args": [
+                                                [
+                                                  {
+                                                    "prim": "PUSH",
+                                                    "args": [
+                                                      {
+                                                        "prim": "string"
+                                                      },
+                                                      {
+                                                        "string": "UStore: no field sTotal"
+                                                      }
+                                                    ]
+                                                  },
+                                                  {
+                                                    "prim": "FAILWITH"
+                                                  }
+                                                ],
+                                                []
+                                              ]
+                                            },
+                                            {
+                                              "prim": "UNPACK",
+                                              "args": [
+                                                {
+                                                  "prim": "nat"
+                                                }
+                                              ]
+                                            },
+                                            {
+                                              "prim": "IF_NONE",
+                                              "args": [
+                                                [
+                                                  {
+                                                    "prim": "PUSH",
+                                                    "args": [
+                                                      {
+                                                        "prim": "string"
+                                                      },
+                                                      {
+                                                        "string": "UStore: failed to unpack sTotal"
+                                                      }
+                                                    ]
+                                                  },
+                                                  {
+                                                    "prim": "FAILWITH"
+                                                  }
+                                                ],
+                                                []
+                                              ]
+                                            }
+                                          ]
+                                        ]
+                                      },
+                                      {
+                                        "prim": "SWAP"
+                                      },
+                                      {
+                                        "prim": "EXEC"
+                                      },
+                                      {
+                                        "prim": "PUSH",
+                                        "args": [
+                                          {
+                                            "prim": "string"
+                                          },
+                                          {
+                                            "string": "VoidResult"
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "prim": "PAIR"
+                                      },
+                                      {
+                                        "prim": "FAILWITH"
+                                      }
+                                    ],
+                                    [
+                                      {
+                                        "prim": "DUP"
+                                      },
+                                      {
+                                        "prim": "CAR"
+                                      },
+                                      {
+                                        "prim": "DIP",
+                                        "args": [
+                                          [
+                                            {
+                                              "prim": "CDR"
+                                            }
+                                          ]
+                                        ]
+                                      },
+                                      {
+                                        "prim": "SWAP"
+                                      },
+                                      {
+                                        "prim": "DIP",
+                                        "args": [
+                                          [
+                                            {
+                                              "prim": "DROP"
+                                            },
+                                            {
+                                              "prim": "PUSH",
+                                              "args": [
+                                                {
+                                                  "prim": "string"
+                                                },
+                                                {
+                                                  "string": "sMeta"
+                                                }
+                                              ]
+                                            },
+                                            {
+                                              "prim": "PACK"
+                                            },
+                                            {
+                                              "prim": "GET"
+                                            },
+                                            {
+                                              "prim": "IF_NONE",
+                                              "args": [
+                                                [
+                                                  {
+                                                    "prim": "PUSH",
+                                                    "args": [
+                                                      {
+                                                        "prim": "string"
+                                                      },
+                                                      {
+                                                        "string": "UStore: no field sMeta"
+                                                      }
+                                                    ]
+                                                  },
+                                                  {
+                                                    "prim": "FAILWITH"
+                                                  }
+                                                ],
+                                                []
+                                              ]
+                                            },
+                                            {
+                                              "prim": "UNPACK",
+                                              "args": [
+                                                {
+                                                  "prim": "pair",
+                                                  "args": [
+                                                    {
+                                                      "prim": "string"
+                                                    },
+                                                    {
+                                                      "prim": "pair",
+                                                      "args": [
+                                                        {
+                                                          "prim": "string"
+                                                        },
+                                                        {
+                                                          "prim": "nat"
+                                                        }
+                                                      ]
+                                                    }
+                                                  ]
+                                                }
+                                              ]
+                                            },
+                                            {
+                                              "prim": "IF_NONE",
+                                              "args": [
+                                                [
+                                                  {
+                                                    "prim": "PUSH",
+                                                    "args": [
+                                                      {
+                                                        "prim": "string"
+                                                      },
+                                                      {
+                                                        "string": "UStore: failed to unpack sMeta"
+                                                      }
+                                                    ]
+                                                  },
+                                                  {
+                                                    "prim": "FAILWITH"
+                                                  }
+                                                ],
+                                                []
+                                              ]
+                                            }
+                                          ]
+                                        ]
+                                      },
+                                      {
+                                        "prim": "SWAP"
+                                      },
+                                      {
+                                        "prim": "EXEC"
+                                      },
+                                      {
+                                        "prim": "PUSH",
+                                        "args": [
+                                          {
+                                            "prim": "string"
+                                          },
+                                          {
+                                            "string": "VoidResult"
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "prim": "PAIR"
+                                      },
+                                      {
+                                        "prim": "FAILWITH"
+                                      }
+                                    ]
+                                  ]
+                                }
+                              ]
+                            ]
+                          }
+                        ]
+                      ]
+                    },
+                    {
+                      "prim": "PUSH",
+                      "args": [
+                        {
+                          "prim": "string"
+                        },
+                        {
+                          "string": "callTokenGetters"
+                        }
+                      ]
+                    },
+                    {
+                      "prim": "PUSH",
+                      "args": [
+                        {
+                          "prim": "string"
+                        },
+                        {
+                          "string": "code"
+                        }
+                      ]
+                    },
+                    {
+                      "prim": "PAIR"
+                    },
+                    {
+                      "prim": "PACK"
+                    },
+                    {
+                      "prim": "DIP",
+                      "args": [
+                        [
+                          {
+                            "prim": "PACK"
+                          },
+                          {
+                            "prim": "SOME"
+                          }
+                        ]
+                      ]
+                    },
+                    {
+                      "prim": "UPDATE"
+                    }
+                  ]
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

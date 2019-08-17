@@ -45,6 +45,20 @@ base58_encodings = [
     (b'Net',   15,   tb([87, 82, 0]),              4,    u"chain id")
 ]
 
+operation_tags = {
+    'endorsement': 0,
+    'seed_nonce_revelation': 1,
+    'double_endorsement_evidence': 2,
+    'double_baking_evidence': 3,
+    'account_activation': 4,
+    'proposal': 5,
+    'ballot': 6,
+    'reveal': 7,
+    'transaction': 8,
+    'origination': 9,
+    'delegation': 10
+}
+
 
 def scrub_input(v) -> bytes:
     if isinstance(v, str) and not isinstance(v, bytes):
@@ -110,7 +124,7 @@ def validate_sig(v):
 def is_pkh(v) -> bool:
     try:
         validate_pkh(v)
-    except ValueError:
+    except (ValueError, TypeError):
         return False
     return True
 
@@ -118,7 +132,7 @@ def is_pkh(v) -> bool:
 def is_sig(v) -> bool:
     try:
         validate_sig(v)
-    except ValueError:
+    except (ValueError, TypeError):
         return False
     return True
 
@@ -126,6 +140,127 @@ def is_sig(v) -> bool:
 def is_bh(v) -> bool:
     try:
         _validate(v, prefixes=[b'B'])
-    except ValueError:
+    except (ValueError, TypeError):
         return False
     return True
+
+
+def is_ogh(v) -> bool:
+    try:
+        _validate(v, prefixes=[b'o'])
+    except (ValueError, TypeError):
+        return False
+    return True
+
+
+def is_kt(v) -> bool:
+    try:
+        _validate(v, prefixes=[b'KT1'])
+    except (ValueError, TypeError):
+        return False
+    return True
+
+
+def is_key(v) -> bool:
+    try:
+        _validate(v, prefixes=[b"edsk", b"edpk", b"spsk", b"p2sk", b"sppk", b"p2pk"])
+    except (ValueError, TypeError):
+        return False
+    return True
+
+
+def forge_nat(value) -> bytes:
+    """
+    Encode a number using LEB128 encoding (Zarith)
+    :param int value: the value to encode
+    :return: encoded value
+    :rtype: bytes
+    """
+    if value < 0:
+        raise ValueError('Value cannot be negative.')
+
+    buf = bytearray()
+    more = True
+
+    while more:
+        byte = value & 0x7f
+        value >>= 7
+
+        if value:
+            byte |= 0x80
+        else:
+            more = False
+
+        buf.append(byte)
+
+    return bytes(buf)
+
+
+def forge_public_key(value) -> bytes:
+    prefix = value[:4]
+    res = base58.b58decode_check(value)[4:]
+
+    if prefix == 'edpk':
+        return b'\x00' + res
+    elif prefix == 'sppk':
+        return b'\x01' + res
+    elif prefix == 'p2pk':
+        return b'\x02' + res
+
+    raise ValueError(f'Unrecognized key type: #{prefix}')
+
+
+def parse_public_key(data: bytes):
+    key_prefix = {
+        b'\x00': b'edpk',
+        b'\x01': b'sppk',
+        b'\x02': b'p2pk'
+    }
+    return base58_encode(data[1:], key_prefix[data[:1]]).decode()
+
+
+def forge_address(value, tz_only=False) -> bytes:
+    prefix = value[:3]
+    address = base58.b58decode_check(value)[3:]
+
+    if prefix == 'tz1':
+        res = b'\x00\x00' + address
+    elif prefix == 'tz2':
+        res = b'\x00\x01' + address
+    elif prefix == 'tz3':
+        res = b'\x00\x02' + address
+    elif prefix == 'KT1':
+        res = b'\x01' + address + b'\x00'
+    else:
+        raise ValueError(value)
+
+    return res[1:] if tz_only else res
+
+
+def parse_address(data: bytes):
+    tz_prefixes = {
+        b'\x00\x00': b'tz1',
+        b'\x00\x01': b'tz2',
+        b'\x00\x02': b'tz3'
+    }
+
+    for bin_prefix, tz_prefix in tz_prefixes.items():
+        if data.startswith(bin_prefix):
+            return base58_encode(data[2:], tz_prefix).decode()
+
+    if data.startswith(b'\x01') and data.endswith(b'\x00'):
+        return base58_encode(data[1:-1], b'KT1').decode()
+    else:
+        return base58_encode(data[1:], tz_prefixes[b'\x00' + data[:1]]).decode()
+
+
+def forge_bool(value) -> bytes:
+    return b'\xff' if value else b'\x00'
+
+
+def forge_array(data) -> bytes:
+    return len(data).to_bytes(4, 'big') + data
+
+
+def forge_base58(value) -> bytes:
+    return base58_decode(value.encode())

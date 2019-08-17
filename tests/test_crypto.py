@@ -34,12 +34,12 @@ class TestCrypto(TestCase):
          'tz3agP9LGe2cXmKQyYn6T68BHKjjktDbbSWX')
     ])
     def test_derive_key_data(self, sk, pk, hash):
-        public_key = Key.from_key(pk)
+        public_key = Key.from_encoded_key(pk)
         self.assertFalse(public_key.is_secret)
         self.assertEqual(pk, public_key.public_key())
         self.assertEqual(hash, public_key.public_key_hash())
 
-        secret_key = Key.from_key(sk)
+        secret_key = Key.from_encoded_key(sk)
         self.assertTrue(secret_key.is_secret)
         self.assertEqual(pk, secret_key.public_key())
         self.assertEqual(sk, secret_key.secret_key())
@@ -59,7 +59,7 @@ class TestCrypto(TestCase):
          'sigQVTY9CkYw8qL6Xa7QWestkLSdtPv6HZ4ToSMHDcRot3BwRGwZhSwXd9jJwKkDvvotTLSNWQdUqiDSfXuCNUfjbEaY2j6j')
     ])
     def test_verify_ext_signatures(self, pk, msg, sig):
-        key = Key.from_key(pk)
+        key = Key.from_encoded_key(pk)
         key.verify(sig, msg)
         self.assertRaises(ValueError, key.verify, sig, b'fake')
 
@@ -69,7 +69,7 @@ class TestCrypto(TestCase):
         ('p2sk3PM77YMR99AvD3fSSxeLChMdiQ6kkEzqoPuSwQqhPsh29irGLC', b'test')
     ])
     def test_sign_and_verify(self, sk, msg):
-        key = Key.from_key(sk)
+        key = Key.from_encoded_key(sk)
         sig = key.sign(msg)
         key.verify(sig, msg)
         self.assertRaises(ValueError, key.verify, sig, b'fake')
@@ -85,7 +85,7 @@ class TestCrypto(TestCase):
         See RFC6979 for explanation
         https://tools.ietf.org/html/rfc6979#section-3.2
         """
-        key = Key.from_key(sk)
+        key = Key.from_encoded_key(sk)
         signature = key.sign(msg)
         self.assertEqual(sig, signature)
 
@@ -98,7 +98,7 @@ class TestCrypto(TestCase):
          'qqq', b'"\xf8\x0e \x0f]hc', 'p2pk68Ky2h9UZZ4jUYws8mU8Cazhu4H1LdK22wD8HgDPRSvsJPBDtJ7'),
     ])
     def test_encrypted_keys(self, sk, passphrase, salt, pk):
-        key = Key.from_key(sk, passphrase=passphrase)
+        key = Key.from_encoded_key(sk, passphrase=passphrase)
         self.assertEqual(pk, key.public_key())
 
         with patch('pytezos.crypto.pysodium.randombytes', return_value=salt):
