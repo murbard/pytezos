@@ -89,3 +89,32 @@ class OperationForgingTest{case}(TestCase):
             path='{json_path}'))
         self.assertEqual(expected, actual)
 """
+
+
+big_map_test_case = """from unittest import TestCase
+
+from tests import get_data
+from pytezos.michelson.contract import ContractStorage
+
+
+class BigMapCodingTest{case}(TestCase):
+
+    def setUp(self):
+        self.maxDiff = None
+
+    def test_big_map_{case}(self):    
+        section = get_data(
+            path='{code_path}')
+        storage = ContractStorage(section)
+            
+        big_map_diff = get_data(
+            path='{diff_path}')
+        expected = [
+            dict(key=item['key'], value=item.get('value'))
+            for item in big_map_diff
+        ]
+        
+        big_map = storage.big_map_diff_decode(expected)
+        actual = storage.big_map_diff_encode(big_map)
+        self.assertEqual(expected, actual)
+"""

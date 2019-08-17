@@ -29,13 +29,13 @@ class ContractCall(Interop):
         res = [
             super(ContractCall, self).__repr__(),
             '\nPayload',
-            pformat(self.operation_group().json_payload()),
+            pformat(self.operation_group.json_payload()),
             '\nHelpers',
             get_class_docstring(self.__class__)
         ]
         return '\n'.join(res)
 
-    def transfer(self, amount):
+    def with_amount(self, amount):
         """
         Send funds to the contract too.
         :param amount: amount in microtez (int) or tez (Decimal)
@@ -43,6 +43,7 @@ class ContractCall(Interop):
         """
         return self._spawn(amount=amount)
 
+    @property
     def operation_group(self) -> OperationGroup:
         """
         Show generated operation group.
@@ -59,7 +60,7 @@ class ContractCall(Interop):
         Autofill, sign and inject resulting operation group.
         :return: RPC response (operation group hash)
         """
-        return self.operation_group().autofill().sign().inject()
+        return self.operation_group.autofill().sign().inject()
 
     def cmdline(self):
         """
@@ -96,8 +97,8 @@ class ContractEntrypoint(Interop):
     def __repr__(self):
         res = [
             super(ContractEntrypoint, self).__repr__(),
-            '\n',
-            self.__doc__
+            f'.address -> {self.address}',
+            f'\n{self.__doc__}'
         ]
         return '\n'.join(res)
 
@@ -159,6 +160,7 @@ class ContractInterface(Interop):
         entrypoints, _ = zip(*self.contract.parameter.entries(default=self.__default_entry__))
         res = [
             super(ContractInterface, self).__repr__(),
+            f'.address -> {self.address}',
             '\nEntrypoints',
             *list(map(lambda x: f'.{x}()', entrypoints)),
             '\nHelpers',

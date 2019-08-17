@@ -238,18 +238,20 @@ def forge_address(value, tz_only=False) -> bytes:
 
 
 def parse_address(data: bytes):
-    tz_prefix = {
+    tz_prefixes = {
         b'\x00\x00': b'tz1',
         b'\x00\x01': b'tz2',
         b'\x00\x02': b'tz3'
     }
 
-    if data.startswith(b'\x00'):
-        return base58_encode(data[2:], tz_prefix[data[:2]]).decode()
-    elif data.startswith(b'\x01') and data.endswith(b'\x00'):
-        return base58_encode(data[1:-2], b'KT1').decode()
+    for bin_prefix, tz_prefix in tz_prefixes.items():
+        if data.startswith(bin_prefix):
+            return base58_encode(data[2:], tz_prefix).decode()
+
+    if data.startswith(b'\x01') and data.endswith(b'\x00'):
+        return base58_encode(data[1:-1], b'KT1').decode()
     else:
-        return base58_encode(data[1:], tz_prefix[b'\x00' + data[:1]]).decode()
+        return base58_encode(data[1:], tz_prefixes[b'\x00' + data[:1]]).decode()
 
 
 def forge_bool(value) -> bytes:

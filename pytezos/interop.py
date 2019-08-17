@@ -14,10 +14,9 @@ class Interop(metaclass=InlineDocstring):
     def __repr__(self):
         res = [
             super(Interop, self).__repr__(),
-            '\nKey',
-            self.key.public_key_hash(),
-            '\nNode',
-            f'{self.shell.node.uri} ({self.shell.node.network})'
+            '\nProperties',
+            f'.key -> {self.key.public_key_hash()}',
+            f'.shell -> {self.shell.node.uri} ({self.shell.node.network})'
         ]
         return '\n'.join(res)
 

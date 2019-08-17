@@ -6,7 +6,7 @@ from decimal import Decimal
 from collections import namedtuple, defaultdict
 from functools import lru_cache
 
-from pytezos.encoding import parse_address, parse_public_key
+from pytezos.encoding import parse_address, parse_public_key, forge_public_key, forge_address, forge_base58
 from pytezos.michelson.grammar import MichelsonParser
 from pytezos.michelson.formatter import format_node
 
@@ -49,7 +49,7 @@ def decode_literal(node, prim):
     return value
 
 
-def encode_literal(value, prim):
+def encode_literal(value, prim, binary=False):
     core_type = 'string'
     if prim in ['int', 'nat']:
         core_type = 'int'
@@ -69,6 +69,13 @@ def encode_literal(value, prim):
         if isinstance(value, bytes):
             value = value.hex()
         core_type = 'bytes'
+    elif binary:
+        if prim == 'key':
+            value = forge_public_key(value).hex()
+            core_type = 'bytes'
+        elif prim in ['address', 'contract', 'key_hash']:
+            value = forge_address(value, tz_only=prim == 'key_hash').hex()
+            core_type = 'bytes'
 
     return {core_type: str(value)}
 
@@ -114,7 +121,8 @@ def collapse_micheline(code) -> dict:
                 parent_prim=parent_prim,
                 entry=fieldname
             )
-        elif node['prim'] == 'lambda':
+        elif node['prim'] in ['lambda', 'contract']:
+            metadata[path]['parameter'] = micheline_to_michelson(node['args'][0], inline=True)
             return dict(path=path, args=[])  # stop there
 
         args = [
@@ -207,14 +215,14 @@ def build_maps(metadata: dict):
     return bin_types, bin_to_json, json_to_bin
 
 
-def parse_micheline(data, bin_to_json: dict, bin_types: dict, root='0'):
+def parse_micheline(data, bin_to_json: dict, bin_types: dict, bin_root='0'):
     json_values = dict()
-    json_root = bin_to_json[root]
+    wild_root = bin_to_json[bin_root]
 
     def get_json_path(bin_path, params: list):
         wild_path = bin_to_json.get(bin_path)
-        if json_root != '/' and wild_path.startswith(json_root) and wild_path != json_root:
-            wild_path = wild_path[len(json_root):]
+        if wild_root != '/' and wild_path.startswith(wild_root):
+            wild_path = join('/', wild_path[len(wild_root):])
 
         return wild_path.format(*params)
 
@@ -255,7 +263,7 @@ def parse_micheline(data, bin_to_json: dict, bin_types: dict, root='0'):
         elif isinstance(node, list):
             if bin_type in ['map', 'big_map']:
                 for elt in node:
-                    key = next(iter(elt['args'][0].values()))
+                    key = decode_literal(elt['args'][0], bin_types[bin_path + '0'])
                     parse_node(elt['args'][1], bin_path + '1', params + [key])
             elif bin_type in ['set', 'list']:
                 for i, arg in enumerate(node):
@@ -267,17 +275,20 @@ def parse_micheline(data, bin_to_json: dict, bin_types: dict, root='0'):
         else:
             assert False, (node, bin_path)
 
-    parse_node(data, root, [])
+    parse_node(data, bin_root, [])
     return json_values
 
 
-def make_json(json_values: dict, root='/'):
-    tree = json_values[root].copy()
+def make_json(json_values: dict):
+    root = json_values['/']
+    if type(root) in [dict, list]:
+        tree = root.copy()
+    else:
+        return root
 
     def get_parent_node(path):
-        assert path.startswith(root)
         node = tree
-        keys = dirname(path)[len(root):].split('/')
+        keys = dirname(path).split('/')
         for key in keys:
             if not key:
                 continue
@@ -288,7 +299,7 @@ def make_json(json_values: dict, root='/'):
         return node
 
     for json_path, value in json_values.items():
-        if json_path == root:
+        if json_path == '/':
             continue
         if type(value) in [dict, list]:
             value = value.copy()
@@ -303,7 +314,7 @@ def make_json(json_values: dict, root='/'):
     return tree
 
 
-def parse_json(data, json_to_bin: dict, bin_types: dict, root='/'):
+def parse_json(data, json_to_bin: dict, bin_types: dict, json_root='/'):
     bin_values = defaultdict(dict)  # type: Dict[str, dict]
 
     def parse_entry(bin_path, index):
@@ -355,11 +366,11 @@ def parse_json(data, json_to_bin: dict, bin_types: dict, root='/'):
                 bin_values[bin_path][index] = node
                 parse_entry(bin_path, index)
 
-    parse_node(data, root)
+    parse_node(data, json_root)
     return dict(bin_values)
 
 
-def make_micheline(bin_values: dict, bin_types: dict, root='0'):
+def make_micheline(bin_values: dict, bin_types: dict, bin_root='0', binary=False):
 
     def get_length(bin_path, index):
         try:
@@ -418,9 +429,9 @@ def make_micheline(bin_values: dict, bin_types: dict, root='0'):
             elif value is None:
                 return None
             else:
-                return encode_literal(value, bin_type)
+                return encode_literal(value, bin_type, binary)
 
-    return encode_node(root)
+    return encode_node(bin_root)
 
 
 def make_default(bin_types: dict, root='0'):
@@ -472,22 +483,22 @@ def decode_micheline(data, schema: Schema, root='0'):
     :param root: which binary node to take as root, used to decode BigMap values/diffs
     :return: Object
     """
-    json_root = schema.bin_to_json[root]
     json_values = parse_micheline(data, schema.bin_to_json, schema.bin_types, root)
-    return make_json(json_values, json_root)
+    return make_json(json_values)
 
 
-def encode_micheline(data, schema: Schema, root='0'):
+def encode_micheline(data, schema: Schema, root='0', binary=False):
     """
     Converts Python object into Micheline expression
     :param data: Python object
     :param schema: schema built for particular contract/section
     :param root: which binary node to take as root, used to encode BigMap values
+    :param binary: Encode keys and addresses in bytes rather than strings, default is False
     :return: Micheline expression
     """
     json_root = schema.bin_to_json[root]
     bin_values = parse_json(data, schema.json_to_bin, schema.bin_types, json_root)
-    return make_micheline(bin_values, schema.bin_types, root)
+    return make_micheline(bin_values, schema.bin_types, root, binary)
 
 
 def michelson_to_micheline(data):

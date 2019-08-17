@@ -34,11 +34,9 @@ All active interaction with the blockchain starts with the PyTezosClient:
 >>> pytezos
 <pytezos.client.PyTezosClient object at 0x7f904cf339e8>
 
-Key
-tz1grSQDByRpnVs7sPtaprNZRp531ZKz6Jmm
-
-Node
-https://tezos-dev.cryptonomic-infra.tech/ (alphanet)
+Properties
+.key -> tz1grSQDByRpnVs7sPtaprNZRp531ZKz6Jmm
+.shell -> https://tezos-dev.cryptonomic-infra.tech/ (alphanet)
 
 Helpers
 .Contract()
@@ -122,11 +120,9 @@ and gas/storage limits.
 >>> pytezos.activate_account().autofill()
 <pytezos.operation.group.OperationGroup object at 0x7f291b7074e0>
 
-Key
-tz1cnQZXoznhduu4MVWfJF6GSyP6mMHMbbWa
-
-Node
-https://rpc.tulip.tools/alphanet/ (alphanet)
+Properties
+.key -> tz1cnQZXoznhduu4MVWfJF6GSyP6mMHMbbWa
+.shell -> https://rpc.tulip.tools/alphanet/ (alphanet)
 
 Payload
 {'branch': 'BL5UtKR4ysFLwcK2ign1h2KoZLJY88zd1vzWUZPzto9iEJqUj1d',
@@ -278,7 +274,203 @@ functionality we will further learn.
 'KT1RX74ty3TqBfU6pBs7ce3uV7PLBrUEav6X'
 ```
 
-## Interact with contract
+## Access storage
+
+Let's play with [KT1HnvV5Z53naoh51jYvPF7w168nW8nfyx5v](https://better-call.dev/alpha/KT1HnvV5Z53naoh51jYvPF7w168nW8nfyx5v/operations)
+as it has BigMap entries, named entrypoints, and non-trivial data scheme.
+
+```python
+>>> ci = pytezos.contract('KT1HnvV5Z53naoh51jYvPF7w168nW8nfyx5v')
+>>> ci
+<pytezos.michelson.interface.ContractInterface object at 0x7f8bbb11c748>
+
+Properties
+.key -> tz1cnQZXoznhduu4MVWfJF6GSyP6mMHMbbWa
+.shell -> https://tezos-dev.cryptonomic-infra.tech/ (alphanet)
+.address -> KT1HnvV5Z53naoh51jYvPF7w168nW8nfyx5v
+
+Entrypoints
+.transfer()
+.approve()
+.transfer_from()
+.balance_of()
+.allowance()
+.create_account()
+.create_accounts()
+
+Helpers
+.big_map_get()
+.storage()
+.using()
+```
+
+You can access contract storage at any block level, just pass block id into the `storage` method:
+```python
+>>> ci.storage(block_id='head~4096')
+{'accounts': {},
+ 'version': 1,
+ 'total_supply': 1000,
+ 'decimals': 0,
+ 'name': 'Calamares',
+ 'symbol': 'PLA',
+ 'owner': 'tz1WWLRiCFnSzT1uXQYjJYaMVcUefrMxWT25'}
+```
+
+Under the hood PyTezos has parsed the storage type, collapsed all nested structures, converted annotations into keys,
+and in the result we get a simple Python object which is much easier to manipulate. Take a look at the storage scheme -
+it looks like Tezos RPC API generated docs.
+```python
+>>> ci.contract.storage
+<pytezos.michelson.contract.ContractStorage object at 0x7f5d1411f550>
+
+$storage:
+	{
+	  "accounts": { $address : $account , ... }  /* big_map */,
+	  "version": $nat,
+	  "total_supply": $nat,
+	  "decimals": $nat,
+	  "name": string,
+	  "symbol": string,
+	  "owner": $address
+	}
+
+$account:
+	{
+	  "balance": $nat,
+	  "allowances": { $address : $nat , ... }
+	}
+
+$nat:
+	int  /* Natural number */
+
+$address:
+	string  /* Base58 encoded `tz` or `KT` address */
 
 
+Helpers
+.big_map_decode()
+.big_map_diff_decode()
+.big_map_query()
+.decode()
+.default()
+.encode()
+```
 
+## BigMap lookup
+
+It looks like we are talking about some token,
+let's take a peek at the [better-call.dev](https://better-call.dev/alpha/KT1HnvV5Z53naoh51jYvPF7w168nW8nfyx5v/operations)
+and query balance for an account from the big map.
+```python
+>>> ci.big_map_get('KT1FxfNNcmdEs3n38E1o2GcXhikmpGkyARDq')
+{'balance': 45, 'allowances': {}}
+```
+
+Pretty cool, hah?
+
+## Call entrypoint
+
+We can do the same using special entrypoint `balance_of`. Let's give a look at the interface:
+```python
+>>> ci.balance_of
+<pytezos.michelson.interface.ContractEntrypoint object at 0x7f4f0cc76e48>
+
+Properties
+.key -> tz1cnQZXoznhduu4MVWfJF6GSyP6mMHMbbWa
+.shell -> https://tezos-dev.cryptonomic-infra.tech/ (alphanet)
+.address -> KT1HnvV5Z53naoh51jYvPF7w168nW8nfyx5v
+
+$kwargs:
+	{
+	  "address": $address,
+	  "nat_contract": $contract (nat)
+	}
+
+$contract:
+	string  /* Base58 encoded `KT` address */
+
+$address:
+	string  /* Base58 encoded `tz` or `KT` address */
+```
+
+Apparently, we need to pass an address which balance we want to retrieve and a contract address having a single `nat`
+parameter which will receive the balance (this is how view methods work in michelson).
+Using [conseilpy](https://github.com/baking-bad/conseilpy) we can find such contract
+(for testing purposes, in order not to write our own).
+```python
+>>> ci.balance_of(
+...    address='KT1FxfNNcmdEs3n38E1o2GcXhikmpGkyARDq',
+...    nat_contract='KT1JTpEkByTStHYTT3qD8khJomNnvvnrfh4v')
+<pytezos.michelson.interface.ContractCall object at 0x7f4f0cc980b8>
+
+Properties
+.key -> tz1cnQZXoznhduu4MVWfJF6GSyP6mMHMbbWa
+.shell -> https://tezos-dev.cryptonomic-infra.tech/ (alphanet)
+
+Payload
+{'branch': 'BMDPbTmdsLnD1JBurPAqiYE45UDunYTBad2UWgCtg5bgyi2UFxu',
+ 'contents': [{'amount': '0',
+               'counter': '715920',
+               'destination': 'KT1HnvV5Z53naoh51jYvPF7w168nW8nfyx5v',
+               'fee': '40364',
+               'gas_limit': '400000',
+               'kind': 'transaction',
+               'parameters': {'args': [{'args': [{'args': [{'args': [{'args': [{'string': 'KT1FxfNNcmdEs3n38E1o2GcXhikmpGkyARDq'},
+                                                                               {'string': 'KT1JTpEkByTStHYTT3qD8khJomNnvvnrfh4v'}],
+                                                                      'prim': 'Pair'}],
+                                                            'prim': 'Left'}],
+                                                  'prim': 'Right'}],
+                                        'prim': 'Right'}],
+                              'prim': 'Right'},
+               'source': 'tz1cnQZXoznhduu4MVWfJF6GSyP6mMHMbbWa',
+               'storage_limit': '60000'}],
+ 'protocol': 'Pt24m4xiPbLDhVgVfABUjirbmda3yohdN82Sp9FeuAXJ4eV9otd',
+ 'signature': None}
+
+Helpers
+.cmdline()
+.inject()
+.operation_group
+.using()
+.with_amount()
+```
+
+What we got is a ready to inject operation group with encoded parameters.
+In our case we just want to view data, so we can use `preapply` to see actual result.
+```python
+>>> ci.balance_of(address='KT1FxfNNcmdEs3n38E1o2GcXhikmpGkyARDq',
+...               nat_contract='KT1JTpEkByTStHYTT3qD8khJomNnvvnrfh4v') \
+...    .operation_group \
+...    .sign() \
+...    .preapply()
+[{'contents': [{'kind': 'transaction',
+    'source': 'tz1cnQZXoznhduu4MVWfJF6GSyP6mMHMbbWa',
+    'fee': '40364',
+    'counter': '715920',
+    'gas_limit': '400000',
+    'storage_limit': '60000',
+    'amount': '0',
+    'destination': 'KT1HnvV5Z53naoh51jYvPF7w168nW8nfyx5v',
+    'parameters': {'prim': 'Right',
+     'args': [{'prim': 'Right',
+       'args': [{'prim': 'Right',
+         'args': [{'prim': 'Left',
+           'args': [{'prim': 'Pair',
+             'args': [{'string': 'KT1FxfNNcmdEs3n38E1o2GcXhikmpGkyARDq'},
+              {'string': 'KT1JTpEkByTStHYTT3qD8khJomNnvvnrfh4v'}]}]}]}]}]},
+    'metadata': {'balance_updates': [{'kind': 'contract',
+      <...>
+     'internal_operation_results': [{'kind': 'transaction',
+       'source': 'KT1HnvV5Z53naoh51jYvPF7w168nW8nfyx5v',
+       'nonce': 0,
+       'amount': '0',
+       'destination': 'KT1JTpEkByTStHYTT3qD8khJomNnvvnrfh4v',
+       'parameters': {'int': '45'},
+       'result': {'status': 'applied',
+        'storage': {'int': '45'},
+        'consumed_gas': '12290',
+        'storage_size': '86'}}]}}],
+  'signature': 'sigsGCtnZKxWt4UD3HqkxPyemFTgeSVrgBDR4vawFBBFtLKok78JE8Jawn9VCp48ZZ9wYMZN52GhgZYHw8aCfk7fgAG5jMZS'}]
+```
+
+It worked! In the `internal_operation_results` we see a spawned transaction with parameters `{'int': '45'}`

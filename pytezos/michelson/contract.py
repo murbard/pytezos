@@ -12,7 +12,7 @@ domain_types = {
     'bytes': 'string  /* Hex string */ ||\n\tbytes  /* Python byte string */',
     'timestamp': 'int  /* Unix time in seconds */ ||\n\tstring  /* Formatted datetime `%Y-%m-%dT%H:%M:%SZ` */',
     'mutez': 'int  /* Amount in `utz` (10^-6) */ ||\n\tDecimal  /* Amount in `tz` */',
-    'contract': 'string  /* Base58 encoded implicit `KT` address */',
+    'contract': 'string  /* Base58 encoded `KT` address */',
     'address': 'string  /* Base58 encoded `tz` or `KT` address */',
     'key': 'string  /* Base58 encoded public key */',
     'key_hash': 'string  /* Base58 encoded public key hash */',
@@ -84,6 +84,8 @@ def generate_docstring(schema: Schema, title, root='0'):
         elif bin_type in {'map', 'big_map'}:
             item = (decode_node(node['args'][0]), decode_node(node['args'][1], is_element=True))
             res = '{ ' + f'{item[0]} : {item[1]} , ...' + ' }'
+            if bin_type == 'big_map':
+                res += '  /* big_map */'
 
         else:
             res = node['prim']
@@ -97,6 +99,10 @@ def generate_docstring(schema: Schema, title, root='0'):
                 comment = get_comment(bin_path)
                 if comment:
                     res = f'{res}  /* {comment} */'
+
+            if node['prim'] in ['contract', 'lambda']:
+                parameter = schema.metadata[bin_path]['parameter']
+                res = f'{res} ({parameter})'
 
             if node['prim'] not in core_types:
                 if bin_path == root:
@@ -127,8 +133,7 @@ class ContractParameter(metaclass=InlineDocstring):
     def __repr__(self):
         res = [
             super(ContractParameter, self).__repr__(),
-            '\n',
-            self.__doc__,
+            f'\n{self.__doc__}',
             '\nHelpers',
             get_class_docstring(self.__class__)
         ]
@@ -186,8 +191,7 @@ class ContractStorage(metaclass=InlineDocstring):
     def __repr__(self):
         res = [
             super(ContractStorage, self).__repr__(),
-            '\n',
-            self.__doc__,
+            f'\n{self.__doc__}',
             '\nHelpers',
             get_class_docstring(self.__class__)
         ]
@@ -264,9 +268,29 @@ class ContractStorage(metaclass=InlineDocstring):
         key_prim, value_root = self._locate_big_map(big_map_path)
         return {
             decode_literal(item['key'], key_prim):
-                decode_micheline(item['value'], self.schema, root=value_root)
+                decode_micheline(item['value'], self.schema, root=value_root) if item.get('value') else None
             for item in diff
         }
+
+    def big_map_diff_encode(self, big_map: dict, big_map_path=None):
+        """
+        Convert Python representation of BigMap (dict) into big_map_diff
+        :param big_map: { $key: $micheline, ... }
+        :param big_map_path: Json path to BigMap, leave None to use default
+        (since Babylon you can have more than one BigMap at arbitrary position)
+        :return: [{"key": $micheline, "value": $micheline}, ... ]
+        """
+        key_prim, value_root = self._locate_big_map(big_map_path)
+
+        def make_item(x):
+            key = encode_literal(x[0], key_prim, binary=True)
+            if x[1] is not None:
+                value = encode_micheline(x[1], self.schema, root=value_root, binary=True)
+            else:
+                value = None
+            return {"key": key, "value": value}
+
+        return list(map(make_item, big_map.items()))
 
 
 class Contract(metaclass=InlineDocstring):

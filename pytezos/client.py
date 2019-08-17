@@ -64,14 +64,17 @@ class PyTezosClient(Interop, ContentMixin):
         return self.shell.contracts[address]()
 
     @lru_cache(maxsize=None)
+    def _get_contract_interface(self, contract_id):
+        return ContractInterface(
+            address=contract_id,
+            shell=self.shell,
+            key=self.key
+        )
+
     def contract(self, contract_id) -> ContractInterface:
         """
         Get a high-level interface for a given smart contract id.
         :param contract_id: KT address of a smart contract
         :return: ContractInterface
         """
-        return ContractInterface(
-            address=contract_id,
-            shell=self.shell,
-            key=self.key
-        )
+        return self._get_contract_interface(contract_id)
