@@ -10,12 +10,14 @@ from pytezos.encoding import is_bh
 def find_state_change_intervals(head: int, last: int, get: Callable, equals: Callable,
                                 step=60) -> Generator:
     succ_value = get(head)
+    logger.debug(f'{succ_value} at head {head}')
 
     for level in range(head - step, last, -step):
         value = get(level)
         logger.debug(f'{value} at level {level}')
 
         if not equals(value, succ_value):
+            logger.debug(f'{value} -> {succ_value} at ({level}, {level + step})')
             yield level + step, succ_value, level, value
             succ_value = value
 
@@ -43,20 +45,18 @@ def walk_state_change_interval(head: int, last: int, get: Callable, equals: Call
     level = last
     value = last_value
     while not equals(value, head_value):
-        level, value = find_state_change(
-            head, level, get, equals,
-            pred_value=value)
+        level, value = find_state_change(head, level, get, equals, pred_value=value)
+        logger.debug(f'{last_value} -> {value} at {level}')
         yield level, value
 
 
 def find_state_changes(head: int, last: int, get: Callable, equals: Callable,
                        step=60) -> Generator:
-    for int_head, int_head_value, int_tail, int_last_value in find_state_change_intervals(
-            head, last, get, equals, step):
-        for change in walk_state_change_interval(
-                int_head, int_tail, get, equals,
-                head_value=int_head_value,
-                last_value=int_last_value):
+    state_change_intervals = find_state_change_intervals(head, last, get, equals, step)
+    for int_head, int_head_value, int_tail, int_last_value in state_change_intervals:
+        for change in walk_state_change_interval(int_head, int_tail, get, equals,
+                                                 head_value=int_head_value,
+                                                 last_value=int_last_value):
             yield change
 
 
@@ -96,46 +96,51 @@ class BlockSliceQuery(RpcQuery):
         """
         Get block level range.
         """
-        if isinstance(self._start, int):
-            last = self._start
-        else:
-            last = self[self._start].header()['level']
+        def get_level(x):
+            if isinstance(x, int):
+                if x < 0:
+                    return self.head.level() + x
+                elif x > 0:
+                    return x
+                else:
+                    assert False
+            else:
+                return self[x].header()['level']
 
-        if isinstance(self._stop, int):
-            head = self._stop
-        else:
-            head = self[self._stop].header()['level']
+        return get_level(self._start), get_level(self._stop)
 
-        return last, head
-
-    def find_proposal(self, proposal_id):
+    def find_proposal_injection(self, proposal_id):
         """
         Find proposal injection.
         :param proposal_id: Proposal hash (base58)
         """
         last, head = self.get_range()
         level, _ = find_state_change(
-            head=head,
+            head=head - 1,  # proposals are empty at the last block
             last=last,
             get=lambda x: self[x].votes.proposals[proposal_id](),
             equals=lambda x, y: x == y,
             pred_value=0
         )
-        return self[level].operations.proposal(proposal_id)
+        votes = self[level].operations.find_votes(proposal_id)
+        assert len(votes) == 1
+        return votes
 
-    def find_ballots(self, proposal_id) -> Generator:
+    def find_votes(self, proposal_id) -> Generator:
         """
         Find voting operations for the given proposal.
         :param proposal_id: Proposal hash (base58)
         :return: Generator (lazy)
         """
         last, head = self.get_range()
-        for level, _ in find_state_changes(
-                head=head,
+        state_changes = find_state_changes(
+                head=head - 1,  # proposals are empty at the last block
                 last=last,
-                get=lambda x: self.blocks[x].votes.proposals[proposal_id],
-                equals=lambda x, y: x == y):
-            for ballot in self[level].operations.ballots(proposal_id):
+                get=lambda x: self[x].votes.proposals[proposal_id](),
+                equals=lambda x, y: x == y
+        )
+        for level, _ in state_changes:
+            for ballot in self[level].operations.find_votes(proposal_id):
                 yield ballot
 
     def find_origination(self, contract_id):
@@ -145,7 +150,7 @@ class BlockSliceQuery(RpcQuery):
         """
         def get_counter(x):
             try:
-                return self.blocks[x].context.contracts[contract_id].counter()
+                return self[x].context.contracts[contract_id].counter()
             except RpcError:
                 return None
 
@@ -156,7 +161,7 @@ class BlockSliceQuery(RpcQuery):
             equals=lambda x, y: x == y,
             pred_value=None
         )
-        return self[level].operations.origination(contract_id)
+        return self[level].operations.find_origination(contract_id)
 
     def find_operation(self, operation_group_hash):
         """
@@ -173,33 +178,27 @@ class BlockSliceQuery(RpcQuery):
 
         raise StopIteration(operation_group_hash)
 
+    
+class PeriodQuery(RpcQuery):
+    __pos_key__ = ''
+    __val_key__ = ''
 
-class CyclesQuery(RpcQuery):
-
-    def __call__(self, **params):
-        """
-        Get current cycle
-        """
-        return self.head.cycle()
-
-    def __getitem__(self, item) -> BlockSliceQuery:
-        """
-        Get block range by cycle/cycle range.
-        :param item: Cycle number or range (slice), range start/stop can be empty or negative
-        :return: BlockSliceQuery
-        """
+    def _get_item(self, item) -> BlockSliceQuery:
         lvl = self.head.metadata()['level']
-        blocks_per_cycle = int((lvl['level'] - lvl['cycle_position'] - 1) / lvl['cycle'])
+        blocks_per_period = int((lvl['level'] - lvl[self.__pos_key__] - 1) / lvl[self.__val_key__])
 
-        def get_range(cycle):
-            if cycle > 0:
-                start_lvl = (cycle - 1) * blocks_per_cycle + 1
-                stop_lvl = start_lvl + blocks_per_cycle - 1
-            elif cycle < 0:
-                start_lvl = (lvl['cycle'] + cycle) * blocks_per_cycle + 1
-                stop_lvl = None
+        def get_range(x):
+            if x > 0:
+                start_lvl = (x - 1) * blocks_per_period + 1
+            elif x < 0:
+                start_lvl = (lvl[self.__val_key__] + x + 1) * blocks_per_period + 1
             else:
                 assert False
+
+            stop_lvl = start_lvl + blocks_per_period - 1
+            if stop_lvl > lvl['level']:
+                stop_lvl = None
+
             return start_lvl, stop_lvl
 
         if isinstance(item, slice):
@@ -217,3 +216,41 @@ class CyclesQuery(RpcQuery):
             path=self._path,
             params=self._params
         )
+
+
+class CyclesQuery(PeriodQuery):
+    __pos_key__ = 'cycle_position'
+    __val_key__ = 'cycle'
+
+    def __call__(self, **params):
+        """
+        Get current cycle
+        """
+        return self.head.cycle()
+
+    def __getitem__(self, item) -> BlockSliceQuery:
+        """
+        Get block range by cycle/cycle range.
+        :param item: Cycle number or range (slice), range start/stop can be empty or negative
+        :return: BlockSliceQuery
+        """
+        return self._get_item(item)
+
+
+class VotingPeriodsQuery(PeriodQuery):
+    __pos_key__ = 'voting_period_position'
+    __val_key__ = 'voting_period'
+
+    def __call__(self, **params):
+        """
+        Get current voting period
+        """
+        return self.head.voting_period()
+
+    def __getitem__(self, item) -> BlockSliceQuery:
+        """
+        Get block range by voting_period/voting_period range.
+        :param item: Voting_period number or range (slice), range start/stop can be empty or negative
+        :return: BlockSliceQuery
+        """
+        return self._get_item(item)

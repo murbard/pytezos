@@ -12,7 +12,7 @@ def is_interactive():
 __interactive_mode__ = is_interactive()
 
 
-def get_attr_docstring(class_type, attr_name):
+def     get_attr_docstring(class_type, attr_name):
     if attr_name == 'get':
         attr_name = '__call__'
 

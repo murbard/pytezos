@@ -6,7 +6,7 @@ from binascii import hexlify
 from pytezos.encoding import base58_decode
 from pytezos.rpc.query import RpcQuery
 from pytezos.tools.docstring import get_attr_docstring
-from pytezos.rpc.search import CyclesQuery
+from pytezos.rpc.search import CyclesQuery, VotingPeriodsQuery
 
 
 class ShellQuery(RpcQuery, path=''):
@@ -33,6 +33,17 @@ class ShellQuery(RpcQuery, path=''):
         Operate on cycles rather than blocks.
         """
         return CyclesQuery(
+            node=self.node,
+            path=self._path + '/chains/{}/blocks',
+            params=self._params + ['main']
+        )
+
+    @property
+    def voting_periods(self):
+        """
+        Operate on voting periods rather than blocks.
+        """
+        return VotingPeriodsQuery(
             node=self.node,
             path=self._path + '/chains/{}/blocks',
             params=self._params + ['main']
