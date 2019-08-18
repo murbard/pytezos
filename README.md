@@ -15,15 +15,34 @@ Python SDK for Tezos: RPC, cryptography, operations, smart contract interaction
 
 You will also probably need to install several cryptographic packets.
 
-For Ubuntu:
+#### Linux
+
+Use apt or your favourite package manager
 ```
 $ sudo apt install libsodium-dev libsecp256k1-dev libgmp-dev
 ```
 
-For MacOS:
+#### MacOS
+
+Install homebrew (if not yet)
 ```
-$ brew install libsodium
+$ /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 ```
+
+Then the following libraries
+```
+$ brew tap cuber/homebrew-libsecp256k1
+$ brew install libsodium libsecp256k1 gmp
+```
+
+#### Windows
+
+1. Download MinGW from [https://sourceforge.net/projects/mingw/](https://sourceforge.net/projects/mingw/)
+2. From "Basic Setup" choose `mingw-developer-toolkit` `mingw32-base` `mingw32-gcc-g++` `msys-base`
+3. Make sure `C:\MinGW\bin` is added to your `PATH`
+4. Download the latest libsodium-X.Y.Z-msvc.zip from [https://download.libsodium.org/libsodium/releases/](https://download.libsodium.org/libsodium/releases/).
+5. Extract the Win32/Release/v120/dynamic/libsodium.dll fromt the zip file
+6. Copy libsodium.dll to C:\Windows\System32\libsodium.dll
 
 ### Installation
 

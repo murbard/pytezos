@@ -5,21 +5,42 @@ RPC query builder, and a high-level interface for smart contract interaction. It
 application, but also it's perfect for doing researches in Jupyter interactive notebooks.
 In this quick start guide, we'll go through the main concepts and inspect one of the common use cases.
 
-## Installation
+## Requirements
 
 First of all you'll probably need to install cryptographic libraries in your system.
 
-Ubuntu:
+#### Linux
+
+Use apt or your favourite package manager
 ```
 $ sudo apt install libsodium-dev libsecp256k1-dev libgmp-dev
 ```
 
-MacOS:
+#### MacOS
+
+Install homebrew (if not yet)
 ```
-$ brew install libsodium
+$ /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 ```
 
-After that just install PyTezos from PyPi:
+Then the following libraries
+```
+$ brew tap cuber/homebrew-libsecp256k1
+$ brew install libsodium libsecp256k1 gmp
+```
+
+#### Windows
+
+1. Download MinGW from [https://sourceforge.net/projects/mingw/](https://sourceforge.net/projects/mingw/)
+2. From "Basic Setup" choose `mingw-developer-toolkit` `mingw32-base` `mingw32-gcc-g++` `msys-base`
+3. Make sure `C:\MinGW\bin` is added to your `PATH`
+4. Download the latest libsodium-X.Y.Z-msvc.zip from [https://download.libsodium.org/libsodium/releases/](https://download.libsodium.org/libsodium/releases/).
+5. Extract the Win32/Release/v120/dynamic/libsodium.dll fromt the zip file
+6. Copy libsodium.dll to C:\Windows\System32\libsodium.dll
+
+
+## Installation
+
 ```
 $ pip install pytezos
 ```
