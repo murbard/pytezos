@@ -162,6 +162,13 @@ class ContractQuery(RpcQuery, path='/chains/{}/blocks/{}/context/contracts/{}'):
         """
         return count(start=int(self.counter()) + 1, step=1)
 
+    def code(self):
+        """
+        Get contract code
+        :return: Micheline expression
+        """
+        return self().get('script', {}).get('code')
+
 
 class BigMapGetQuery(RpcQuery, path='/chains/{}/blocks/{}/context/contracts/{}/big_map_get'):
 
