@@ -15,7 +15,7 @@ class OperationResult:
 
     @staticmethod
     def iter_contents(operation_group: dict):
-        contents = operation_group.get('contents', operation_group)
+        contents = operation_group.get('contents', [operation_group])
         for content in contents:
             yield {'internal': False, **content}
             internal_operation_results = content.get('metadata', {}).get('internal_operation_results', [])

@@ -167,17 +167,17 @@ class OperationGroup(Interop, ContentMixin):
         extra_size = (32 + 64) // len(opg.contents) + 1  # size of serialized branch and signature)
 
         def fill_content(content):
-            consumed_gas = OperationResult.consumed_gas(content)
-            paid_storage_size_diff = OperationResult.paid_storage_size_diff(content)
-            fee = fees_provider.calculate_fee(content, consumed_gas, extra_size)
+            if validation_passes[content['kind']] == 3:
+                consumed_gas = OperationResult.consumed_gas(content)
+                paid_storage_size_diff = OperationResult.paid_storage_size_diff(content)
+                fee = fees_provider.calculate_fee(content, consumed_gas, extra_size)
+                content.update(
+                    gas_limit=str(consumed_gas + gas_reserve),
+                    storage_limit=str(paid_storage_size_diff + fees_provider.burn_cap(content)),
+                    fee=str(fee)
+                )
 
-            content.update(
-                gas_limit=str(consumed_gas + gas_reserve),
-                storage_limit=str(paid_storage_size_diff + fees_provider.burn_cap(content)),
-                fee=str(fee)
-            )
             content.pop('metadata')
-
             return content
 
         opg.contents = list(map(fill_content, opg_with_metadata['contents']))
