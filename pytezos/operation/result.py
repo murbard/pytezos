@@ -13,8 +13,46 @@ class OperationResult:
         ]
         return '\n'.join(res)
 
-    @classmethod
-    def get_operation(cls, operation_group: dict, **predicates):
+    @staticmethod
+    def iter_contents(operation_group: dict):
+        contents = operation_group.get('contents', operation_group)
+        for content in contents:
+            yield {'internal': False, **content}
+            internal_operation_results = content.get('metadata', {}).get('internal_operation_results', [])
+            for result in internal_operation_results:
+                yield {'internal': True, **result}
+
+    @staticmethod
+    def iter_results(operation_group: dict):
+        for content in OperationResult.iter_contents(operation_group):
+            if content['internal'] and content.get('result'):
+                yield content['result']
+            elif not content['internal'] and content.get('metadata', {}).get('operation_result'):
+                yield content['metadata']['operation_result']
+
+    @staticmethod
+    def consumed_gas(operation_group):
+        return sum(map(lambda x: int(x.get('consumed_gas', '0')),
+                       OperationResult.iter_results(operation_group)))
+
+    @staticmethod
+    def paid_storage_size_diff(operation_group):
+        return sum(map(lambda x: int(x.get('paid_storage_size_diff', '0')),
+                       OperationResult.iter_results(operation_group)))
+
+    @staticmethod
+    def is_applied(operation_group):
+        return all(map(lambda x: x['status'] == 'applied',
+                       OperationResult.iter_results(operation_group)))
+
+    @staticmethod
+    def errors(operation_group: dict):
+        for result in OperationResult.iter_results(operation_group):
+            if result['status'] == 'failed':
+                return result['errors']
+
+    @staticmethod
+    def get_operation(operation_group: dict, **predicates):
         def match(x):
             return all(map(lambda pred: x.get(pred[0]) == pred[1], predicates.items()))
 
@@ -22,22 +60,16 @@ class OperationResult:
             assert len(operation_group['contents']) == 1
             return operation_group['contents'][0]
         else:
-            contents = list()
-            for content in operation_group['contents']:
-                if match(content):
-                    contents.append(content)
-                else:
-                    try:
-                        contents.extend(list(filter(match, content['metadata']['internal_operation_results'])))
-                    except (KeyError, TypeError):
-                        pass
+            contents = list(filter(match, OperationResult.iter_contents(operation_group)))
             assert len(contents) == 1, operation_group
             return contents[0]
 
     @classmethod
     def from_transaction(cls, operation_group: dict, **predicates):
-        operation = cls.get_operation(operation_group, kind='transaction', **predicates)
+        if not cls.is_applied(operation_group):
+            raise ValueError(cls.errors(operation_group))
 
+        operation = cls.get_operation(operation_group, kind='transaction', **predicates)
         if operation.get('metadata'):
             operation_result = operation['metadata']['operation_result']
         elif operation.get('result'):

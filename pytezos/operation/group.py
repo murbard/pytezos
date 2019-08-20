@@ -1,7 +1,7 @@
 from pprint import pformat
 
-from pytezos.rpc import RpcError
 from pytezos.crypto import blake2b_32
+from pytezos.operation.result import OperationResult
 from pytezos.operation.content import ContentMixin
 from pytezos.operation.forge import forge_operation_group
 from pytezos.operation.fees import FeesProvider
@@ -152,37 +152,32 @@ class OperationGroup(Interop, ContentMixin):
 
         return local_data
 
-    def autofill(self):
+    def autofill(self, gas_reserve=100):
         """
         Fill the gaps and then simulate the operation in order to calculate fee, gas/storage limits.
+        :param gas_reserve: Add a safe reserve for gas limit (default is 100)
         :return: OperationGroup
         """
         opg = self.fill()
         opg_with_metadata = opg.run()
+        if not OperationResult.is_applied(opg_with_metadata):
+            raise ValueError(OperationResult.errors(opg_with_metadata))
+
         fees_provider = FeesProvider.from_protocol(opg.protocol)
         extra_size = (32 + 64) // len(opg.contents) + 1  # size of serialized branch and signature)
 
-        def res_limits(res):
-            if res['status'] != 'applied':
-                raise ValueError(f'Operation has failed\n\n{res}')
-            return int(res.get('consumed_gas', 0)), int(res.get('paid_storage_size_diff', 0))
-
         def fill_content(content):
-            operation_result = content['metadata'].get('operation_result')
-            if operation_result:
-                internal_operation_result = content['metadata'].get('internal_operation_result', [])
+            consumed_gas = OperationResult.consumed_gas(content)
+            paid_storage_size_diff = OperationResult.paid_storage_size_diff(content)
+            fee = fees_provider.calculate_fee(content, consumed_gas, extra_size)
 
-                consumed = [res_limits(operation_result)] + list(map(res_limits, internal_operation_result))
-                consumed_gas, paid_storage_diff = tuple(map(sum, zip(*consumed)))
-                fee = fees_provider.calculate_fee(content, consumed_gas, extra_size)
-
-                content.update(
-                    gas_limit=str(consumed_gas),
-                    storage_limit=str(paid_storage_diff + fees_provider.burn_cap(content)),
-                    fee=str(fee)
-                )
-
+            content.update(
+                gas_limit=str(consumed_gas + gas_reserve),
+                storage_limit=str(paid_storage_size_diff + fees_provider.burn_cap(content)),
+                fee=str(fee)
+            )
             content.pop('metadata')
+
             return content
 
         opg.contents = list(map(fill_content, opg_with_metadata['contents']))
@@ -225,7 +220,7 @@ class OperationGroup(Interop, ContentMixin):
             raise ValueError('Not signed')
 
         return self.shell.head.helpers.preapply.operations.post(
-            operations=[self.json_payload()])
+            operations=[self.json_payload()])[0]
 
     def inject(self, _async=False):
         """
@@ -233,10 +228,9 @@ class OperationGroup(Interop, ContentMixin):
         :param _async: default is False
         :return: RPC response (operation group hash)
         """
-        try:
-            self.preapply()
-        except RpcError as e:
-            return e.res.text
+        opg_with_metadata = self.preapply()
+        if not OperationResult.is_applied(opg_with_metadata):
+            raise ValueError(OperationResult.errors(opg_with_metadata))
 
         return self.shell.injection.operation.post(
             operation=self.binary_payload(), _async=_async)

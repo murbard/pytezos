@@ -95,17 +95,17 @@ class ContractCall(Interop):
         Simulate operation and parse the result.
         :return: ContractCallResult
         """
-        operations = self.operation_group.fill().sign().preapply()
+        opg_with_metadata = self.operation_group.fill().run()
         return ContractCallResult.from_contract_call(
-            operations[0], address=self.address, contract=self.contract)
+            opg_with_metadata, address=self.address, contract=self.contract)
 
     def view(self):
         """
         Get return value of a view method.
         :return: object
         """
-        operations = self.operation_group.fill().sign().preapply()
-        view_operation = OperationResult.get_operation(operations[0], source=self.address)
+        opg_with_metadata = self.operation_group.fill().run()
+        view_operation = OperationResult.get_operation(opg_with_metadata, source=self.address)
         view_contract = Contract.from_micheline(self.shell.contracts[view_operation['destination']].code())
         return view_contract.parameter.decode(view_operation['parameters'])
 
@@ -134,7 +134,7 @@ class ContractEntrypoint(Interop):
     def __repr__(self):
         res = [
             super(ContractEntrypoint, self).__repr__(),
-            f'.address -> {self.address}',
+            f'.address  # {self.address}',
             f'\n{self.__doc__}'
         ]
         return '\n'.join(res)
@@ -198,7 +198,7 @@ class ContractInterface(Interop):
         entrypoints, _ = zip(*self.contract.parameter.entries(default=self.__default_entry__))
         res = [
             super(ContractInterface, self).__repr__(),
-            f'.address -> {self.address}',
+            f'.address  # {self.address}',
             '\nEntrypoints',
             *list(map(lambda x: f'.{x}()', entrypoints)),
             '\nHelpers',
