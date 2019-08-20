@@ -52,6 +52,13 @@ class OperationResult:
                 return result['errors']
 
     @staticmethod
+    def originated_contracts(operation_group: dict):
+        originated_contracts = list()
+        for result in OperationResult.iter_results(operation_group):
+            originated_contracts.extend(result.get('originated_contracts', []))
+        return originated_contracts
+
+    @staticmethod
     def get_operation(operation_group: dict, **predicates):
         def match(x):
             return all(map(lambda pred: x.get(pred[0]) == pred[1], predicates.items()))
