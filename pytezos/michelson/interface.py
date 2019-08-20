@@ -1,6 +1,7 @@
 from os.path import basename, dirname, join
 from pprint import pformat
 
+from pytezos.operation.result import OperationResult
 from pytezos.michelson.contract import Contract, micheline_to_michelson
 from pytezos.operation.group import OperationGroup
 from pytezos.operation.content import format_mutez
@@ -8,13 +9,30 @@ from pytezos.interop import Interop
 from pytezos.tools.docstring import get_class_docstring
 
 
+class ContractCallResult(OperationResult):
+
+    @classmethod
+    def from_contract_call(cls, operation_group: dict, address, contract: Contract):
+        result = cls.from_transaction(operation_group, destination=address)
+        return cls(
+            parameters=contract.parameter.decode(result.parameters),
+            storage=contract.storage.decode(result.storage),
+            big_map_diff=contract.storage.big_map_diff_decode(result.big_map_diff)
+        )
+
+
 class ContractCall(Interop):
 
-    def __init__(self, parameters, address, amount=0, shell=None, key=None):
+    def __init__(self, parameters, address, contract: Contract = None, amount=0, shell=None, key=None):
         super(ContractCall, self).__init__(shell=shell, key=key)
         self.parameters = parameters
         self.address = address
         self.amount = amount
+
+        if contract is None:
+            contract = Contract.from_micheline(self.shell.contracts[address].code())
+
+        self.contract = contract
 
     def _spawn(self, **kwargs):
         return ContractCall(
@@ -72,13 +90,32 @@ class ContractCall(Interop):
         amount = format_mutez(self.amount)
         return f'transfer {amount} from {source} to {self.address} -arg "{arg}"'
 
+    def result(self):
+        """
+        Simulate operation and parse the result.
+        :return: ContractCallResult
+        """
+        opg_with_metadata = self.operation_group.fill().run()
+        return ContractCallResult.from_contract_call(
+            opg_with_metadata, address=self.address, contract=self.contract)
+
+    def view(self):
+        """
+        Get return value of a view method.
+        :return: object
+        """
+        opg_with_metadata = self.operation_group.fill().run()
+        view_operation = OperationResult.get_operation(opg_with_metadata, source=self.address)
+        view_contract = Contract.from_micheline(self.shell.contracts[view_operation['destination']].code())
+        return view_contract.parameter.decode(view_operation['parameters'])
+
 
 class ContractEntrypoint(Interop):
 
     def __init__(self, name, address, contract: Contract = None, shell=None, key=None):
         super(ContractEntrypoint, self).__init__(shell=shell, key=key)
         if contract is None:
-            code = self.shell.contracts[address].script().get('code')
+            code = self.shell.contracts[address].code()
             contract = Contract.from_micheline(code)
 
         self.contract = contract
@@ -97,7 +134,7 @@ class ContractEntrypoint(Interop):
     def __repr__(self):
         res = [
             super(ContractEntrypoint, self).__repr__(),
-            f'.address -> {self.address}',
+            f'.address  # {self.address}',
             f'\n{self.__doc__}'
         ]
         return '\n'.join(res)
@@ -120,6 +157,7 @@ class ContractEntrypoint(Interop):
         return ContractCall(
             parameters=parameters,
             address=self.address,
+            contract=self.contract,
             shell=self.shell,
             key=self.key,
         )
@@ -131,7 +169,7 @@ class ContractInterface(Interop):
     def __init__(self, address, contract: Contract = None, shell=None, key=None):
         super(ContractInterface, self).__init__(shell=shell, key=key)
         if contract is None:
-            code = self.shell.contracts[address].script().get('code')
+            code = self.shell.contracts[address].code()
             contract = Contract.from_micheline(code)
 
         self.contract = contract
@@ -160,7 +198,7 @@ class ContractInterface(Interop):
         entrypoints, _ = zip(*self.contract.parameter.entries(default=self.__default_entry__))
         res = [
             super(ContractInterface, self).__repr__(),
-            f'.address -> {self.address}',
+            f'.address  # {self.address}',
             '\nEntrypoints',
             *list(map(lambda x: f'.{x}()', entrypoints)),
             '\nHelpers',
@@ -191,3 +229,13 @@ class ContractInterface(Interop):
         """
         storage = self.shell.blocks[block_id].context.contracts[self.address].storage()
         return self.contract.storage.decode(storage)
+
+    def operation_result(self, operation_group: dict) -> ContractCallResult:
+        """
+        Get operation parameters, storage and big_map_diff as Python objects.
+        Can locate operation inside operation groups with multiple contents and/or internal operations.
+        :param operation_group: {'branch', 'protocol', 'contents', 'signature'}
+        :return: ContractCallResult
+        """
+        return ContractCallResult.from_contract_call(
+            operation_group, address=self.address, contract=self.contract)
