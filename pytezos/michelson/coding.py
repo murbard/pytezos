@@ -6,7 +6,8 @@ from decimal import Decimal
 from collections import namedtuple, defaultdict
 from functools import lru_cache
 
-from pytezos.encoding import parse_address, parse_public_key, forge_public_key, forge_address, forge_base58
+from pytezos.encoding import parse_address, parse_public_key, forge_public_key, forge_address
+from pytezos.michelson.forge import prim_tags
 from pytezos.michelson.grammar import MichelsonParser
 from pytezos.michelson.formatter import format_node
 
@@ -16,6 +17,18 @@ Schema = namedtuple('Schema', ['metadata', 'bin_types', 'bin_to_json', 'json_to_
 meaningful_types = ['key', 'key_hash', 'signature', 'timestamp', 'address']
 first_cap_re = re.compile('(.)([A-Z][a-z]+)')
 all_cap_re = re.compile('([a-z0-9])([A-Z])')
+
+
+def is_micheline(value):
+    if isinstance(value, list):
+        def get_prim(x):
+            return x.get('prim') if isinstance(x, dict) else None
+        return set(map(get_prim, value)) == {'parameter', 'storage', 'code'}
+    elif isinstance(value, dict):
+        primitives = list(prim_tags.keys())
+        return any(map(lambda x: x in value, ['prim', 'args', 'annots', *primitives]))
+    else:
+        return False
 
 
 @lru_cache(maxsize=None)
@@ -518,3 +531,30 @@ def micheline_to_michelson(data, inline=False):
     :return: string
     """
     return format_node(data, inline=inline, is_root=True)
+
+
+def convert(source, schema: Schema = None, output='micheline', inline=False):
+    """
+    Convert data between different representations
+    :param source: Data, can be one of Michelson (string), Micheline expression, object
+    :param schema: Needed if decoding/encoding objects (optional)
+    :param output: Output format, one of 'micheline' (default), 'michelson', 'object'
+    :param inline: Used for michelson output, whether to omit line breaks
+    """
+    if not is_micheline(source):
+        try:
+            source = michelson_to_micheline(source)
+        except ValueError:
+            assert schema
+            source = encode_micheline(source, schema)
+
+    if output == 'michelson':
+        return micheline_to_michelson(source, inline)
+    elif output == 'object':
+        assert schema
+        return decode_micheline(source, schema)
+    elif output == 'micheline':
+        return source
+    else:
+        assert False
+

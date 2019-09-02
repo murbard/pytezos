@@ -349,7 +349,7 @@ class Contract(metaclass=InlineDocstring):
         :param path: Path to the `.tz` file
         :return: Contract
         """
-        with open(path) as f:
+        with open(expanduser(path)) as f:
             return cls.from_michelson(f.read())
 
     def save_file(self, path, overwrite=False):

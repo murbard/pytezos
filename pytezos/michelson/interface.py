@@ -1,9 +1,9 @@
-from os.path import basename, dirname, join
+from os.path import basename, dirname, join, exists, expanduser
 from pprint import pformat
 
 from pytezos.operation.result import OperationResult
 from pytezos.michelson.contract import Contract, micheline_to_michelson
-from pytezos.michelson.coding import make_dict
+from pytezos.michelson.coding import make_dict, convert
 from pytezos.operation.group import OperationGroup
 from pytezos.operation.content import format_mutez
 from pytezos.interop import Interop
@@ -105,14 +105,15 @@ class ContractCall(Interop):
     def result(self, storage=None, source=None):
         """
         Simulate operation and parse the result.
-        :param storage:
-        :param source:
+        :param storage: Michelson string, Micheline expression, or object.
+        If storage is specified, `run_code` is called instead of `run_operation`.
+        :param source: Can be specified for unit testing purposes
         :return: ContractCallResult
         """
         if storage is not None:
             query = make_dict(
                 script=self.contract.code,
-                storage=storage,
+                storage=convert(storage, schema=self.contract.storage.schema, output='micheline'),
                 input=self.parameters,
                 amount=str(self.amount),
                 source=source
@@ -234,6 +235,16 @@ class ContractInterface(Interop):
                                 attr_filter=lambda x: not x.startswith('_') and x not in entrypoints)
         ]
         return '\n'.join(res)
+
+    @classmethod
+    def create_from(cls, source, shell=None):
+        path = expanduser(source)
+        if exists(path):
+            contract = Contract.from_file(path)
+        else:
+            contract = Contract(convert(source, output='micheline'))
+
+        return ContractInterface(contract=contract, shell=shell)
 
     def big_map_get(self, path, block_id='head'):
         """

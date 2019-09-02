@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from pytezos import ContractInterface, Contract
+from pytezos import ContractInterface
 
 code = """
 parameter bytes;
@@ -29,12 +29,12 @@ class SampleContractTest(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.ci = ContractInterface(contract=Contract.from_michelson(code))
+        cls.ci = ContractInterface.create_from(code)
         print(cls.ci.contract.parameter)
         print(cls.ci.contract.storage)
         print(cls.ci)
 
     def test_invocation(self):
-        res = self.ci.call('deadbeef').result(storage=self.ci.contract.storage.default())
+        res = self.ci.call('deadbeef').result(storage=[{}, 0])
         self.assertEqual(1, res.storage[1])
         self.assertIn('deadbeef', res.big_map_diff)
