@@ -91,7 +91,7 @@ def get_flat_nested(nested: Nested):
 
 
 def make_dict(**kwargs) -> dict:
-    return {k: v for k, v in kwargs.items() if v}
+    return {k: v for k, v in kwargs.items() if v is not None}
 
 
 def collapse_micheline(code) -> dict:
@@ -448,7 +448,7 @@ def make_default(bin_types: dict, root='0'):
         elif bin_type in ['map', 'big_map', 'set', 'list']:
             return []
         elif bin_type in ['int', 'nat', 'mutez', 'timestamp']:
-            return {'int': 0}
+            return {'int': '0'}
         elif bin_type in ['string', 'bytes']:
             return {'string': ''}
         elif bin_type == 'bool':

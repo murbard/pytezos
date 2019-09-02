@@ -3,6 +3,7 @@ from pprint import pformat
 
 from pytezos.operation.result import OperationResult
 from pytezos.michelson.contract import Contract, micheline_to_michelson
+from pytezos.michelson.coding import make_dict
 from pytezos.operation.group import OperationGroup
 from pytezos.operation.content import format_mutez
 from pytezos.interop import Interop
@@ -17,19 +18,30 @@ class ContractCallResult(OperationResult):
         return cls(
             parameters=contract.parameter.decode(result.parameters),
             storage=contract.storage.decode(result.storage),
-            big_map_diff=contract.storage.big_map_diff_decode(result.big_map_diff)
+            big_map_diff=contract.storage.big_map_diff_decode(result.big_map_diff),
+            operations=result.operations
+        )
+
+    @classmethod
+    def from_code_run(cls, code_run: dict, parameters, contract: Contract):
+        return cls(
+            parameters=contract.parameter.decode(parameters),
+            storage=contract.storage.decode(code_run['storage']),
+            big_map_diff=contract.storage.big_map_diff_decode(code_run['big_map_diff']),
+            operations=code_run['operations']
         )
 
 
 class ContractCall(Interop):
 
-    def __init__(self, parameters, address, contract: Contract = None, amount=0, shell=None, key=None):
+    def __init__(self, parameters, address=None, contract: Contract = None, amount=0, shell=None, key=None):
         super(ContractCall, self).__init__(shell=shell, key=key)
         self.parameters = parameters
         self.address = address
         self.amount = amount
 
         if contract is None:
+            assert address is not None
             contract = Contract.from_micheline(self.shell.contracts[address].code())
 
         self.contract = contract
@@ -90,14 +102,28 @@ class ContractCall(Interop):
         amount = format_mutez(self.amount)
         return f'transfer {amount} from {source} to {self.address} -arg "{arg}"'
 
-    def result(self):
+    def result(self, storage=None, source=None):
         """
         Simulate operation and parse the result.
+        :param storage:
+        :param source:
         :return: ContractCallResult
         """
-        opg_with_metadata = self.operation_group.fill().run()
-        return ContractCallResult.from_contract_call(
-            opg_with_metadata, address=self.address, contract=self.contract)
+        if storage is not None:
+            query = make_dict(
+                script=self.contract.code,
+                storage=storage,
+                input=self.parameters,
+                amount=str(self.amount),
+                source=source
+            )
+            code_run_res = self.shell.head.helpers.scripts.run_code.post(query)
+            return ContractCallResult.from_code_run(
+                code_run_res, parameters=self.parameters, contract=self.contract)
+        else:
+            opg_with_metadata = self.operation_group.fill().run()
+            return ContractCallResult.from_contract_call(
+                opg_with_metadata, address=self.address, contract=self.contract)
 
     def view(self):
         """
@@ -112,9 +138,10 @@ class ContractCall(Interop):
 
 class ContractEntrypoint(Interop):
 
-    def __init__(self, name, address, contract: Contract = None, shell=None, key=None):
+    def __init__(self, name, address=None, contract: Contract = None, shell=None, key=None):
         super(ContractEntrypoint, self).__init__(shell=shell, key=key)
         if contract is None:
+            assert address is not None
             code = self.shell.contracts[address].code()
             contract = Contract.from_micheline(code)
 
@@ -166,9 +193,10 @@ class ContractEntrypoint(Interop):
 class ContractInterface(Interop):
     __default_entry__ = 'call'
 
-    def __init__(self, address, contract: Contract = None, shell=None, key=None):
+    def __init__(self, address=None, contract: Contract = None, shell=None, key=None):
         super(ContractInterface, self).__init__(shell=shell, key=key)
         if contract is None:
+            assert address is not None
             code = self.shell.contracts[address].code()
             contract = Contract.from_micheline(code)
 
@@ -239,3 +267,10 @@ class ContractInterface(Interop):
         """
         return ContractCallResult.from_contract_call(
             operation_group, address=self.address, contract=self.contract)
+
+    def manager(self):
+        """
+        Get contract manager address (tz)
+        :return: str
+        """
+        return self.shell.block.context.contracts[self.address].manager()

@@ -84,8 +84,14 @@ class OperationResult:
         else:
             operation_result = {}
 
+        # TODO: it's not that simple
+        spawned_operations = list(filter(
+            lambda x: x['source'] == operation['destination'],
+            OperationResult.iter_contents(operation_group)))
+
         return cls(
             parameters=operation.get('parameters'),
             storage=operation_result.get('storage'),
-            big_map_diff=operation_result.get('big_map_diff', [])
+            big_map_diff=operation_result.get('big_map_diff', []),
+            operations=spawned_operations
         )
