@@ -541,12 +541,15 @@ def convert(source, schema: Schema = None, output='micheline', inline=False):
     :param output: Output format, one of 'micheline' (default), 'michelson', 'object'
     :param inline: Used for michelson output, whether to omit line breaks
     """
-    if not is_micheline(source):
+    if isinstance(source, str):
         try:
             source = michelson_to_micheline(source)
         except ValueError:
             assert schema
             source = encode_micheline(source, schema)
+    elif not is_micheline(source):
+        assert schema
+        source = encode_micheline(source, schema)
 
     if output == 'michelson':
         return micheline_to_michelson(source, inline)

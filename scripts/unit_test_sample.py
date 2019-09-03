@@ -25,16 +25,13 @@ code { DUP ;
 """
 
 
-class SampleContractTest(TestCase):
+class CounterContractTest(TestCase):
 
     @classmethod
     def setUpClass(cls):
         cls.ci = ContractInterface.create_from(code)
-        print(cls.ci.contract.parameter)
-        print(cls.ci.contract.storage)
-        print(cls.ci)
 
-    def test_invocation(self):
+    def test_increment(self):
         res = self.ci.call('deadbeef').result(storage=[{}, 0])
         self.assertEqual(1, res.storage[1])
         self.assertIn('deadbeef', res.big_map_diff)

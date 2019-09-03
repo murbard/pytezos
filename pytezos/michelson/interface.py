@@ -238,9 +238,8 @@ class ContractInterface(Interop):
 
     @classmethod
     def create_from(cls, source, shell=None):
-        path = expanduser(source)
-        if exists(path):
-            contract = Contract.from_file(path)
+        if isinstance(source, str) and exists(expanduser(source)):
+            contract = Contract.from_file(source)
         else:
             contract = Contract(convert(source, output='micheline'))
 
