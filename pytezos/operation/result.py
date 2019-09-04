@@ -93,5 +93,6 @@ class OperationResult:
             parameters=operation.get('parameters'),
             storage=operation_result.get('storage'),
             big_map_diff=operation_result.get('big_map_diff', []),
-            operations=spawned_operations
+            operations=spawned_operations,
+            originated_contracts=OperationResult.originated_contracts(operation)
         )

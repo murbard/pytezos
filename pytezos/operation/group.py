@@ -5,6 +5,7 @@ from pytezos.operation.result import OperationResult
 from pytezos.operation.content import ContentMixin
 from pytezos.operation.forge import forge_operation_group
 from pytezos.operation.fees import FeesProvider
+from pytezos.operation.result import OperationResult
 from pytezos.encoding import forge_base58, base58_encode
 from pytezos.interop import Interop
 from pytezos.tools.docstring import get_class_docstring
@@ -234,3 +235,10 @@ class OperationGroup(Interop, ContentMixin):
 
         return self.shell.injection.operation.post(
             operation=self.binary_payload(), _async=_async)
+
+    def result(self):
+        """
+        Parse preapply result
+        :return: OperationResult
+        """
+        return OperationResult.from_transaction(self.preapply())

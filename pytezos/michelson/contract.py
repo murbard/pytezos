@@ -253,10 +253,12 @@ class Contract(metaclass=InlineDocstring):
         with open(path, 'w+') as f:
             f.write(self.text)
 
-    def script(self, storage=None):
+    def script(self, storage=None, original=True):
         """
         Generate script for contract origination
         :param storage: Python object, leave None to generate empty
+        :param original: Keep the original code (initialized), which is default.
+        Otherwise factory-specific changes may applied, e.g. different annotations
         :return: {"code": $Micheline, "storage": $Micheline}
         """
         if storage is None:
@@ -264,7 +266,16 @@ class Contract(metaclass=InlineDocstring):
         else:
             storage = self.storage.encode(storage)
 
+        if original:
+            code = self.code
+        else:
+            code = [
+                self.parameter.code,
+                self.storage.code,
+                self.code[-1]
+            ]
+
         return {
-            "code": self.code,
+            "code": code,
             "storage": storage
         }
