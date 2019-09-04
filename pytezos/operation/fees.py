@@ -73,3 +73,7 @@ class Athens004FeesProvider(FeesProvider, protocol='Pt24m4xiPbLDhVgVfABUjirbmda3
             'transaction': 0 if content.get('parameters') else 257
         }
         return values.get(content['kind'])
+
+
+class SandboxFeesProvider(Athens004FeesProvider, protocol='ProtoALphaALphaALphaALphaALphaALphaALphaALphaDdp3zK'):
+    pass
