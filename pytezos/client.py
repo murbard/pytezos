@@ -3,8 +3,10 @@ from functools import lru_cache
 from pytezos.operation.group import OperationGroup
 from pytezos.operation.content import ContentMixin
 from pytezos.michelson.interface import ContractInterface
+from pytezos.michelson.contract import Contract
 from pytezos.interop import Interop
 from pytezos.tools.docstring import get_class_docstring
+from pytezos.standards.non_fungible_token import NonFungibleTokenImpl
 
 
 class PyTezosClient(Interop, ContentMixin):
@@ -64,11 +66,12 @@ class PyTezosClient(Interop, ContentMixin):
         return self.shell.contracts[address]()
 
     @lru_cache(maxsize=None)
-    def _get_contract_interface(self, contract_id):
+    def _get_contract_interface(self, contract_id, factory=Contract):
         return ContractInterface(
             address=contract_id,
             shell=self.shell,
-            key=self.key
+            key=self.key,
+            factory=factory
         )
 
     def contract(self, contract_id) -> ContractInterface:
@@ -78,3 +81,12 @@ class PyTezosClient(Interop, ContentMixin):
         :return: ContractInterface
         """
         return self._get_contract_interface(contract_id)
+
+    def nft_app(self, contract_id) -> ContractInterface:
+        """
+        Get a high-level NFT interface for a given smart contract id.
+        Read more at https://nft.stove-labs.com/
+        :param contract_id: KT address of a smart contract
+        :return: ContractInterface
+        """
+        return self._get_contract_interface(contract_id, factory=NonFungibleTokenImpl)

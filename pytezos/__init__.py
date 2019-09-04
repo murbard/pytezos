@@ -17,5 +17,6 @@ from pytezos.michelson.contract import Contract
 from pytezos.client import PyTezosClient
 from pytezos.operation.group import OperationGroup
 from pytezos.michelson.interface import ContractInterface
+from pytezos.standards.non_fungible_token import NonFungibleTokenImpl
 
 pytezos = PyTezosClient()

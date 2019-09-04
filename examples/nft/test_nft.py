@@ -1,0 +1,55 @@
+from os.path import dirname, join
+from unittest import TestCase
+
+from pytezos import ContractInterface, NonFungibleTokenImpl
+
+
+class NftContractTest(TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.ci = ContractInterface.create_from(join(dirname(__file__), 'nft.tz'), factory=NonFungibleTokenImpl)
+
+    def test_mint(self):
+        res = self.ci \
+            .mint(token_id=42, owner='tz1eKkWU5hGtfLUiqNpucHrXymm83z3DG9Sq') \
+            .result(storage={})
+        self.assertDictEqual({42: 'tz1eKkWU5hGtfLUiqNpucHrXymm83z3DG9Sq'}, res.storage)
+
+    def test_transfer_skip(self):
+        res = self.ci \
+            .transfer(token_id=42, destination='tz1eKkWU5hGtfLUiqNpucHrXymm83z3DG9Sq') \
+            .result(storage={42: 'tz1eKkWU5hGtfLUiqNpucHrXymm83z3DG9Sq'})
+        self.assertDictEqual({42: 'tz1eKkWU5hGtfLUiqNpucHrXymm83z3DG9Sq'}, res.storage)
+
+    def test_transfer_non_existent(self):
+        with self.assertRaises(Exception):
+            self.ci \
+                .transfer(token_id=42, destination='tz28YZoayJjVz2bRgGeVjxE8NonMiJ3r2Wdu') \
+                .result(storage={}, source='tz1eKkWU5hGtfLUiqNpucHrXymm83z3DG9Sq')
+
+    def test_transfer_unwanted(self):
+        res = self.ci \
+            .transfer(token_id=42, destination='tz28YZoayJjVz2bRgGeVjxE8NonMiJ3r2Wdu') \
+            .result(storage={42: 'tz1eKkWU5hGtfLUiqNpucHrXymm83z3DG9Sq'})
+        self.assertDictEqual({42: 'tz1eKkWU5hGtfLUiqNpucHrXymm83z3DG9Sq'}, res.storage)
+
+    def test_transfer(self):
+        res = self.ci \
+            .transfer(token_id=42, destination='tz28YZoayJjVz2bRgGeVjxE8NonMiJ3r2Wdu') \
+            .result(storage={42: 'tz1eKkWU5hGtfLUiqNpucHrXymm83z3DG9Sq'},
+                    source='tz1eKkWU5hGtfLUiqNpucHrXymm83z3DG9Sq')
+        self.assertDictEqual({42: 'tz28YZoayJjVz2bRgGeVjxE8NonMiJ3r2Wdu'}, res.storage)
+
+    def test_burn_unwanted(self):
+        res = self.ci \
+            .burn(42) \
+            .result(storage={42: 'tz1eKkWU5hGtfLUiqNpucHrXymm83z3DG9Sq'})
+        self.assertDictEqual({42: 'tz1eKkWU5hGtfLUiqNpucHrXymm83z3DG9Sq'}, res.storage)
+
+    def test_burn(self):
+        res = self.ci \
+            .burn(42) \
+            .result(storage={42: 'tz1eKkWU5hGtfLUiqNpucHrXymm83z3DG9Sq'},
+                    source='tz1eKkWU5hGtfLUiqNpucHrXymm83z3DG9Sq')
+        self.assertDictEqual({}, res.storage)

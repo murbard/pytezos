@@ -19,6 +19,20 @@ first_cap_re = re.compile('(.)([A-Z][a-z]+)')
 all_cap_re = re.compile('([a-z0-9])([A-Z])')
 
 
+class TypedDict(dict):
+    __key_type__ = str
+
+    def __getitem__(self, item):
+        return super(TypedDict, self).__getitem__(self.__key_type__(item))
+
+    def __setitem__(self, key, value):
+        return super(TypedDict, self).__setitem__(self.__key_type__(key), value)
+
+    @staticmethod
+    def make(key_type):
+        return type(f'{key_type.__name__.capitalize()}Dict', (TypedDict,), {'__key_type__': key_type})
+
+
 def is_micheline(value):
     if isinstance(value, list):
         def get_prim(x):
@@ -246,9 +260,9 @@ def parse_micheline(data, bin_to_json: dict, bin_types: dict, bin_root='0'):
     def parse_node(node, bin_path, params):
         bin_type = bin_types[bin_path]
         if bin_type in ['map', 'big_map', 'namedtuple', 'router']:
-            set_value(bin_path, params, dict())
+            set_value(bin_path, params, dict)
         elif bin_type in ['list', 'set', 'tuple']:
-            set_value(bin_path, params, list())
+            set_value(bin_path, params, list)
 
         if isinstance(node, dict):
             if node.get('prim') == 'Pair':
@@ -275,9 +289,12 @@ def parse_micheline(data, bin_to_json: dict, bin_types: dict, bin_root='0'):
 
         elif isinstance(node, list):
             if bin_type in ['map', 'big_map']:
+                key_type = str
                 for elt in node:
                     key = decode_literal(elt['args'][0], bin_types[bin_path + '0'])
                     parse_node(elt['args'][1], bin_path + '1', params + [key])
+                    key_type = type(key)
+                set_value(bin_path, params, TypedDict.make(key_type))
             elif bin_type in ['set', 'list']:
                 for i, arg in enumerate(node):
                     parse_node(arg, bin_path + '0', params + [i])
@@ -294,8 +311,8 @@ def parse_micheline(data, bin_to_json: dict, bin_types: dict, bin_root='0'):
 
 def make_json(json_values: dict):
     root = json_values['/']
-    if type(root) in [dict, list]:
-        tree = root.copy()
+    if isinstance(root, type):
+        tree = root()
     else:
         return root
 
@@ -314,8 +331,8 @@ def make_json(json_values: dict):
     for json_path, value in json_values.items():
         if json_path == '/':
             continue
-        if type(value) in [dict, list]:
-            value = value.copy()
+        if isinstance(value, type):
+            value = value()
 
         parent_node = get_parent_node(json_path)
         key_path = basename(json_path)

@@ -9,6 +9,12 @@ from pytezos.operation.content import format_mutez
 from pytezos.interop import Interop
 from pytezos.tools.docstring import get_class_docstring
 
+#
+# class MichelsonRuntimeError(RuntimeError):
+#
+#     @classmethod
+#     def from_
+
 
 class ContractCallResult(OperationResult):
 
@@ -27,14 +33,15 @@ class ContractCallResult(OperationResult):
         return cls(
             parameters=contract.parameter.decode(parameters),
             storage=contract.storage.decode(code_run['storage']),
-            big_map_diff=contract.storage.big_map_diff_decode(code_run['big_map_diff']),
-            operations=code_run['operations']
+            big_map_diff=contract.storage.big_map_diff_decode(code_run.get('big_map_diff', [])),
+            operations=code_run.get('operations', [])
         )
 
 
 class ContractCall(Interop):
 
-    def __init__(self, parameters, address=None, contract: Contract = None, amount=0, shell=None, key=None):
+    def __init__(self, parameters,
+                 address=None, contract: Contract = None, factory=Contract, amount=0, shell=None, key=None):
         super(ContractCall, self).__init__(shell=shell, key=key)
         self.parameters = parameters
         self.address = address
@@ -42,7 +49,7 @@ class ContractCall(Interop):
 
         if contract is None:
             assert address is not None
-            contract = Contract.from_micheline(self.shell.contracts[address].code())
+            contract = factory.from_micheline(self.shell.contracts[address].code())
 
         self.contract = contract
 
@@ -139,12 +146,12 @@ class ContractCall(Interop):
 
 class ContractEntrypoint(Interop):
 
-    def __init__(self, name, address=None, contract: Contract = None, shell=None, key=None):
+    def __init__(self, name, address=None, contract: Contract = None, factory=Contract, shell=None, key=None):
         super(ContractEntrypoint, self).__init__(shell=shell, key=key)
         if contract is None:
             assert address is not None
             code = self.shell.contracts[address].code()
-            contract = Contract.from_micheline(code)
+            contract = factory.from_micheline(code)
 
         self.contract = contract
         self.name = name
@@ -194,12 +201,12 @@ class ContractEntrypoint(Interop):
 class ContractInterface(Interop):
     __default_entry__ = 'call'
 
-    def __init__(self, address=None, contract: Contract = None, shell=None, key=None):
+    def __init__(self, address=None, contract: Contract = None, factory=Contract, shell=None, key=None):
         super(ContractInterface, self).__init__(shell=shell, key=key)
         if contract is None:
             assert address is not None
             code = self.shell.contracts[address].code()
-            contract = Contract.from_micheline(code)
+            contract = factory.from_micheline(code)
 
         self.contract = contract
         self.address = address
@@ -237,11 +244,11 @@ class ContractInterface(Interop):
         return '\n'.join(res)
 
     @classmethod
-    def create_from(cls, source, shell=None):
+    def create_from(cls, source, shell=None, factory=Contract):
         if isinstance(source, str) and exists(expanduser(source)):
-            contract = Contract.from_file(source)
+            contract = factory.from_file(source)
         else:
-            contract = Contract(convert(source, output='micheline'))
+            contract = factory(convert(source, output='micheline'))
 
         return ContractInterface(contract=contract, shell=shell)
 

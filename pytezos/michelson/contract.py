@@ -265,12 +265,15 @@ class ContractStorage(metaclass=InlineDocstring):
         (since Babylon you can have more than one BigMap at arbitrary position)
         :return: dict
         """
-        key_prim, value_root = self._locate_big_map(big_map_path)
-        return {
-            decode_literal(item['key'], key_prim):
-                decode_micheline(item['value'], self.schema, root=value_root) if item.get('value') else None
-            for item in diff
-        }
+        if diff:
+            key_prim, value_root = self._locate_big_map(big_map_path)
+            return {
+                decode_literal(item['key'], key_prim):
+                    decode_micheline(item['value'], self.schema, root=value_root) if item.get('value') else None
+                for item in diff
+            }
+        else:
+            return {}
 
     def big_map_diff_encode(self, big_map: dict, big_map_path=None):
         """
