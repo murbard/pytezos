@@ -1,5 +1,5 @@
 from pytezos.michelson.contract import Contract, ContractParameter, ContractStorage
-from pytezos.michelson.coding import michelson_to_micheline
+from pytezos.michelson.micheline import michelson_to_micheline
 
 parameter_tz = """
 parameter 

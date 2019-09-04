@@ -8,8 +8,8 @@ from functools import lru_cache
 
 from pytezos.encoding import parse_address, parse_public_key, forge_public_key, forge_address
 from pytezos.michelson.forge import prim_tags
+from pytezos.michelson.formatter import micheline_to_michelson
 from pytezos.michelson.grammar import MichelsonParser
-from pytezos.michelson.formatter import format_node
 
 Nested = namedtuple('Nested', ['prim', 'args'])
 Schema = namedtuple('Schema', ['metadata', 'bin_types', 'bin_to_json', 'json_to_bin'])
@@ -17,6 +17,11 @@ Schema = namedtuple('Schema', ['metadata', 'bin_types', 'bin_to_json', 'json_to_
 meaningful_types = ['key', 'key_hash', 'signature', 'timestamp', 'address']
 first_cap_re = re.compile('(.)([A-Z][a-z]+)')
 all_cap_re = re.compile('([a-z0-9])([A-Z])')
+
+
+@lru_cache(maxsize=None)
+def michelson_parser():
+    return MichelsonParser()
 
 
 class TypedDict(dict):
@@ -43,11 +48,6 @@ def is_micheline(value):
         return any(map(lambda x: x in value, ['prim', 'args', 'annots', *primitives]))
     else:
         return False
-
-
-@lru_cache(maxsize=None)
-def michelson_parser():
-    return MichelsonParser()
 
 
 def to_snake_case(name):
@@ -491,46 +491,6 @@ def make_default(bin_types: dict, root='0'):
     return encode_node(root)
 
 
-def build_schema(code) -> Schema:
-    """
-    Creates internal structures necessary for decoding/encoding micheline:
-    `metadata` -> micheline tree with collapsed `pair`, `or`, and `option` nodes
-    `bin_types` -> maps binary path to primitive
-    `bin_to_json` -> binary path to json path mapping
-    `json_to_bin` -> reversed `bin_to_json`
-    :param code: parameter or storage section of smart contract source code (in micheline)
-    :return: Schema
-    """
-    metadata = collapse_micheline(code)
-    return Schema(metadata, *build_maps(metadata))
-
-
-def decode_micheline(data, schema: Schema, root='0'):
-    """
-    Converts Micheline data into Python object
-    :param data: Micheline expression
-    :param schema: schema built for particular contract/section
-    :param root: which binary node to take as root, used to decode BigMap values/diffs
-    :return: Object
-    """
-    json_values = parse_micheline(data, schema.bin_to_json, schema.bin_types, root)
-    return make_json(json_values)
-
-
-def encode_micheline(data, schema: Schema, root='0', binary=False):
-    """
-    Converts Python object into Micheline expression
-    :param data: Python object
-    :param schema: schema built for particular contract/section
-    :param root: which binary node to take as root, used to encode BigMap values
-    :param binary: Encode keys and addresses in bytes rather than strings, default is False
-    :return: Micheline expression
-    """
-    json_root = schema.bin_to_json[root]
-    bin_values = parse_json(data, schema.json_to_bin, schema.bin_types, json_root)
-    return make_micheline(bin_values, schema.bin_types, root, binary)
-
-
 def michelson_to_micheline(data):
     """
     Converts michelson source text into Micheline expression
@@ -538,43 +498,3 @@ def michelson_to_micheline(data):
     :return: Micheline expression
     """
     return michelson_parser().parse(data)
-
-
-def micheline_to_michelson(data, inline=False):
-    """
-    Converts micheline expression into formatted Michelson source
-    :param data: Micheline expression
-    :param inline: produce single line, used for tezos-client arguments (False by default)
-    :return: string
-    """
-    return format_node(data, inline=inline, is_root=True)
-
-
-def convert(source, schema: Schema = None, output='micheline', inline=False):
-    """
-    Convert data between different representations
-    :param source: Data, can be one of Michelson (string), Micheline expression, object
-    :param schema: Needed if decoding/encoding objects (optional)
-    :param output: Output format, one of 'micheline' (default), 'michelson', 'object'
-    :param inline: Used for michelson output, whether to omit line breaks
-    """
-    if isinstance(source, str):
-        try:
-            source = michelson_to_micheline(source)
-        except ValueError:
-            assert schema
-            source = encode_micheline(source, schema)
-    elif not is_micheline(source):
-        assert schema
-        source = encode_micheline(source, schema)
-
-    if output == 'michelson':
-        return micheline_to_michelson(source, inline)
-    elif output == 'object':
-        assert schema
-        return decode_micheline(source, schema)
-    elif output == 'micheline':
-        return source
-    else:
-        assert False
-

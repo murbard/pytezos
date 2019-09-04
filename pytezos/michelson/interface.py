@@ -2,18 +2,25 @@ from os.path import basename, dirname, join, exists, expanduser
 from pprint import pformat
 
 from pytezos.operation.result import OperationResult
-from pytezos.michelson.contract import Contract, micheline_to_michelson
-from pytezos.michelson.coding import make_dict, convert
+from pytezos.michelson.contract import Contract
+from pytezos.michelson.converter import convert
+from pytezos.michelson.micheline import make_dict
+from pytezos.michelson.formatter import micheline_to_michelson
 from pytezos.operation.group import OperationGroup
 from pytezos.operation.content import format_mutez
 from pytezos.interop import Interop
 from pytezos.tools.docstring import get_class_docstring
+from pytezos.rpc.node import RpcError
 
-#
-# class MichelsonRuntimeError(RuntimeError):
-#
-#     @classmethod
-#     def from_
+
+class MichelsonRuntimeError(RuntimeError):
+
+    @classmethod
+    def from_rpc_error(cls, error: RpcError):
+        if error.res.status_code in [500, 400, 422]:
+            return MichelsonRuntimeError(error.res.json())
+        else:
+            return MichelsonRuntimeError(error.res.text)
 
 
 class ContractCallResult(OperationResult):
@@ -125,7 +132,12 @@ class ContractCall(Interop):
                 amount=str(self.amount),
                 source=source
             )
-            code_run_res = self.shell.head.helpers.scripts.run_code.post(query)
+
+            try:
+                code_run_res = self.shell.head.helpers.scripts.run_code.post(query)
+            except RpcError as e:
+                raise MichelsonRuntimeError.from_rpc_error(e)
+
             return ContractCallResult.from_code_run(
                 code_run_res, parameters=self.parameters, contract=self.contract)
         else:
