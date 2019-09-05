@@ -1,3 +1,7 @@
+class OperationError(ValueError):
+    pass
+
+
 class OperationResult:
 
     def __init__(self, **props):
@@ -17,8 +21,7 @@ class OperationResult:
     def iter_contents(operation_group: dict):
         contents = operation_group.get('contents', [operation_group])
         for content in contents:
-            if 'contents' in operation_group:
-                yield {'internal': False, **content}
+            yield {'internal': False, **content}
             internal_operation_results = content.get('metadata', {}).get('internal_operation_results', [])
             for result in internal_operation_results:
                 yield {'internal': True, **result}
@@ -82,7 +85,7 @@ class OperationResult:
     @classmethod
     def from_operation_group(cls, operation_group: dict, **predicates):
         if not cls.is_applied(operation_group):
-            raise ValueError(cls.errors(operation_group))
+            raise OperationError(cls.errors(operation_group))
 
         def dispatch(content):
             if content['kind'] == 'transaction':
@@ -103,15 +106,10 @@ class OperationResult:
     @classmethod
     def from_transaction(cls, content: dict):
         operation_result = cls.get_result(content)
-
-        # TODO: if it is already an internal operation, we should think... (build a tree?)
-        spawned_operations = list(filter(
-            lambda x: x['source'] == content['destination'],
-            OperationResult.iter_contents(content)))
-
         return cls(
             parameters=content.get('parameters'),
             storage=operation_result.get('storage'),
             big_map_diff=operation_result.get('big_map_diff', []),
-            operations=spawned_operations
+            # TODO: if it is already an internal operation, we should think... (build a tree?)
+            operations=cls.get_contents(content, source=content['destination'])
         )
