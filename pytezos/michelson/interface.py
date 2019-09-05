@@ -27,7 +27,10 @@ class ContractCallResult(OperationResult):
 
     @classmethod
     def from_contract_call(cls, operation_group: dict, address, contract: Contract):
-        result = cls.from_transaction(operation_group, destination=address)
+        results = cls.from_operation_group(operation_group, kind='transaction', destination=address)
+        assert len(results) == 1, results
+        result = results[0]
+
         return cls(
             parameters=contract.parameter.decode(result.parameters),
             storage=contract.storage.decode(result.storage),

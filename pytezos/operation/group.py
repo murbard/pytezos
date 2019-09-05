@@ -241,4 +241,4 @@ class OperationGroup(Interop, ContentMixin):
         Parse preapply result
         :return: OperationResult
         """
-        return OperationResult.from_transaction(self.preapply())
+        return OperationResult.from_operation_group(self.preapply())
