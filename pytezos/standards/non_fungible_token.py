@@ -6,7 +6,7 @@ parameter
     (or (or (nat %burn :token_id) (pair %mint (address %owner) (nat %token_id)))
         (pair %transfer (address %destination) (nat %token_id)))
 """
-storage_tz = "storage (map (nat %token_id) (address %owner))"
+storage_tz = "storage (map nat address)"
 
 parameter = ContractParameter(michelson_to_micheline(parameter_tz))
 storage = ContractStorage(michelson_to_micheline(storage_tz))
