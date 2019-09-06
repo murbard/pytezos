@@ -3,6 +3,10 @@ import json
 line_size = 100
 
 
+class MichelsonFormatterError(ValueError):
+    pass
+
+
 def is_framed(node):
     if node['prim'] in {'Pair', 'Left', 'Right', 'Some',
                         'pair', 'or', 'option', 'map', 'big_map', 'list', 'set', 'contract', 'lambda'}:
@@ -91,3 +95,16 @@ def format_node(node, indent='', inline=False, is_root=False, wrapped=False):
                 assert False
     else:
         assert False, node
+
+
+def micheline_to_michelson(data, inline=False):
+    """
+    Converts micheline expression into formatted Michelson source
+    :param data: Micheline expression
+    :param inline: produce single line, used for tezos-client arguments (False by default)
+    :return: string
+    """
+    try:
+        return format_node(data, inline=inline, is_root=True)
+    except (KeyError, IndexError, TypeError):
+        raise MichelsonFormatterError('Failed to format Micheline expression')

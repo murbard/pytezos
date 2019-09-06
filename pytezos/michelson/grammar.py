@@ -7,6 +7,10 @@ import json
 # TODO: sync primitives with BABY
 
 
+class MichelsonParserError(ValueError):
+    pass
+
+
 class Sequence(list):
     pass
 
@@ -144,7 +148,7 @@ class MichelsonParser(object):
         '''empty :'''
 
     def p_error(self, p):
-        raise ValueError(p)
+        raise MichelsonParserError(p)
 
     def __init__(self, debug=False, write_tables=False):
         self.lexer = SimpleMichelsonLexer()

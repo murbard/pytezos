@@ -6,9 +6,10 @@ from decimal import Decimal
 from collections import namedtuple, defaultdict
 from functools import lru_cache
 
-from pytezos.encoding import parse_address, parse_public_key, forge_public_key, forge_address, forge_base58
+from pytezos.encoding import parse_address, parse_public_key, forge_public_key, forge_address
+from pytezos.michelson.forge import prim_tags
+from pytezos.michelson.formatter import micheline_to_michelson
 from pytezos.michelson.grammar import MichelsonParser
-from pytezos.michelson.formatter import format_node
 
 Nested = namedtuple('Nested', ['prim', 'args'])
 Schema = namedtuple('Schema', ['metadata', 'bin_types', 'bin_to_json', 'json_to_bin'])
@@ -21,6 +22,32 @@ all_cap_re = re.compile('([a-z0-9])([A-Z])')
 @lru_cache(maxsize=None)
 def michelson_parser():
     return MichelsonParser()
+
+
+class TypedDict(dict):
+    __key_type__ = str
+
+    def __getitem__(self, item):
+        return super(TypedDict, self).__getitem__(self.__key_type__(item))
+
+    def __setitem__(self, key, value):
+        return super(TypedDict, self).__setitem__(self.__key_type__(key), value)
+
+    @staticmethod
+    def make(key_type):
+        return type(f'{key_type.__name__.capitalize()}Dict', (TypedDict,), {'__key_type__': key_type})
+
+
+def is_micheline(value):
+    if isinstance(value, list):
+        def get_prim(x):
+            return x.get('prim') if isinstance(x, dict) else None
+        return set(map(get_prim, value)) == {'parameter', 'storage', 'code'}
+    elif isinstance(value, dict):
+        primitives = list(prim_tags.keys())
+        return any(map(lambda x: x in value, ['prim', 'args', 'annots', *primitives]))
+    else:
+        return False
 
 
 def to_snake_case(name):
@@ -91,7 +118,7 @@ def get_flat_nested(nested: Nested):
 
 
 def make_dict(**kwargs) -> dict:
-    return {k: v for k, v in kwargs.items() if v}
+    return {k: v for k, v in kwargs.items() if v is not None}
 
 
 def collapse_micheline(code) -> dict:
@@ -233,9 +260,9 @@ def parse_micheline(data, bin_to_json: dict, bin_types: dict, bin_root='0'):
     def parse_node(node, bin_path, params):
         bin_type = bin_types[bin_path]
         if bin_type in ['map', 'big_map', 'namedtuple', 'router']:
-            set_value(bin_path, params, dict())
+            set_value(bin_path, params, dict)
         elif bin_type in ['list', 'set', 'tuple']:
-            set_value(bin_path, params, list())
+            set_value(bin_path, params, list)
 
         if isinstance(node, dict):
             if node.get('prim') == 'Pair':
@@ -262,9 +289,12 @@ def parse_micheline(data, bin_to_json: dict, bin_types: dict, bin_root='0'):
 
         elif isinstance(node, list):
             if bin_type in ['map', 'big_map']:
+                key_type = str
                 for elt in node:
                     key = decode_literal(elt['args'][0], bin_types[bin_path + '0'])
                     parse_node(elt['args'][1], bin_path + '1', params + [key])
+                    key_type = type(key)
+                set_value(bin_path, params, TypedDict.make(key_type))
             elif bin_type in ['set', 'list']:
                 for i, arg in enumerate(node):
                     parse_node(arg, bin_path + '0', params + [i])
@@ -281,8 +311,8 @@ def parse_micheline(data, bin_to_json: dict, bin_types: dict, bin_root='0'):
 
 def make_json(json_values: dict):
     root = json_values['/']
-    if type(root) in [dict, list]:
-        tree = root.copy()
+    if isinstance(root, type):
+        tree = root()
     else:
         return root
 
@@ -301,8 +331,8 @@ def make_json(json_values: dict):
     for json_path, value in json_values.items():
         if json_path == '/':
             continue
-        if type(value) in [dict, list]:
-            value = value.copy()
+        if isinstance(value, type):
+            value = value()
 
         parent_node = get_parent_node(json_path)
         key_path = basename(json_path)
@@ -448,7 +478,7 @@ def make_default(bin_types: dict, root='0'):
         elif bin_type in ['map', 'big_map', 'set', 'list']:
             return []
         elif bin_type in ['int', 'nat', 'mutez', 'timestamp']:
-            return {'int': 0}
+            return {'int': '0'}
         elif bin_type in ['string', 'bytes']:
             return {'string': ''}
         elif bin_type == 'bool':
@@ -461,46 +491,6 @@ def make_default(bin_types: dict, root='0'):
     return encode_node(root)
 
 
-def build_schema(code) -> Schema:
-    """
-    Creates internal structures necessary for decoding/encoding micheline:
-    `metadata` -> micheline tree with collapsed `pair`, `or`, and `option` nodes
-    `bin_types` -> maps binary path to primitive
-    `bin_to_json` -> binary path to json path mapping
-    `json_to_bin` -> reversed `bin_to_json`
-    :param code: parameter or storage section of smart contract source code (in micheline)
-    :return: Schema
-    """
-    metadata = collapse_micheline(code)
-    return Schema(metadata, *build_maps(metadata))
-
-
-def decode_micheline(data, schema: Schema, root='0'):
-    """
-    Converts Micheline data into Python object
-    :param data: Micheline expression
-    :param schema: schema built for particular contract/section
-    :param root: which binary node to take as root, used to decode BigMap values/diffs
-    :return: Object
-    """
-    json_values = parse_micheline(data, schema.bin_to_json, schema.bin_types, root)
-    return make_json(json_values)
-
-
-def encode_micheline(data, schema: Schema, root='0', binary=False):
-    """
-    Converts Python object into Micheline expression
-    :param data: Python object
-    :param schema: schema built for particular contract/section
-    :param root: which binary node to take as root, used to encode BigMap values
-    :param binary: Encode keys and addresses in bytes rather than strings, default is False
-    :return: Micheline expression
-    """
-    json_root = schema.bin_to_json[root]
-    bin_values = parse_json(data, schema.json_to_bin, schema.bin_types, json_root)
-    return make_micheline(bin_values, schema.bin_types, root, binary)
-
-
 def michelson_to_micheline(data):
     """
     Converts michelson source text into Micheline expression
@@ -508,13 +498,3 @@ def michelson_to_micheline(data):
     :return: Micheline expression
     """
     return michelson_parser().parse(data)
-
-
-def micheline_to_michelson(data, inline=False):
-    """
-    Converts micheline expression into formatted Michelson source
-    :param data: Micheline expression
-    :param inline: produce single line, used for tezos-client arguments (False by default)
-    :return: string
-    """
-    return format_node(data, inline=inline, is_root=True)

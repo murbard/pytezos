@@ -1,36 +1,65 @@
-from os.path import basename, dirname, join
+from os.path import basename, dirname, join, exists, expanduser
 from pprint import pformat
 
 from pytezos.operation.result import OperationResult
-from pytezos.michelson.contract import Contract, micheline_to_michelson
+from pytezos.michelson.contract import Contract
+from pytezos.michelson.converter import convert
+from pytezos.michelson.micheline import make_dict
+from pytezos.michelson.formatter import micheline_to_michelson
 from pytezos.operation.group import OperationGroup
 from pytezos.operation.content import format_mutez
 from pytezos.interop import Interop
 from pytezos.tools.docstring import get_class_docstring
+from pytezos.rpc.node import RpcError
+
+
+class MichelsonRuntimeError(RuntimeError):
+
+    @classmethod
+    def from_rpc_error(cls, error: RpcError):
+        if error.res.status_code in [500, 400, 422]:
+            return MichelsonRuntimeError(error.res.json())
+        else:
+            return MichelsonRuntimeError(error.res.text)
 
 
 class ContractCallResult(OperationResult):
 
     @classmethod
     def from_contract_call(cls, operation_group: dict, address, contract: Contract):
-        result = cls.from_transaction(operation_group, destination=address)
+        results = cls.from_operation_group(operation_group, kind='transaction', destination=address)
+        assert len(results) == 1, results
+        result = results[0]
+
         return cls(
             parameters=contract.parameter.decode(result.parameters),
             storage=contract.storage.decode(result.storage),
-            big_map_diff=contract.storage.big_map_diff_decode(result.big_map_diff)
+            big_map_diff=contract.storage.big_map_diff_decode(result.big_map_diff),
+            operations=result.operations
+        )
+
+    @classmethod
+    def from_code_run(cls, code_run: dict, parameters, contract: Contract):
+        return cls(
+            parameters=contract.parameter.decode(parameters),
+            storage=contract.storage.decode(code_run['storage']),
+            big_map_diff=contract.storage.big_map_diff_decode(code_run.get('big_map_diff', [])),
+            operations=code_run.get('operations', [])
         )
 
 
 class ContractCall(Interop):
 
-    def __init__(self, parameters, address, contract: Contract = None, amount=0, shell=None, key=None):
+    def __init__(self, parameters,
+                 address=None, contract: Contract = None, factory=Contract, amount=0, shell=None, key=None):
         super(ContractCall, self).__init__(shell=shell, key=key)
         self.parameters = parameters
         self.address = address
         self.amount = amount
 
         if contract is None:
-            contract = Contract.from_micheline(self.shell.contracts[address].code())
+            assert address is not None
+            contract = factory.from_micheline(self.shell.contracts[address].code())
 
         self.contract = contract
 
@@ -90,14 +119,34 @@ class ContractCall(Interop):
         amount = format_mutez(self.amount)
         return f'transfer {amount} from {source} to {self.address} -arg "{arg}"'
 
-    def result(self):
+    def result(self, storage=None, source=None):
         """
         Simulate operation and parse the result.
+        :param storage: Michelson string, Micheline expression, or object.
+        If storage is specified, `run_code` is called instead of `run_operation`.
+        :param source: Can be specified for unit testing purposes
         :return: ContractCallResult
         """
-        opg_with_metadata = self.operation_group.fill().run()
-        return ContractCallResult.from_contract_call(
-            opg_with_metadata, address=self.address, contract=self.contract)
+        if storage is not None:
+            query = make_dict(
+                script=self.contract.code,
+                storage=convert(storage, schema=self.contract.storage.schema, output='micheline'),
+                input=self.parameters,
+                amount=str(self.amount),
+                source=source
+            )
+
+            try:
+                code_run_res = self.shell.head.helpers.scripts.run_code.post(query)
+            except RpcError as e:
+                raise MichelsonRuntimeError.from_rpc_error(e)
+
+            return ContractCallResult.from_code_run(
+                code_run_res, parameters=self.parameters, contract=self.contract)
+        else:
+            opg_with_metadata = self.operation_group.fill().run()
+            return ContractCallResult.from_contract_call(
+                opg_with_metadata, address=self.address, contract=self.contract)
 
     def view(self):
         """
@@ -112,11 +161,12 @@ class ContractCall(Interop):
 
 class ContractEntrypoint(Interop):
 
-    def __init__(self, name, address, contract: Contract = None, shell=None, key=None):
+    def __init__(self, name, address=None, contract: Contract = None, factory=Contract, shell=None, key=None):
         super(ContractEntrypoint, self).__init__(shell=shell, key=key)
         if contract is None:
+            assert address is not None
             code = self.shell.contracts[address].code()
-            contract = Contract.from_micheline(code)
+            contract = factory.from_micheline(code)
 
         self.contract = contract
         self.name = name
@@ -166,11 +216,12 @@ class ContractEntrypoint(Interop):
 class ContractInterface(Interop):
     __default_entry__ = 'call'
 
-    def __init__(self, address, contract: Contract = None, shell=None, key=None):
+    def __init__(self, address=None, contract: Contract = None, factory=Contract, shell=None, key=None):
         super(ContractInterface, self).__init__(shell=shell, key=key)
         if contract is None:
+            assert address is not None
             code = self.shell.contracts[address].code()
-            contract = Contract.from_micheline(code)
+            contract = factory.from_micheline(code)
 
         self.contract = contract
         self.address = address
@@ -207,6 +258,15 @@ class ContractInterface(Interop):
         ]
         return '\n'.join(res)
 
+    @classmethod
+    def create_from(cls, source, shell=None, factory=Contract):
+        if isinstance(source, str) and exists(expanduser(source)):
+            contract = factory.from_file(source)
+        else:
+            contract = factory(convert(source, output='micheline'))
+
+        return ContractInterface(contract=contract, shell=shell)
+
     def big_map_get(self, path, block_id='head'):
         """
         Get BigMap entry as Python object by plain key and block height
@@ -239,3 +299,10 @@ class ContractInterface(Interop):
         """
         return ContractCallResult.from_contract_call(
             operation_group, address=self.address, contract=self.contract)
+
+    def manager(self):
+        """
+        Get contract manager address (tz)
+        :return: str
+        """
+        return self.shell.block.context.contracts[self.address].manager()

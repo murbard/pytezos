@@ -27,9 +27,10 @@ class RpcProvider:
 
 
 localhost = RpcProvider(
-    mainnet='https://127.0.0.1:8732/',
-    alphanet='https://127.0.0.1:8732/',
-    zeronet='https://127.0.0.1:8732/'
+    mainnet='http://127.0.0.1:8732/',
+    alphanet='http://127.0.0.1:8732/',
+    zeronet='http://127.0.0.1:8732/',
+    sandboxnet='http://127.0.0.1:8732/'
 )
 tzscan = RpcProvider(
     mainnet='https://mainnet-node.tzscan.io/',

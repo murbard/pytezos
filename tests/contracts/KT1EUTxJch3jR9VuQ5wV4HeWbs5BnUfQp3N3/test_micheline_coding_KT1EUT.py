@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 from tests import get_data
-from pytezos.michelson.coding import build_schema, encode_micheline, decode_micheline
+from pytezos.michelson.converter import build_schema, decode_micheline, encode_micheline
 
 
 class MichelineCodingTestKT1EUT(TestCase):

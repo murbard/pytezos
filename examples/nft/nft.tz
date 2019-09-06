@@ -1,0 +1,193 @@
+parameter
+  (or (or (nat %burn) (pair %mint (address %nftToMint) (nat %nftToMintId)))
+      (pair %transfer (address %destination) (nat %nftToTransfer))) ;
+storage (map nat address) ;
+code { {} ;
+       {} ;
+       {} ;
+       { PUSH (lambda
+                 (pair (pair (address %nftToMint) (nat %nftToMintId)) (map nat address))
+                 (pair (list operation) (map nat address)))
+              { {} ;
+                {} ;
+                {} ;
+                { { { DUP ; DIP { } } ; CAR } ;
+                  { { { { DIP { DUP } ; SWAP } ; DIP { {} } } ; CDR } ;
+                    { { { { { { { DIP { DUP } ; SWAP } ; DIP { {} } } ; CDR } ;
+                            DIP { { DUP ; DIP { {} } } } } ;
+                          GET } ;
+                        IF_NONE
+                          { { {} ;
+                              { { { { { DIP { DUP } ; SWAP } ; DIP { {} } } ; CDR } ;
+                                  DIP { { { { { DIP { DUP } ; SWAP } ; DIP { {} } } ; CAR } ;
+                                          DIP { { DUP ; DIP { {} } } } } } } ;
+                                { DIP { SOME } ; UPDATE } } ;
+                              {} ;
+                              DIP { DUP } ;
+                              {} ;
+                              DIP { DROP } ;
+                              {} ;
+                              DIP { DROP } ;
+                              {} ;
+                              PUSH unit Unit } }
+                          { { PUSH unit Unit ; DIP { DROP } } } } ;
+                      DROP ;
+                      { { NIL operation ; DIP { { DUP ; DIP { {} } } } } ; PAIR } } ;
+                    {} ;
+                    DIP { DROP } } ;
+                  {} ;
+                  DIP { DROP } } ;
+                {} ;
+                DIP { DROP } ;
+                {} } ;
+         { PUSH (lambda
+                   (pair (pair (address %destination) (nat %nftToTransfer)) (map nat address))
+                   (pair (list operation) (map nat address)))
+                { {} ;
+                  {} ;
+                  {} ;
+                  { { { DUP ; DIP { {} } } ; CAR } ;
+                    { { { { DIP { DUP } ; SWAP } ; DIP { {} } } ; CDR } ;
+                      { { { { { { DIP { DUP } ; SWAP } ; DIP { {} } } ; CDR } ;
+                            DIP { { DUP ; DIP { {} } } } } ;
+                          { GET ; IF_NONE { { PUSH string "GET_FORCE" ; FAILWITH } } { {} } } } ;
+                        { { { { { { { DIP { { DIP { DUP } ; SWAP } } ; SWAP } ; DIP { {} } } ;
+                                  CAR } ;
+                                DIP { { { {} ; SENDER } ; DIP { {} } } } } ;
+                              { COMPARE ; EQ } } ;
+                            IF { PUSH unit Unit }
+                               { { { { DUP ; DIP { { { {} ; SENDER } ; DIP { {} } } } } ;
+                                     { COMPARE ; EQ } } ;
+                                   IF { { {} ;
+                                          { { { { { DIP { { DIP { DUP } ; SWAP } } ; SWAP } ; DIP { {} } } ;
+                                                CDR } ;
+                                              DIP { { { { { DIP { { DIP { DUP } ; SWAP } } ; SWAP } ; DIP { {} } } ;
+                                                        CAR } ;
+                                                      DIP { { { DIP { DUP } ; SWAP } ; DIP { {} } } } } } } ;
+                                            { DIP { SOME } ; UPDATE } } ;
+                                          {} ;
+                                          DIP { { DIP { DUP } ; SWAP } } ;
+                                          {} ;
+                                          DIP { DROP } ;
+                                          {} ;
+                                          { SWAP ; DIP { DIP { DROP } } } ;
+                                          {} ;
+                                          PUSH unit Unit } }
+                                      { PUSH unit Unit } } } } ;
+                          DROP ;
+                          { { NIL operation ;
+                              DIP { { { DIP { DUP } ; SWAP } ; DIP { {} } } } } ;
+                            PAIR } } ;
+                        {} ;
+                        DIP { DROP } } ;
+                      {} ;
+                      DIP { DROP } } ;
+                    {} ;
+                    DIP { DROP } } ;
+                  {} ;
+                  DIP { DROP } ;
+                  {} } ;
+           { PUSH (lambda (pair nat (map nat address)) (pair (list operation) (map nat address)))
+                  { {} ;
+                    {} ;
+                    {} ;
+                    { { { DUP ; DIP { {} } } ; CAR } ;
+                      { { { { DIP { DUP } ; SWAP } ; DIP { {} } } ; CDR } ;
+                        { { { { DIP { DUP } ; SWAP } ; DIP { { DUP ; DIP { {} } } } } ;
+                            { GET ; IF_NONE { { PUSH string "GET_FORCE" ; FAILWITH } } { {} } } } ;
+                          { { { { DUP ; DIP { { { {} ; SENDER } ; DIP { {} } } } } ;
+                                { COMPARE ; EQ } } ;
+                              IF { { {} ;
+                                     { { { DIP { { DIP { DUP } ; SWAP } } ; SWAP } ;
+                                         DIP { { { DIP { DUP } ; SWAP } ; DIP { {} } } } } ;
+                                       { DIP { NONE address } ; UPDATE } } ;
+                                     {} ;
+                                     DIP { { DIP { DUP } ; SWAP } } ;
+                                     {} ;
+                                     DIP { DROP } ;
+                                     {} ;
+                                     { SWAP ; DIP { DIP { DROP } } } ;
+                                     {} ;
+                                     PUSH unit Unit } }
+                                 { PUSH unit Unit } } ;
+                            DROP ;
+                            { { NIL operation ;
+                                DIP { { { DIP { DUP } ; SWAP } ; DIP { {} } } } } ;
+                              PAIR } } ;
+                          {} ;
+                          DIP { DROP } } ;
+                        {} ;
+                        DIP { DROP } } ;
+                      {} ;
+                      DIP { DROP } } ;
+                    {} ;
+                    DIP { DROP } ;
+                    {} } ;
+             { { { { DIP { { DIP { { DIP { DUP } ; SWAP } } ; SWAP } } ; SWAP } ;
+                   DIP { {} } } ;
+                 CAR } ;
+               { { { { DIP { { DIP { { DIP { { DIP { DUP } ; SWAP } } ; SWAP } } ; SWAP } } ;
+                       SWAP } ;
+                     DIP { {} } } ;
+                   CDR } ;
+                 { PUSH unit Unit ;
+                   DROP ;
+                   { { DIP { DUP } ; SWAP } ;
+                     IF_LEFT
+                       { { { DUP ;
+                             IF_LEFT
+                               { { { DUP ;
+                                     { { { DUP ;
+                                           DIP { { { DIP { { DIP { { DIP { DUP } ; SWAP } } ; SWAP } } ; SWAP } ;
+                                                   DIP { {} } } } } ;
+                                         PAIR } ;
+                                       DIP { { DIP { { DIP { { DIP { { DIP { { DIP { DUP } ; SWAP } } ; SWAP } } ; SWAP } } ;
+                                                       SWAP } } ;
+                                               SWAP } } ;
+                                       EXEC } ;
+                                     {} ;
+                                     DIP { DROP } } ;
+                                   {} ;
+                                   DIP { DROP } } }
+                               { { { DUP ;
+                                     { { { DUP ;
+                                           DIP { { { DIP { { DIP { { DIP { DUP } ; SWAP } } ; SWAP } } ; SWAP } ;
+                                                   DIP { {} } } } } ;
+                                         PAIR } ;
+                                       DIP { { DIP { { DIP { { DIP { { DIP { { DIP { { DIP { { DIP { DUP } ; SWAP } } ; SWAP } } ; SWAP } } ;
+                                                                       SWAP } } ;
+                                                               SWAP } } ;
+                                                       SWAP } } ;
+                                               SWAP } } ;
+                                       EXEC } ;
+                                     {} ;
+                                     DIP { DROP } } ;
+                                   {} ;
+                                   DIP { DROP } } } } ;
+                           {} ;
+                           DIP { DROP } } }
+                       { { { DUP ;
+                             { { { DUP ;
+                                   DIP { { { DIP { { DIP { DUP } ; SWAP } } ; SWAP } ; DIP { {} } } } } ;
+                                 PAIR } ;
+                               DIP { { DIP { { DIP { { DIP { { DIP { { DIP { DUP } ; SWAP } } ; SWAP } } ; SWAP } } ;
+                                               SWAP } } ;
+                                       SWAP } } ;
+                               EXEC } ;
+                             {} ;
+                             DIP { DROP } } ;
+                           {} ;
+                           DIP { DROP } } } } } ;
+                 {} ;
+                 DIP { DROP } } ;
+               {} ;
+               DIP { DROP } } ;
+             {} ;
+             DIP { DROP } } ;
+           {} ;
+           DIP { DROP } } ;
+         {} ;
+         DIP { DROP } } ;
+       {} ;
+       DIP { DROP } ;
+       {} }

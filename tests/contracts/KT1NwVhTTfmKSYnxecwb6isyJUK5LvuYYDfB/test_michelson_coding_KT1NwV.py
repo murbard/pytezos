@@ -1,7 +1,8 @@
 from unittest import TestCase
 
 from tests import get_data
-from pytezos.michelson.coding import micheline_to_michelson, michelson_to_micheline
+from pytezos.michelson.micheline import michelson_to_micheline
+from pytezos.michelson.formatter import micheline_to_michelson
 
 
 class MichelsonCodingTestKT1NwV(TestCase):

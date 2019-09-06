@@ -1,3 +1,7 @@
+class OperationError(ValueError):
+    pass
+
+
 class OperationResult:
 
     def __init__(self, **props):
@@ -59,33 +63,53 @@ class OperationResult:
         return originated_contracts
 
     @staticmethod
-    def get_operation(operation_group: dict, **predicates):
+    def get_contents(operation_group: dict, **predicates):
         def match(x):
             return all(map(lambda pred: x.get(pred[0]) == pred[1], predicates.items()))
 
         if not predicates:
             assert len(operation_group['contents']) == 1
-            return operation_group['contents'][0]
+            return operation_group['contents']
         else:
-            contents = list(filter(match, OperationResult.iter_contents(operation_group)))
-            assert len(contents) == 1, operation_group
-            return contents[0]
+            return list(filter(match, OperationResult.iter_contents(operation_group)))
+
+    @staticmethod
+    def get_result(content):
+        if content.get('metadata'):
+            return content['metadata']['operation_result']
+        elif content.get('result'):
+            return content['result']
+        else:
+            assert False, content
 
     @classmethod
-    def from_transaction(cls, operation_group: dict, **predicates):
+    def from_operation_group(cls, operation_group: dict, **predicates):
         if not cls.is_applied(operation_group):
-            raise ValueError(cls.errors(operation_group))
+            raise OperationError(cls.errors(operation_group))
 
-        operation = cls.get_operation(operation_group, kind='transaction', **predicates)
-        if operation.get('metadata'):
-            operation_result = operation['metadata']['operation_result']
-        elif operation.get('result'):
-            operation_result = operation['result']
-        else:
-            operation_result = {}
+        def dispatch(content):
+            if content['kind'] == 'transaction':
+                return cls.from_transaction(content)
+            elif content['kind'] == 'origination':
+                return cls.from_origination(content)
+            else:
+                return content
 
+        contents = cls.get_contents(operation_group, **predicates)
+        return list(map(dispatch, contents))
+
+    @classmethod
+    def from_origination(cls, content: dict):
+        operation_result = cls.get_result(content)
+        return cls(originated_contracts=operation_result['originated_contracts'])
+
+    @classmethod
+    def from_transaction(cls, content: dict):
+        operation_result = cls.get_result(content)
         return cls(
-            parameters=operation.get('parameters'),
+            parameters=content.get('parameters'),
             storage=operation_result.get('storage'),
-            big_map_diff=operation_result.get('big_map_diff', [])
+            big_map_diff=operation_result.get('big_map_diff', []),
+            # TODO: if it is already an internal operation, we should think... (build a tree?)
+            operations=cls.get_contents(content, source=content['destination'])
         )
