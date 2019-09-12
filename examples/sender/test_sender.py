@@ -28,3 +28,7 @@ class SenderContractTest(TestCase):
     def test_no_source(self):
         res = self.ci.call().result(storage=initial, sender=sender)
         self.assertEqual(sender, res.storage)
+
+    def test_no_sender(self):
+        res = self.ci.call().result(storage=initial, source=source)
+        self.assertEqual(source, res.storage)

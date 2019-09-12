@@ -135,8 +135,8 @@ class ContractCall(Interop):
                 storage=self.contract.storage.encode(storage),
                 input=self.parameters,
                 amount=format_mutez(self.amount),
-                source=source,
-                payer=sender
+                source=sender,
+                payer=source
             )
             try:
                 code_run_res = self.shell.head.helpers.scripts.run_code.post(query)

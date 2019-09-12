@@ -51,6 +51,7 @@ $recipients:
 
 source = 'tz1irF8HUsQp2dLhKNMhteG1qALNU9g3pfdN'
 party = 'tz1h3rQ8wBxFd8L9B3d7Jhaawu6Z568XU3xY'
+proxy = 'KT1WhouvVKZFH94VXj9pa8v4szvfrBwXoBUj'
 secret = 'dca15ce0c01f61ab03139b4673f4bd902203dc3b898a89a5d35bad794e5cfd4f'
 hashed_secret = '05bce5c12071fbca95b13d49cb5ef45323e0216d618bb4575c519b74be75e3da'
 empty_storage = [{}, None]
@@ -79,6 +80,35 @@ class AtomexContractTest(TestCase):
                       )) \
             .with_amount(Decimal('1')) \
             .result(storage=empty_storage,
+                    source=source)
+
+        big_map_diff = {
+            hashed_secret: {
+                'recipients': recipients,
+                'settings': {
+                    'amount': Decimal('0.98'),
+                    'refund_time': format_timestamp(now + 6 * 3600),
+                    'payoff': Decimal('0.02')
+                }
+            }
+        }
+        self.assertDictEqual(big_map_diff, res.big_map_diff)
+        self.assertEqual(empty_storage, res.storage)
+        self.assertEqual([], res.operations)
+
+    def test_initiate_proxy(self):
+        now = pytezos.now()
+
+        res = self.atomex \
+            .initiate(participant=party,
+                      settings=dict(
+                          hashed_secret=hashed_secret,
+                          refund_time=now + 6 * 3600,
+                          payoff=Decimal('0.02')
+                      )) \
+            .with_amount(Decimal('1')) \
+            .result(storage=empty_storage,
+                    sender=proxy,
                     source=source)
 
         big_map_diff = {
