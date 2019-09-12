@@ -180,6 +180,21 @@ class AtomexContractTest(TestCase):
                 .result(storage=empty_storage,
                         source=source)
 
+    def test_initiate_same_party(self):
+        now = pytezos.now()
+
+        with self.assertRaises(MichelsonRuntimeError):
+            self.atomex \
+                .initiate(participant=party,
+                          settings=dict(
+                              hashed_secret=hashed_secret,
+                              refund_time=now - 6 * 3600,
+                              payoff=Decimal('0.01')
+                          )) \
+                .with_amount(Decimal('1')) \
+                .result(storage=empty_storage,
+                        source=party)
+
     def test_add_non_existent(self):
         with self.assertRaises(MichelsonRuntimeError):
             self.atomex \
