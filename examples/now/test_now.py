@@ -1,7 +1,6 @@
 from unittest import TestCase
-from datetime import datetime
 
-from pytezos import ContractInterface, pytezos
+from pytezos import ContractInterface, pytezos, format_timestamp
 
 code = """
 parameter unit;
@@ -21,5 +20,5 @@ class TimeContractTest(TestCase):
 
     def test_now(self):
         res = self.ci.call().result(storage=0)
-        now = int(datetime.strptime(res.storage, '%Y-%m-%dT%H:%M:%SZ').timestamp())
-        self.assertAlmostEqual(pytezos.now(), now, delta=1)
+        now = format_timestamp(pytezos.now())
+        self.assertEqual(now, res.storage)

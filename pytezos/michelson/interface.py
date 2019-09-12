@@ -120,23 +120,24 @@ class ContractCall(Interop):
         amount = format_mutez(self.amount)
         return f'transfer {amount} from {source} to {self.address} -arg "{arg}"'
 
-    def result(self, storage=None, source=None):
+    def result(self, storage=None, source=None, sender=None):
         """
         Simulate operation and parse the result.
-        :param storage: Michelson string, Micheline expression, or object.
-        If storage is specified, `run_code` is called instead of `run_operation`.
+        :param storage: Python object only. If storage is specified, `run_code` is called instead of `run_operation`.
         :param source: Can be specified for unit testing purposes
+        :param sender: Can be specified for unit testing purposes,
+        see https://tezos.gitlab.io/mainnet/whitedoc/michelson.html#operations-on-contracts for the difference
         :return: ContractCallResult
         """
         if storage is not None:
             query = make_dict(
                 script=self.contract.code,
-                storage=convert(storage, schema=self.contract.storage.schema, output='micheline'),
+                storage=self.contract.storage.encode(storage),
                 input=self.parameters,
                 amount=format_mutez(self.amount),
-                source=source
+                source=source,
+                payer=sender
             )
-
             try:
                 code_run_res = self.shell.head.helpers.scripts.run_code.post(query)
             except RpcError as e:

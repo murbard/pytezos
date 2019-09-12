@@ -72,8 +72,9 @@ class PyTezosClient(Interop, ContentMixin):
         :return: int
         """
         # TODO: In Babylon it's going to be previous block ts + 60
-        dt = self.shell.head.header()['timestamp']
-        return int(datetime.strptime(dt, '%Y-%m-%dT%H:%M:%SZ').timestamp())
+        ts = self.shell.head.header()['timestamp']
+        dt = datetime.strptime(ts, '%Y-%m-%dT%H:%M:%SZ')
+        return int((dt - datetime(1970, 1, 1)).total_seconds())
 
     @lru_cache(maxsize=None)
     def _get_contract_interface(self, contract_id, factory=Contract):

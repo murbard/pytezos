@@ -61,7 +61,7 @@ def encode_micheline(data, schema: Schema, root='0', binary=False):
 
 def convert(source, schema: Schema = None, output='micheline', inline=False):
     """
-    Convert data between different representations
+    Convert data between different representations (DO NOT USE FOR STORAGE/PARAMETER, can be ambiguous)
     :param source: Data, can be one of Michelson (string), Micheline expression, object
     :param schema: Needed if decoding/encoding objects (optional)
     :param output: Output format, one of 'micheline' (default), 'michelson', 'object'
