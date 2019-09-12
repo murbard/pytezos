@@ -22,7 +22,7 @@ def build_schema(code) -> Schema:
         metadata = collapse_micheline(code)
         return Schema(metadata, *build_maps(metadata))
     except (KeyError, ValueError, TypeError):
-        raise MichelineSchemaError('Failed to build schema')
+        raise MichelineSchemaError('Failed to build schema') from None
 
 
 def decode_micheline(data, schema: Schema, root='0'):
@@ -38,7 +38,7 @@ def decode_micheline(data, schema: Schema, root='0'):
         return make_json(json_values)
     except (KeyError, IndexError, TypeError):
         print(generate_docstring(schema, 'schema'))
-        raise MichelineSchemaError('Failed to decode micheline expression')
+        raise MichelineSchemaError('Failed to decode micheline expression', data) from None
 
 
 def encode_micheline(data, schema: Schema, root='0', binary=False):
@@ -56,7 +56,7 @@ def encode_micheline(data, schema: Schema, root='0', binary=False):
         return make_micheline(bin_values, schema.bin_types, root, binary)
     except (KeyError, IndexError, TypeError):
         print(generate_docstring(schema, 'schema'))
-        raise MichelineSchemaError('Failed to encode micheline expression')
+        raise MichelineSchemaError('Failed to encode micheline expression', data) from None
 
 
 def convert(source, schema: Schema = None, output='micheline', inline=False):

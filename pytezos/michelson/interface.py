@@ -67,6 +67,7 @@ class ContractCall(Interop):
         return ContractCall(
             parameters=self.parameters,
             address=self.address,
+            contract=self.contract,
             amount=kwargs.get('amount', self.amount),
             shell=kwargs.get('shell', self.shell),
             key=kwargs.get('key', self.key)
@@ -132,14 +133,14 @@ class ContractCall(Interop):
                 script=self.contract.code,
                 storage=convert(storage, schema=self.contract.storage.schema, output='micheline'),
                 input=self.parameters,
-                amount=str(self.amount),
+                amount=format_mutez(self.amount),
                 source=source
             )
 
             try:
                 code_run_res = self.shell.head.helpers.scripts.run_code.post(query)
             except RpcError as e:
-                raise MichelsonRuntimeError.from_rpc_error(e)
+                raise MichelsonRuntimeError.from_rpc_error(e) from None
 
             return ContractCallResult.from_code_run(
                 code_run_res, parameters=self.parameters, contract=self.contract)
@@ -154,7 +155,7 @@ class ContractCall(Interop):
         :return: object
         """
         opg_with_metadata = self.operation_group.fill().run()
-        view_operation = OperationResult.get_operation(opg_with_metadata, source=self.address)
+        view_operation = OperationResult.get_contents(opg_with_metadata, source=self.address)[0]
         view_contract = Contract.from_micheline(self.shell.contracts[view_operation['destination']].code())
         return view_contract.parameter.decode(view_operation['parameters'])
 

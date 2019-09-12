@@ -1,6 +1,12 @@
 import json
+from datetime import datetime
 
 line_size = 100
+
+
+def format_timestamp(timestamp: int) -> str:
+    dt = datetime.utcfromtimestamp(timestamp)
+    return dt.strftime('%Y-%m-%dT%H:%M:%SZ')
 
 
 class MichelsonFormatterError(ValueError):
@@ -107,4 +113,4 @@ def micheline_to_michelson(data, inline=False):
     try:
         return format_node(data, inline=inline, is_root=True)
     except (KeyError, IndexError, TypeError):
-        raise MichelsonFormatterError('Failed to format Micheline expression')
+        raise MichelsonFormatterError('Failed to format Micheline expression') from None
