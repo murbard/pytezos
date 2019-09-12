@@ -18,4 +18,4 @@ install:
   - poetry install -v
 
 script:
-  - poetry run pytest
+  - poetry run pytest tests/
