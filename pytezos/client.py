@@ -1,4 +1,5 @@
 from functools import lru_cache
+from datetime import datetime
 
 from pytezos.operation.group import OperationGroup
 from pytezos.operation.content import ContentMixin
@@ -64,6 +65,16 @@ class PyTezosClient(Interop, ContentMixin):
         """
         address = account_id or self.key.public_key_hash()
         return self.shell.contracts[address]()
+
+    def now(self) -> int:
+        """
+        Timestamp of the current head (UTC)
+        :return: int
+        """
+        # TODO: In Babylon it's going to be previous block ts + 60
+        ts = self.shell.head.header()['timestamp']
+        dt = datetime.strptime(ts, '%Y-%m-%dT%H:%M:%SZ')
+        return int((dt - datetime(1970, 1, 1)).total_seconds())
 
     @lru_cache(maxsize=None)
     def _get_contract_interface(self, contract_id, factory=Contract):

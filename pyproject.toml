@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pytezos"
-version = "2.0.7"
+version = "2.0.8"
 description = "Python toolkit for Tezos"
 license = "MIT"
 authors = ["Michael Zaikin <mz@baking-bad.org>", "Arthur Breitman", "Roman Serikov"]
@@ -29,11 +29,15 @@ tqdm = "*"
 ply = "*"
 simplejson = "*"
 mnemonic = "*"
+fire = "*"
 
 [tool.poetry.dev-dependencies]
 parameterized = "^0.7.0"
 pytest = "^3.0"
 pytest-cov = "^2.4"
+
+[tool.poetry.scripts]
+pytezos = 'pytezos:cli.main'
 
 [build-system]
 requires = ["poetry>=0.12"]

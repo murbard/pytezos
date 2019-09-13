@@ -67,6 +67,7 @@ class ContractCall(Interop):
         return ContractCall(
             parameters=self.parameters,
             address=self.address,
+            contract=self.contract,
             amount=kwargs.get('amount', self.amount),
             shell=kwargs.get('shell', self.shell),
             key=kwargs.get('key', self.key)
@@ -119,27 +120,30 @@ class ContractCall(Interop):
         amount = format_mutez(self.amount)
         return f'transfer {amount} from {source} to {self.address} -arg "{arg}"'
 
-    def result(self, storage=None, source=None):
+    def result(self, storage=None, source=None, sender=None, gas_limit=None):
         """
         Simulate operation and parse the result.
-        :param storage: Michelson string, Micheline expression, or object.
-        If storage is specified, `run_code` is called instead of `run_operation`.
+        :param storage: Python object only. If storage is specified, `run_code` is called instead of `run_operation`.
         :param source: Can be specified for unit testing purposes
+        :param sender: Can be specified for unit testing purposes,
+        see https://tezos.gitlab.io/mainnet/whitedoc/michelson.html#operations-on-contracts for the difference
+        :param gas_limit: Specify gas limit (default is gas hard limit)
         :return: ContractCallResult
         """
         if storage is not None:
             query = make_dict(
                 script=self.contract.code,
-                storage=convert(storage, schema=self.contract.storage.schema, output='micheline'),
+                storage=self.contract.storage.encode(storage),
                 input=self.parameters,
-                amount=str(self.amount),
-                source=source
+                amount=format_mutez(self.amount),
+                source=sender,
+                payer=source,
+                gas=gas_limit
             )
-
             try:
                 code_run_res = self.shell.head.helpers.scripts.run_code.post(query)
             except RpcError as e:
-                raise MichelsonRuntimeError.from_rpc_error(e)
+                raise MichelsonRuntimeError.from_rpc_error(e) from None
 
             return ContractCallResult.from_code_run(
                 code_run_res, parameters=self.parameters, contract=self.contract)
@@ -154,7 +158,7 @@ class ContractCall(Interop):
         :return: object
         """
         opg_with_metadata = self.operation_group.fill().run()
-        view_operation = OperationResult.get_operation(opg_with_metadata, source=self.address)
+        view_operation = OperationResult.get_contents(opg_with_metadata, source=self.address)[0]
         view_contract = Contract.from_micheline(self.shell.contracts[view_operation['destination']].code())
         return view_contract.parameter.decode(view_operation['parameters'])
 
