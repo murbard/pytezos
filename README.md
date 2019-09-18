@@ -85,6 +85,21 @@ Helpers
 .using()
 ```
 
+### Publications
+
+* Pytezos 2.0 release with embedded docs and smart contract interaction engine  
+https://medium.com/coinmonks/high-level-interface-for-michelson-contracts-and-not-only-7264db76d7ae
+
+* Materials from TQuorum:Berlin workshop - building an app on top of PyTezos and ConseilPy  
+https://medium.com/coinmonks/atomic-tips-berlin-workshop-materials-c5c8ee3f46aa
+
+* Materials from the EETH hackathon - setting up a local development infrastructure, deploying and interacting with a contract  
+https://medium.com/tezoscommons/preparing-for-the-tezos-hackathon-with-baking-bad-45f2d5fca519
+
+* Introducing integration testing engine  
+https://medium.com/tezoscommons/testing-michelson-contracts-with-pytezos-513718499e93
+
+
 ### About
 The project was initially started by Arthur Breitman, now it's maintained by Baking Bad team.
 PyTezos development is supported by Tezos Foundation.
