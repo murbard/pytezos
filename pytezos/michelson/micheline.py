@@ -10,6 +10,7 @@ from pytezos.encoding import parse_address, parse_public_key, forge_public_key, 
 from pytezos.michelson.forge import prim_tags
 from pytezos.michelson.formatter import micheline_to_michelson
 from pytezos.michelson.grammar import MichelsonParser
+from pytezos.michelson.macros import make_dict
 
 Nested = namedtuple('Nested', ['prim', 'args'])
 Schema = namedtuple('Schema', ['metadata', 'bin_types', 'bin_to_json', 'json_to_bin'])
@@ -115,10 +116,6 @@ def get_flat_nested(nested: Nested):
         else:
             flat_args.append(arg)
     return flat_args
-
-
-def make_dict(**kwargs) -> dict:
-    return {k: v for k, v in kwargs.items() if v is not None}
 
 
 def collapse_micheline(code) -> dict:

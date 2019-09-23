@@ -1,4 +1,5 @@
 from pprint import pformat
+from math import ceil
 
 from pytezos.crypto import blake2b_32
 from pytezos.operation.content import ContentMixin
@@ -161,10 +162,10 @@ class OperationGroup(Interop, ContentMixin):
         opg = self.fill()
         opg_with_metadata = opg.run()
         if not OperationResult.is_applied(opg_with_metadata):
-            raise OperationError(OperationResult.errors(opg_with_metadata))
+            raise OperationError(OperationResult.errors(opg_with_metadata)) from None
 
         fees_provider = FeesProvider.from_protocol(opg.protocol)
-        extra_size = (32 + 64) // len(opg.contents) + 1  # size of serialized branch and signature)
+        extra_size = int(ceil((32 + 64) / len(opg.contents)))  # size of serialized branch and signature)
 
         def fill_content(content):
             if validation_passes[content['kind']] == 3:
