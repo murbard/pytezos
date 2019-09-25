@@ -61,11 +61,11 @@ def expand_macro(prim, annots, args):
 
 
 def get_field_annots(annots):
-    return list(filter(lambda x: x[0] == '%', annots))
+    return list(filter(lambda x: isinstance(x, str) and x[0] == '%', annots))
 
 
 def get_var_annots(annots):
-    return list(filter(lambda x: x[0] == '@', annots))
+    return list(filter(lambda x: isinstance(x, str) and x[0] == '@', annots))
 
 
 def expr(**kwargs) -> dict:
@@ -180,8 +180,7 @@ def build_pxr_tree(pxr_macro, pxr_annots) -> PxrNode:
         if letter == 'P':
             left, l_annot, prim, annots = parse(prim, annots, depth + 1)
             right, r_annot, prim, annots = parse(prim, annots, depth + 1)
-            lr_annots = [l_annot or '%', r_annot or '%'] if any([l_annot, r_annot]) else []
-            return PxrNode(depth, lr_annots, [left, right]), None, prim, annots
+            return PxrNode(depth, [l_annot, r_annot], [left, right]), None, prim, annots
         else:
             annot, annots = (annots[0], annots[1:]) if annots else (None, [])
             return letter, annot, prim, annots
@@ -189,21 +188,27 @@ def build_pxr_tree(pxr_macro, pxr_annots) -> PxrNode:
     return root
 
 
-def expand_pair_macro(prim, annots, func):
+def traverse_pxr_tree(prim, annots, produce):
     res = []
 
-    def emit(node: PxrNode):
-        res.insert(0, dip_n(func(annots), depth=node.depth))
-        _ = list(map(lambda x: emit(x) if isinstance(x, PxrNode) else None, node.args))
+    def walk(node: PxrNode):
+        res.insert(0, dip_n(produce(node), depth=node.depth))
+        _ = list(map(lambda x: walk(x) if isinstance(x, PxrNode) else None, node.args))
 
-    emit(build_pxr_tree(prim, annots))
+    walk(build_pxr_tree(prim, annots))
     return res
 
 
 @macro(r'^P[PAI]{3,}R$')
 def expand_pxr(prim, annots, args) -> list:
+    def produce(node: PxrNode):
+        pair_annots = [node.annots[0] or '%', node.annots[1]] if any(node.annots) else []
+        if node.depth == 0:
+            pair_annots.extend(get_var_annots(annots))
+        return expr(prim='PAIR', annots=pair_annots)
+
     assert not args
-    return expand_pair_macro(prim, annots, lambda x: expr(prim='PAIR', annots=x.annots))
+    return traverse_pxr_tree(prim, get_field_annots(annots), produce)
 
 
 @macro(r'^UNPAIR$')
@@ -218,8 +223,11 @@ def expand_unpair(prim, annots, args) -> list:
 
 @macro(r'^UN(P[PAI]{3,}R)$')
 def expand_unpxr(prim, annots, args) -> list:
+    def produce(node: PxrNode):
+        return expand_unpair(prim=None, annots=get_var_annots(node.annots), args=[])
+
     assert not args
-    return expand_pair_macro(prim, annots, lambda x: expand_unpair(prim=None, annots=x.annots, args=[]))
+    return traverse_pxr_tree(prim, annots, produce)
 
 
 def expand_cxr(prim, annots) -> list:
