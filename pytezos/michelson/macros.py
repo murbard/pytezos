@@ -1,6 +1,7 @@
 import re
 import functools
 from collections import namedtuple
+from typing import Tuple
 
 COMPARE = dict(prim='COMPARE')
 UNIT = dict(prim='UNIT')
@@ -75,7 +76,7 @@ def dip_n(instr, depth=1):
     if depth <= 0:
         return instr
     else:
-        return dict(prim='DIP', args=[instr if isinstance(instr, list) else [instr]])
+        return expr(prim='DIP', args=[instr if isinstance(instr, list) else [instr]])
 
 
 @macro(r'^CMP(EQ|NEQ|LT|GT|LE|GE)$')
@@ -221,7 +222,7 @@ def expand_unpxr(prim, annots, args) -> list:
     return expand_pair_macro(prim, annots, lambda x: expand_unpair(prim=None, annots=x.annots, args=[]))
 
 
-def expand_cxr_macro(prim, annots) -> list:
+def expand_cxr(prim, annots) -> list:
     cxr = expand_macro(prim=f'C{prim}R', annots=annots, args=[])
     return cxr if isinstance(cxr, list) else [cxr]
 
@@ -229,13 +230,13 @@ def expand_cxr_macro(prim, annots) -> list:
 @macro(r'^CA([AD]+)R$')
 def expand_caxr(prim, annots, args) -> list:
     assert not args
-    return [CAR, *expand_cxr_macro(prim, annots)]
+    return [CAR, *expand_cxr(prim, annots)]
 
 
 @macro(r'^CD([AD]+)R$')
 def expand_cdxr(prim, annots, args) -> list:
     assert not args
-    return [CDR, *expand_cxr_macro(prim, annots)]
+    return [CDR, *expand_cxr(prim, annots)]
 
 
 @macro(r'^IF_SOME$')
@@ -256,7 +257,7 @@ def expand_set_car(prim, annots, args) -> list:
 
 
 @macro(r'^SET_CDR$')
-def expand_set(prim, annots, args) -> list:
+def expand_set_cdr(prim, annots, args) -> list:
     assert not args
     cdr_annots = get_field_annots(annots) or ['%']
     assert len(cdr_annots) == 1
@@ -266,7 +267,7 @@ def expand_set(prim, annots, args) -> list:
 
 
 def expand_set_cxr(prim, annots):
-    set_cxr = expand_macro(prim=f'SET_C{prim}R', annots=get_field_annots(annots), args=None)
+    set_cxr = expand_macro(prim=f'SET_C{prim}R', annots=get_field_annots(annots), args=[])
     pair = expr(prim='PAIR', annots=['%@', '%@'] + get_var_annots(annots))
     return set_cxr, pair
 
@@ -292,40 +293,47 @@ def expand_set_cdxr(prim, annots, args) -> list:
             pair]
 
 
+def get_map_cxr_annots(annots) -> Tuple[str, list]:
+    field_annots = get_field_annots(annots)
+    if field_annots:
+        assert len(field_annots) == 1
+        return field_annots[0], [f'@{field_annots[0][1:]}']
+    else:
+        return '%', []
+
+
 @macro(r'^MAP_CAR$')
 def expand_map_car(prim, annots, args) -> list:
-    car_annots = get_field_annots(annots) or ['%']
-    assert len(car_annots) == 1
+    car_annot, var_annots = get_map_cxr_annots(annots)
     return [DUP,
-            CDR,
-            expr(prim='DIP', args=[[expr(prim='CDR', annots=[]), *args]]),
+            CDR__,
+            dip_n([expr(prim='CAR', annots=var_annots), *args]),
             SWAP,
-            expr(prim='PAIR', annots=['%@', car_annots[0]])]
+            expr(prim='PAIR', annots=[car_annot, '%@'])]
 
 
 @macro(r'^MAP_CDR$')
 def expand_map_cdr(prim, annots, args) -> list:
-    cdr_annots = get_field_annots(annots) or ['%']
-    assert len(cdr_annots) == 1
+    cdr_annot, var_annots = get_map_cxr_annots(annots)
     return [DUP,
-            expr(prim='CDR', annots=[]),
+            expr(prim='CDR', annots=var_annots),
             *args,
             SWAP,
             CAR__,
-            expr(prim='PAIR', annots=['%@', cdr_annots[0]])]
+            expr(prim='PAIR', annots=['%@', cdr_annot])]
 
 
-def expand_map_cxr(prim, annots):
-    map_cxr = expand_macro(prim=f'MAP_C{prim}R', annots=get_field_annots(annots), args=[])
+def expand_map_cxr(prim, annots, args):
+    set_cxr = expand_macro(prim=f'MAP_C{prim}R', annots=get_field_annots(annots), args=args)
     pair = expr(prim='PAIR', annots=['%@', '%@'] + get_var_annots(annots))
-    return map_cxr, pair
+    return set_cxr, pair
 
 
 @macro(r'^MAP_CA([AD]+)R$')
 def expand_map_caxr(prim, annots, args) -> list:
-    map_cxr, pair = expand_map_cxr(prim, annots)
+    map_cxr, pair = expand_map_cxr(prim, annots, args)
     return [DUP,
-            dip_n([CAR, *map_cxr]),
+            dip_n([CAR__, *map_cxr]),
             CDR__,
             SWAP,
             pair]
@@ -333,8 +341,8 @@ def expand_map_caxr(prim, annots, args) -> list:
 
 @macro(r'^MAP_CD([AD]+)R$')
 def expand_map_cdxr(prim, annots, args) -> list:
-    map_cxr, pair = expand_map_cxr(prim, annots)
+    map_cxr, pair = expand_map_cxr(prim, annots, args)
     return [DUP,
-            dip_n([CDR, *map_cxr]),
-            CAR,
+            dip_n([CDR__, *map_cxr]),
+            CAR__,
             pair]
