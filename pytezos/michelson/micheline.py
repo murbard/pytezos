@@ -10,7 +10,6 @@ from pytezos.encoding import parse_address, parse_public_key, forge_public_key, 
 from pytezos.michelson.forge import prim_tags
 from pytezos.michelson.formatter import micheline_to_michelson
 from pytezos.michelson.grammar import MichelsonParser
-from pytezos.michelson.macros import make_dict
 
 Nested = namedtuple('Nested', ['prim', 'args'])
 Schema = namedtuple('Schema', ['metadata', 'bin_types', 'bin_to_json', 'json_to_bin'])
@@ -37,6 +36,10 @@ class TypedDict(dict):
     @staticmethod
     def make(key_type):
         return type(f'{key_type.__name__.capitalize()}Dict', (TypedDict,), {'__key_type__': key_type})
+
+
+def skip_nones(**kwargs) -> dict:
+    return {k: v for k, v in kwargs.items() if v is not None}
 
 
 def is_micheline(value):
@@ -131,7 +134,7 @@ def collapse_micheline(code) -> dict:
         fieldname = get_annotation(node, '%')
         typename = get_annotation(node, ':')
 
-        metadata[path] = make_dict(
+        metadata[path] = skip_nones(
             prim=node['prim'],
             typename=typename,
             fieldname=fieldname,

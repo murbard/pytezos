@@ -169,11 +169,11 @@ class OperationGroup(Interop, ContentMixin):
 
         def fill_content(content):
             if validation_passes[content['kind']] == 3:
-                consumed_gas = OperationResult.consumed_gas(content)
+                consumed_gas = OperationResult.consumed_gas(content) + gas_reserve
                 paid_storage_size_diff = OperationResult.paid_storage_size_diff(content)
                 fee = fees_provider.calculate_fee(content, consumed_gas, extra_size)
                 content.update(
-                    gas_limit=str(consumed_gas + gas_reserve),
+                    gas_limit=str(consumed_gas),
                     storage_limit=str(paid_storage_size_diff + fees_provider.burn_cap(content)),
                     fee=str(fee)
                 )

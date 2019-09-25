@@ -1,5 +1,6 @@
 import re
 import functools
+from collections import namedtuple
 
 COMPARE = dict(prim='COMPARE')
 UNIT = dict(prim='UNIT')
@@ -8,6 +9,9 @@ DUP = dict(prim='DUP')
 SWAP = dict(prim='SWAP')
 CAR = dict(prim='CAR')
 CDR = dict(prim='CDR')
+CAR__ = dict(prim='CAR', annots=['@%%'])
+CDR__ = dict(prim='CDR', annots=['@%%'])
+FAIL = [UNIT, FAILWITH]
 
 primitives = {
     'ABS', 'ADD', 'ADDRESS', 'AMOUNT', 'AND', 'BALANCE', 'BLAKE2B', 'CAR', 'CAST',
@@ -25,13 +29,14 @@ primitives = {
     'mutez', 'nat', 'operation', 'option', 'or', 'pair', 'parameter', 'set',
     'signature', 'storage', 'string', 'timestamp', 'unit'
 }
+macros = []
 
-__macros__ = []
+PxrNode = namedtuple('PxrNode', ['depth', 'annots', 'args'])
 
 
 def macro(regexp):
     def register_macro(func):
-        __macros__.append((re.compile(regexp), func))
+        macros.append((re.compile(regexp), func))
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             return func(*args, **kwargs)
@@ -40,10 +45,12 @@ def macro(regexp):
 
 
 def expand_macro(prim, annots, args):
+    assert isinstance(annots, list)
+    assert isinstance(args, list)
     if prim in primitives:
-        return make_dict(prim=prim, annots=annots, args=args)
+        return expr(prim=prim, annots=annots, args=args)
 
-    for regexp, handler in __macros__:
+    for regexp, handler in macros:
         groups = regexp.findall(prim)
         if groups:
             assert len(groups) == 1
@@ -52,301 +59,282 @@ def expand_macro(prim, annots, args):
     assert False, f'Unknown macro: {prim}'
 
 
-def make_dict(**kwargs) -> dict:
-    return {k: v for k, v in kwargs.items() if v is not None}
+def get_field_annots(annots):
+    return list(filter(lambda x: x[0] == '%', annots))
 
 
-@macro(r'CMP(EQ|NEQ|LT|GT|LE|GE)')
+def get_var_annots(annots):
+    return list(filter(lambda x: x[0] == '@', annots))
+
+
+def expr(**kwargs) -> dict:
+    return {k: v for k, v in kwargs.items() if v}
+
+
+def dip_n(instr, depth=1):
+    if depth <= 0:
+        return instr
+    else:
+        return dict(prim='DIP', args=[instr if isinstance(instr, list) else [instr]])
+
+
+@macro(r'^CMP(EQ|NEQ|LT|GT|LE|GE)$')
 def expand_cmpx(prim, annots, args) -> list:
     assert not args
-    return [
-        COMPARE,
-        make_dict(prim=prim[3:], annots=annots)
-    ]
+    return [COMPARE,
+            expr(prim=prim, annots=annots)]
 
 
-@macro(r'IF(EQ|NEQ|LT|GT|LE|GE)')
+@macro(r'^IF(EQ|NEQ|LT|GT|LE|GE)$')
 def expand_ifx(prim, annots, args) -> list:
     assert len(args) == 2
-    return [
-        make_dict(prim=prim, annots=annots),
-        dict(prim='IF', args=args)
-    ]
+    return [expr(prim=prim, annots=annots),
+            expr(prim='IF', args=args)]
 
 
-@macro(r'IFCMP(EQ|NEQ|LT|GT|LE|GE)')
+@macro(r'^IFCMP(EQ|NEQ|LT|GT|LE|GE)$')
 def expand_ifcmpx(prim, annots, args) -> list:
     assert len(args) == 2
-    return [
-        COMPARE,
-        make_dict(prim=prim, annots=annots),
-        dict(prim='IF', args=args)
-    ]
+    return [COMPARE,
+            expr(prim=prim, annots=annots),
+            expr(prim='IF', args=args)]
 
 
-@macro(r'FAIL')
+@macro(r'^FAIL$')
 def expand_fail(prim, annots, args) -> list:
     assert not annots
     assert not args
-    return [UNIT, FAILWITH]
+    return FAIL
 
 
-@macro(r'ASSERT')
+@macro(r'^ASSERT$')
 def expand_assert(prim, annots, args) -> dict:
     assert not annots
     assert not args
-    return dict(prim='IF', args=[[], expand_fail()])
+    return expr(prim='IF', args=[[], FAIL])
 
 
-@macro(r'ASSERT_(EQ|NEQ|LT|LE|GT|GE)')
-def expand_assertx(prim, annots, args) -> list:
+@macro(r'^ASSERT_(EQ|NEQ|LT|LE|GT|GE)$')
+def expand_assert_x(prim, annots, args) -> list:
     assert not args
-    return expand_ifx(
-        prim=prim,
-        annots=annots,
-        args=[[], expand_fail()]
-    )
+    assert not annots  # TODO: ask why
+    return expand_ifx(prim, annots=[], args=[[], FAIL])
 
 
-@macro(r'ASSERT_CMP(EQ|NEQ|LT|LE|GT|GE)')
+@macro(r'^ASSERT_CMP(EQ|NEQ|LT|LE|GT|GE)$')
 def expand_assert_cmpx(prim, annots, args) -> list:
     assert not args
-    return expand_ifcmpx(
-        prim=prim,
-        annots=annots,
-        args=[[], expand_fail()]
-    )
+    assert not annots  # TODO: ask why
+    return expand_ifcmpx(prim, annots=[], args=[[], FAIL])
 
 
-@macro(r'ASSERT_NONE')
+@macro(r'^ASSERT_NONE$')
 def expand_assert_none(prim, annots, args) -> dict:
     assert not annots
     assert not args
-    return dict(prim='IF_NONE', args=[[], expand_fail()])
+    return expr(prim='IF_NONE', args=[[], FAIL])
 
 
-@macro('ASSERT_SOME')
-def expand_assert_x(prim, annots, args) -> dict:
+@macro('^ASSERT_SOME$')
+def expand_assert_some(prim, annots, args) -> dict:
     assert not args
-    return dict(prim='IF_NONE', args=[
-        expand_fail(),
-        [make_dict(prim='RENAME', annots=annots)]
-    ])
+    return expr(prim='IF_NONE',
+                args=[FAIL, [expr(prim='RENAME', annots=annots)]])
 
 
-@macro('ASSERT_LEFT')
+@macro('^ASSERT_LEFT$')
 def expand_assert_left(prim, annots, args) -> dict:
     assert not args
-    return dict(prim='IF_LEFT', args=[
-        [make_dict(prim='RENAME', annots=annots)],
-        expand_fail()
-    ])
+    return expr(prim='IF_LEFT',
+                args=[[expr(prim='RENAME', annots=annots)], FAIL])
 
 
-@macro('ASSERT_RIGHT')
+@macro('^ASSERT_RIGHT$')
 def expand_assert_right(prim, annots, args) -> dict:
     assert not args
-    return dict(prim='IF_LEFT', args=[
-        expand_fail(),
-        [make_dict(prim='RENAME', annots=annots)]
-    ])
+    return expr(prim='IF_LEFT',
+                args=[FAIL, [expr(prim='RENAME', annots=annots)]])
 
 
-@macro(r'DII+P')
-def expand_diip(prim, annots, args) -> dict:
-    assert len(args) == 1
+@macro(r'^D(II+)P$')
+def expand_dixp(prim, annots, args) -> dict:
     assert not annots
-    return dict(prim='DIP',
-                args=[[expand_macro(prim=f'{prim[:-2]}P', annots=None, args=args)]])
+    assert len(args) == 1
+    return dip_n(args, depth=len(prim))
 
 
-@macro(r'DUU+P')
-def expand_duup(prim, annots, args) -> list:
+@macro(r'^DUU+P$')
+def expand_duxp(prim, annots, args) -> list:
     assert not args
-    return [dict(prim='DIP',
-                 args=[expand_duup(prim=f'{prim[:-2]}P', annots=annots, args=None)]),
-            SWAP]
-
-
-def split_pair_annots(annots):
-    if isinstance(annots, list):
-        assert len(annots) >= 2, 'Not enough annotations for this macro'
-        return annots[:2], annots[2:] if len(annots) > 2 else None
+    if prim == 'DUP':
+        return [expr(prim='DUP', annots=annots)]
     else:
-        return None, None
+        return [dip_n(expand_duxp(prim=f'{prim[:-2]}P', annots=annots, args=[])),
+                SWAP]
 
 
-def expand_pair_macro(prim, annots, args):
+def build_pxr_tree(pxr_macro, pxr_annots) -> PxrNode:
+    def parse(prim, annots, depth=0):
+        letter, prim = prim[0], prim[1:]
+        if letter == 'P':
+            left, l_annot, prim, annots = parse(prim, annots, depth + 1)
+            right, r_annot, prim, annots = parse(prim, annots, depth + 1)
+            lr_annots = [l_annot or '%', r_annot or '%'] if any([l_annot, r_annot]) else []
+            return PxrNode(depth, lr_annots, [left, right]), None, prim, annots
+        else:
+            annot, annots = (annots[0], annots[1:]) if annots else (None, [])
+            return letter, annot, prim, annots
+    root, _, _, _ = parse(pxr_macro, pxr_annots)
+    return root
+
+
+def expand_pair_macro(prim, annots, func):
+    res = []
+
+    def emit(node: PxrNode):
+        res.insert(0, dip_n(func(annots), depth=node.depth))
+        _ = list(map(lambda x: emit(x) if isinstance(x, PxrNode) else None, node.args))
+
+    emit(build_pxr_tree(prim, annots))
+    return res
+
+
+@macro(r'^P[PAI]{3,}R$')
+def expand_pxr(prim, annots, args) -> list:
     assert not args
-    lr_annots, nested_annots = split_pair_annots(annots)
-    pair = make_dict(prim='PAIR', annots=lr_annots)
-    nested_pair = expand_macro(prim=f'{prim}R', annots=nested_annots, args=None)
-    return pair, nested_pair if isinstance(nested_pair, list) else [nested_pair]
+    return expand_pair_macro(prim, annots, lambda x: expr(prim='PAIR', annots=x.annots))
 
 
-@macro(r'^PA([PAI]{2,})R$')
-def expand_paxr(prim, annots, args) -> list:
-    pair, nested_pair = expand_pair_macro(prim, annots, args)
-    return [dict(prim='DIP', args=[nested_pair]), pair]
-
-
-@macro(r'^P([PAI]{2,})IR$')
-def expand_pxir(prim, annots, args) -> list:
-    pair, nested_pair = expand_pair_macro(prim, annots, args)
-    return [pair, *nested_pair]
-
-
-@macro(r'UNPAIR')
+@macro(r'^UNPAIR$')
 def expand_unpair(prim, annots, args) -> list:
     assert not args
-    if isinstance(annots, list):
-        left, right = list(map(lambda x: [x], annots))
-    else:
-        left, right = None, None
-    return [
-        DUP,
-        make_dict(prim='CAR', annots=left),
-        dict(prim='DIP', args=[[make_dict(prim='CDR', annots=right)]])
-    ]
+    assert len(annots) in {0, 2}
+    car_annots, cdr_annots = ([annots[0]], [annots[1]]) if annots else ([], [])
+    return [DUP,
+            expr(prim='CAR', annots=car_annots),
+            dip_n(expr(prim='CDR', annots=cdr_annots))]
 
 
-def expand_unpair_macro(prim, annots, args):
+@macro(r'^UN(P[PAI]{3,}R)$')
+def expand_unpxr(prim, annots, args) -> list:
     assert not args
-    lr_annots, nested_annots = split_pair_annots(annots)
-    unpair = expand_unpair(prim=None, annots=lr_annots, args=None)
-    nested_unpair = expand_macro(prim=f'UN{prim}R', annots=nested_annots, args=None)
-    return unpair, nested_unpair
+    return expand_pair_macro(prim, annots, lambda x: expand_unpair(prim=None, annots=x.annots, args=[]))
 
 
-@macro(r'^UNPA([PAI]{2,})R$')
-def expand_unpaxr(prim, annots, args) -> list:
-    unpair, nested_unpair = expand_unpair_macro(prim, annots, args)
-    return [*unpair, dict(prim='DIP', args=[nested_unpair])]
-
-
-@macro(r'^UNP([PAI]+)IR$')
-def expand_unpxir(prim, annots, args) -> list:
-    unpair, nested_unpair = expand_unpair_macro(prim, annots, args)
-    return [*unpair, *nested_unpair]
-
-
-def expand_cadr_macro(prim, annots, args) -> list:
-    assert not args
-    cadr = expand_macro(prim=f'C{prim}R', annots=annots, args=None)
-    return cadr if isinstance(cadr, list) else [cadr]
+def expand_cxr_macro(prim, annots) -> list:
+    cxr = expand_macro(prim=f'C{prim}R', annots=annots, args=[])
+    return cxr if isinstance(cxr, list) else [cxr]
 
 
 @macro(r'^CA([AD]+)R$')
 def expand_caxr(prim, annots, args) -> list:
-    return [CAR, *expand_cadr_macro(prim, annots, args)]
+    assert not args
+    return [CAR, *expand_cxr_macro(prim, annots)]
 
 
 @macro(r'^CD([AD]+)R$')
 def expand_cdxr(prim, annots, args) -> list:
-    return [CDR, *expand_cadr_macro(prim, annots, args)]
+    assert not args
+    return [CDR, *expand_cxr_macro(prim, annots)]
 
 
-@macro(r'IF_SOME')
+@macro(r'^IF_SOME$')
 def expand_if_some(prim, annots, args) -> dict:
     assert not annots
     assert len(args) == 2
-    return dict(prim='IF_NONE', args=args)
+    return expr(prim='IF_NONE', args=list(reversed(args)))
 
 
-def split_cadr_annots(annots):
-    if isinstance(annots, list):
-        var_annots = list(filter(lambda x: x[0] == '@', annots))
-        field_annots = list(filter(lambda x: x[0] == '%', annots))
-        assert len(var_annots) <= 1, 'Too many variable annotations'
-        assert len(field_annots) <= 1, 'Too many field annotations'
-        return var_annots, field_annots
-    else:
-        return None, None
+@macro(r'^SET_CAR$')
+def expand_set_car(prim, annots, args) -> list:
+    assert not args
+    car_annots = get_field_annots(annots) or ['%']
+    assert len(car_annots) == 1
+    return [CDR__,
+            SWAP,
+            expr(prim='PAIR', annots=[car_annots[0], '%@'])]
 
 
-def expand_set_map_cadr_macro(prim, annots, args):
-    var_annots, field_annots = split_cadr_annots(annots)
-    cadr = make_dict(prim=prim, annots=field_annots)
-    pair = make_dict(prim='PAIR', annots=var_annots)
-    return cadr, pair
-
-
-@macro(r'SET_(CAR|CDR)')
+@macro(r'^SET_CDR$')
 def expand_set(prim, annots, args) -> list:
     assert not args
-    cadr, pair = expand_set_map_cadr_macro(prim, annots, args)
-    return [cadr, SWAP, pair]
+    cdr_annots = get_field_annots(annots) or ['%']
+    assert len(cdr_annots) == 1
+    return [CAR__,
+            SWAP,
+            expr(prim='PAIR', annots=['%@', cdr_annots[0]])]
 
 
-def expand_set_cadr_macro(prim, annots, args):
-    assert not args
-    var_annots, field_annots = split_cadr_annots(annots)
-    cadr = expand_macro(prim=f'SET_C{prim}R', annots=field_annots, args=None)
-    pair = make_dict(prim='PAIR', annots=var_annots)
-    return cadr, pair
+def expand_set_cxr(prim, annots):
+    set_cxr = expand_macro(prim=f'SET_C{prim}R', annots=get_field_annots(annots), args=None)
+    pair = expr(prim='PAIR', annots=['%@', '%@'] + get_var_annots(annots))
+    return set_cxr, pair
 
 
 @macro(r'^SET_CA([AD]+)R$')
 def expand_set_caxr(prim, annots, args) -> list:
-    cadr, pair = expand_set_cadr_macro(prim, annots, args)
+    assert not args
+    set_cxr, pair = expand_set_cxr(prim, annots)
     return [DUP,
-            dict(prim='DIP', args=[CAR, *cadr]),
-            CDR,
+            dip_n([CAR__, *set_cxr]),
+            CDR__,
             SWAP,
             pair]
 
 
 @macro(r'^SET_CD([AD]+)R$')
 def expand_set_cdxr(prim, annots, args) -> list:
-    cadr, pair = expand_set_cadr_macro(prim, annots, args)
+    assert not args
+    set_cxr, pair = expand_set_cxr(prim, annots)
     return [DUP,
-            dict(prim='DIP', args=[CDR, *cadr]),
-            CAR,
+            dip_n([CDR__, *set_cxr]),
+            CAR__,
             pair]
 
 
-@macro(r'MAP_(CAR)')
+@macro(r'^MAP_CAR$')
 def expand_map_car(prim, annots, args) -> list:
-    car, pair = expand_set_map_cadr_macro(prim, annots, args)
+    car_annots = get_field_annots(annots) or ['%']
+    assert len(car_annots) == 1
     return [DUP,
             CDR,
-            dict(prim='DIP', args=[[car, *args]]),
+            expr(prim='DIP', args=[[expr(prim='CDR', annots=[]), *args]]),
             SWAP,
-            pair]
+            expr(prim='PAIR', annots=['%@', car_annots[0]])]
 
 
-@macro(r'MAP_(CDR)')
+@macro(r'^MAP_CDR$')
 def expand_map_cdr(prim, annots, args) -> list:
-    cdr, pair = expand_set_map_cadr_macro(prim, annots, args)
+    cdr_annots = get_field_annots(annots) or ['%']
+    assert len(cdr_annots) == 1
     return [DUP,
-            cdr,
+            expr(prim='CDR', annots=[]),
             *args,
             SWAP,
-            CAR,
-            pair]
+            CAR__,
+            expr(prim='PAIR', annots=['%@', cdr_annots[0]])]
 
 
-def expand_map_cadr_macro(prim, annots, args):
-    var_annots, field_annots = split_cadr_annots(annots)
-    cadr = expand_macro(prim=f'MAP_C{prim}R', annots=field_annots, args=args)
-    pair = make_dict(prim='PAIR', annots=var_annots)
-    return cadr, pair
+def expand_map_cxr(prim, annots):
+    map_cxr = expand_macro(prim=f'MAP_C{prim}R', annots=get_field_annots(annots), args=[])
+    pair = expr(prim='PAIR', annots=['%@', '%@'] + get_var_annots(annots))
+    return map_cxr, pair
 
 
 @macro(r'^MAP_CA([AD]+)R$')
 def expand_map_caxr(prim, annots, args) -> list:
-    cadr, pair = expand_map_cadr_macro(prim, annots, args)
+    map_cxr, pair = expand_map_cxr(prim, annots)
     return [DUP,
-            dict(prim='DIP', args=[[CAR, *cadr]]),
-            CDR,
+            dip_n([CAR, *map_cxr]),
+            CDR__,
             SWAP,
             pair]
 
 
 @macro(r'^MAP_CD([AD]+)R$')
 def expand_map_cdxr(prim, annots, args) -> list:
-    cadr, pair = expand_map_cadr_macro(prim, annots, args)
+    map_cxr, pair = expand_map_cxr(prim, annots)
     return [DUP,
-            dict(prim='DIP', args=[[CDR, *cadr]]),
+            dip_n([CDR, *map_cxr]),
             CAR,
             pair]

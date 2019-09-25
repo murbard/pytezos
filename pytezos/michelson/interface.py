@@ -4,7 +4,7 @@ from pprint import pformat
 from pytezos.operation.result import OperationResult
 from pytezos.michelson.contract import Contract
 from pytezos.michelson.converter import convert
-from pytezos.michelson.macros import make_dict
+from pytezos.michelson.micheline import skip_nones
 from pytezos.michelson.formatter import micheline_to_michelson
 from pytezos.operation.group import OperationGroup
 from pytezos.operation.content import format_mutez
@@ -140,7 +140,7 @@ class ContractCall(Interop):
         :return: ContractCallResult
         """
         if storage is not None:
-            query = make_dict(
+            query = skip_nones(
                 script=self.contract.code,
                 storage=self.contract.storage.encode(storage),
                 input=self.parameters,
