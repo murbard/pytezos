@@ -191,9 +191,10 @@ def build_pxr_tree(pxr_macro, pxr_annots) -> PxrNode:
 def traverse_pxr_tree(prim, annots, produce):
     res = []
 
-    def walk(node: PxrNode):
-        res.insert(0, dip_n(produce(node), depth=node.depth))
-        _ = list(map(lambda x: walk(x) if isinstance(x, PxrNode) else None, node.args))
+    def walk(node):
+        if isinstance(node, PxrNode):
+            res.insert(0, dip_n(produce(node), depth=node.depth))
+            _ = list(map(walk, node.args))
 
     walk(build_pxr_tree(prim, annots))
     return res
