@@ -27,9 +27,6 @@ class RpcProvider:
 
 
 localhost = RpcProvider(
-    mainnet='http://127.0.0.1:8732/',
-    alphanet='http://127.0.0.1:8732/',
-    zeronet='http://127.0.0.1:8732/',
     sandboxnet='http://127.0.0.1:8732/'
 )
 tzscan = RpcProvider(
@@ -61,3 +58,4 @@ letzbake = RpcProvider(
 mainnet = tzscan.mainnet
 alphanet = cryptonomic.alphanet
 zeronet = tzscan.zeronet
+sandboxnet = localhost.sandboxnet

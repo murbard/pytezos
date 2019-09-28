@@ -32,7 +32,7 @@ class ContractCallResult(OperationResult):
         result = results[0]
 
         return cls(
-            parameters=contract.parameter.decode(result.parameters),
+            parameters=contract.parameter.decode(data=result.parameters),
             storage=contract.storage.decode(result.storage),
             big_map_diff=contract.storage.big_map_diff_decode(result.big_map_diff),
             operations=result.operations

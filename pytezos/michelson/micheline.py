@@ -1,4 +1,3 @@
-import re
 from typing import Dict
 from datetime import datetime
 from os.path import join, dirname, basename
@@ -13,10 +12,7 @@ from pytezos.michelson.grammar import MichelsonParser
 
 Nested = namedtuple('Nested', ['prim', 'args'])
 Schema = namedtuple('Schema', ['metadata', 'bin_types', 'bin_to_json', 'json_to_bin'])
-
 meaningful_types = ['key', 'key_hash', 'signature', 'timestamp', 'address']
-first_cap_re = re.compile('(.)([A-Z][a-z]+)')
-all_cap_re = re.compile('([a-z0-9])([A-Z])')
 
 
 @lru_cache(maxsize=None)
@@ -48,11 +44,6 @@ def is_micheline(value):
         return any(map(lambda x: x in value, ['prim', 'args', 'annots', *primitives]))
     else:
         return False
-
-
-def to_snake_case(name):
-    s1 = first_cap_re.sub(r'\1_\2', name)
-    return all_cap_re.sub(r'\1_\2', s1).lower()
 
 
 def decode_literal(node, prim):
@@ -185,7 +176,7 @@ def build_maps(metadata: dict):
     def get_entry(bin_path):
         node = metadata[bin_path]
         entry = node.get('entry', node.get('fieldname', node.get('typename')))
-        return to_snake_case(entry.replace('_Liq_entry_', '')) if entry else None
+        return entry.replace('_Liq_entry_', '') if entry else None
 
     def get_lr_path(bin_path):
         entry = ''
@@ -201,8 +192,7 @@ def build_maps(metadata: dict):
     def get_key(bin_path):
         node = metadata[bin_path]
         default = node['prim'] if node['prim'] in meaningful_types else None
-        key = node.get('typename', node.get('fieldname', node.get('entry', default)))
-        return to_snake_case(key) if key else None
+        return node.get('typename', node.get('fieldname', node.get('entry', default)))
 
     def parse_node(bin_path='0', json_path='/'):
         node = metadata[bin_path]

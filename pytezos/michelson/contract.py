@@ -24,15 +24,22 @@ class ContractParameter(metaclass=InlineDocstring):
         ]
         return '\n'.join(res)
 
-    def decode(self, data):
+    def decode(self, data, entrypoint=None):
         """
         Convert Micheline data into Python object using internal schema.
         :param data: Micheline expression or Michelson string
+        :param entrypoint:
         :return: object
         """
         if isinstance(data, str):
             data = michelson_to_micheline(data)
-        return decode_micheline(data, self.schema)
+
+        if entrypoint is not None:
+            root = self.schema.json_to_bin[entrypoint]
+            res = decode_micheline(data, self.schema, root)
+            return {entrypoint: res}
+        else:
+            return decode_micheline(data, self.schema)
 
     def encode(self, data):
         """

@@ -172,7 +172,7 @@ class ContentMixin:
         :param destination: Address
         :param amount: Amount to send in microtez (int) or tez (Decimal) (optional)
         :param counter: Current account counter, leave None for autocomplete
-        :param parameters: Micheline expression (optional)
+        :param parameters: { "entrypoint": $string, "value": $Micheline expression } (optional)
         :param fee: Leave None for autocomplete
         :param gas_limit: Leave None for autocomplete
         :param storage_limit: Leave None for autocomplete
@@ -195,16 +195,13 @@ class ContentMixin:
         return self.operation(content)
 
     @inline_doc
-    def origination(self, script=None, manager_pubkey='', balance=0, delegatable=None, spendable=None,
+    def origination(self, script, balance=0,
                     source='', counter=0, fee=0, gas_limit=0, storage_limit=0):
         """
         Deploy smart contract (scriptless KT accounts are not used for delegation since Babylon)
-        :param script: {"code": $Micheline, "storage": $Micheline}, default is None (until Babylon)
-        :param manager_pubkey: Public key hash of the manager's address, leave None to use signatory address
+        :param script: {"code": $Micheline, "storage": $Micheline}
         :param balance: Amount transferred on the balance, WARNING: there is no default way to withdraw funds.
         More info: https://tezos.stackexchange.com/questions/1315/can-i-withdraw-funds-from-an-empty-smart-contract
-        :param delegatable: Whether funds can be delegated from this account (defaults: False for smart contract)
-        :param spendable: Whether funds can be withdrawn by manager (defaults: False for smart contract)
         :param source: Address from which funds will be sent, leave None to use signatory address
         :param counter: Current account counter, leave None for autocomplete
         :param fee: Leave None for autocomplete
@@ -212,11 +209,6 @@ class ContentMixin:
         :param storage_limit: Leave None for autocomplete
         :return: dict or OperationGroup
         """
-        if delegatable is None:
-            delegatable = script is None
-        if spendable is None:
-            spendable = script is None
-
         content = {
             'kind': 'origination',
             'source': source,
@@ -224,14 +216,9 @@ class ContentMixin:
             'counter': str(counter),
             'gas_limit': str(gas_limit),
             'storage_limit': str(storage_limit),
-            'manager_pubkey': manager_pubkey,
             'balance': format_mutez(balance),
-            'spendable': spendable,
-            'delegatable': delegatable
+            'script': script
         }
-
-        if script is not None:
-            content['script'] = script
 
         return self.operation(content)
 
