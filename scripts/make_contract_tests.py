@@ -3,7 +3,8 @@ from os import mkdir
 import json
 
 from conseil import conseil
-from pytezos import alphanet
+from conseil.api import ConseilApi
+from pytezos import pytezos
 from tests import relpath
 from tests.templates import michelson_coding_test_case, micheline_coding_test_case, \
     test_michelson_parse,test_michelson_format, test_michelson_inverse, test_micheline_inverse
@@ -53,7 +54,7 @@ def get_operations(account_id, limit=1):
 
 
 def find_operation(block_level, destination):
-    opg_list = alphanet.blocks[block_level].operations.managers()
+    opg_list = pytezos.shell.blocks[block_level].operations.managers()
     for opg in opg_list:
         for content in opg['contents']:
             if content.get('parameters') and content['destination'] == destination:
@@ -88,7 +89,7 @@ def make_package(account, operations=1):
 
         files[section].append((name, tz_path, json_path))
 
-    contract = alphanet.contracts[account['account_id']]()
+    contract = pytezos.shell.contracts[account['account_id']]()
     write_files(
         michelson=account['script'],
         micheline=contract['script']['code'],

@@ -117,7 +117,7 @@ rpc_docs = {
   },
   "/injection/block": {
     "POST": {
-      "descr": "Inject a block in the node and broadcast it. The `operations` embedded in `blockHeader` might be pre-validated using a contextual RPCs from the latest block (e.g. '/blocks/head/context/preapply'). Returns the ID of the block. By default, the RPC will wait for the block to be validated before answering.",
+      "descr": "Inject a block in the node and broadcast it. The `operations` embedded in `blockHeader` might be pre-validated using a contextual RPCs from the latest block (e.g. '/blocks/head/context/preapply'). Returns the ID of the block. By default, the RPC will wait for the block to be validated before answering. If ?async is true, the function returns immediately. Otherwise, the block will be validated before the result is returned. If ?force is true, it will be injected even on non strictly increasing fitness. An optional ?chain parameter can be used to specify whether to inject on the test chain or the main chain.",
       "args": [
         {
           "name": "async",
@@ -137,7 +137,7 @@ rpc_docs = {
   },
   "/injection/operation": {
     "POST": {
-      "descr": "Inject an operation in node and broadcast it. Returns the ID of the operation. The `signedOperationContents` should be constructed using a contextual RPCs from the latest block and signed by the client. By default, the RPC will wait for the operation to be (pre-)validated before answering. See RPCs under /blocks/prevalidation for more details on the prevalidation context.",
+      "descr": "Inject an operation in node and broadcast it. Returns the ID of the operation. The `signedOperationContents` should be constructed using a contextual RPCs from the latest block and signed by the client. By default, the RPC will wait for the operation to be (pre-)validated before answering. See RPCs under /blocks/prevalidation for more details on the prevalidation context. If ?async is true, the function returns immediately. Otherwise, the operation will be validated before the result is returned. An optional ?chain parameter can be used to specify whether to inject on the test chain or the main chain.",
       "args": [
         {
           "name": "async",
@@ -153,14 +153,10 @@ rpc_docs = {
   },
   "/injection/protocol": {
     "POST": {
-      "descr": "Inject a protocol in node. Returns the ID of the protocol.",
+      "descr": "Inject a protocol in node. Returns the ID of the protocol. If ?async is true, the function returns immediately. Otherwise, the protocol will be validated before the result is returned.",
       "args": [
         {
           "name": "async",
-          "descr": "\u00af\\_(\u30c4)_/\u00af"
-        },
-        {
-          "name": "force",
           "descr": "\u00af\\_(\u30c4)_/\u00af"
         }
       ],
@@ -567,8 +563,16 @@ rpc_docs = {
       "ret": "Object"
     },
     "props": [
+      "ddb",
       "peers_validators"
     ]
+  },
+  "/workers/chain_validators/{}/ddb": {
+    "GET": {
+      "descr": "Introspect the state of the DDB attached to a chain validator worker.",
+      "args": [],
+      "ret": "Object"
+    }
   },
   "/workers/chain_validators/{}/peers_validators": {
     "GET": {
@@ -608,23 +612,10 @@ rpc_docs = {
   },
   "/chains/{}/mempool": {
     "props": [
-      "filter",
       "monitor_operations",
       "pending_operations",
       "request_operations"
     ]
-  },
-  "/chains/{}/mempool/filter": {
-    "GET": {
-      "descr": "Get the configuration of the mempool filter.",
-      "args": [],
-      "ret": "Object"
-    },
-    "POST": {
-      "descr": "Set the configuration of the mempool filter.",
-      "args": [],
-      "ret": "Object"
-    }
   },
   "/chains/{}/mempool/monitor_operations": {
     "GET": {
@@ -672,19 +663,23 @@ rpc_docs = {
     },
     "props": [
       "context",
+      "endorsing_power",
       "hash",
       "header",
       "helpers",
       "live_blocks",
       "metadata",
+      "minimal_valid_time",
       "operation_hashes",
       "operations",
       "protocols",
+      "required_endorsements",
       "votes"
     ]
   },
   "/chains/{}/blocks/{}/context": {
     "props": [
+      "big_maps",
       "constants",
       "contracts",
       "delegates",
@@ -693,6 +688,25 @@ rpc_docs = {
       "raw",
       "seed"
     ]
+  },
+  "/chains/{}/blocks/{}/context/big_maps": {
+    "item": {
+      "name": "big_map_id",
+      "descr": "A big map identifier"
+    }
+  },
+  "/chains/{}/blocks/{}/context/big_maps/{}": {
+    "item": {
+      "name": "script_expr",
+      "descr": "script_expr (Base58Check-encoded)"
+    }
+  },
+  "/chains/{}/blocks/{}/context/big_maps/{}/{}": {
+    "GET": {
+      "descr": "Access the value associated with a key in a big map.",
+      "args": [],
+      "ret": "Object"
+    }
   },
   "/chains/{}/blocks/{}/context/constants": {
     "GET": {
@@ -732,13 +746,11 @@ rpc_docs = {
       "balance",
       "big_map_get",
       "counter",
-      "delegatable",
       "delegate",
+      "entrypoints",
       "frozen_balance_ocp",
-      "manager",
       "manager_key",
       "script",
-      "spendable",
       "storage"
     ]
   },
@@ -751,7 +763,7 @@ rpc_docs = {
   },
   "/chains/{}/blocks/{}/context/contracts/{}/big_map_get": {
     "POST": {
-      "descr": "Access the value associated with a key in the big map storage  of the contract.",
+      "descr": "Access the value associated with a key in a big map of the contract (deprecated).",
       "args": [],
       "ret": "Object"
     }
@@ -763,13 +775,6 @@ rpc_docs = {
       "ret": "Object"
     }
   },
-  "/chains/{}/blocks/{}/context/contracts/{}/delegatable": {
-    "GET": {
-      "descr": "Tells if the contract delegate can be changed.",
-      "args": [],
-      "ret": "Boolean"
-    }
-  },
   "/chains/{}/blocks/{}/context/contracts/{}/delegate": {
     "GET": {
       "descr": "Access the delegate of a contract, if any.",
@@ -777,16 +782,27 @@ rpc_docs = {
       "ret": "Object"
     }
   },
-  "/chains/{}/blocks/{}/context/contracts/{}/frozen_balance_ocp": {
-    "POST": {
-      "descr": "Access the frozen balance of a contract.",
+  "/chains/{}/blocks/{}/context/contracts/{}/entrypoints": {
+    "GET": {
+      "descr": "Return the list of entrypoints of the contract",
+      "args": [],
+      "ret": "Object"
+    },
+    "item": {
+      "name": "string",
+      "descr": "\u00af\\_(\u30c4)_/\u00af"
+    }
+  },
+  "/chains/{}/blocks/{}/context/contracts/{}/entrypoints/{}": {
+    "GET": {
+      "descr": "Return the type of the given entrypoint of the contract",
       "args": [],
       "ret": "Object"
     }
   },
-  "/chains/{}/blocks/{}/context/contracts/{}/manager": {
-    "GET": {
-      "descr": "Access the manager of a contract.",
+  "/chains/{}/blocks/{}/context/contracts/{}/frozen_balance_ocp": {
+    "POST": {
+      "descr": "Access the frozen balance of a contract.",
       "args": [],
       "ret": "Object"
     }
@@ -803,13 +819,6 @@ rpc_docs = {
       "descr": "Access the code and data of the contract.",
       "args": [],
       "ret": "Object"
-    }
-  },
-  "/chains/{}/blocks/{}/context/contracts/{}/spendable": {
-    "GET": {
-      "descr": "Tells if the contract tokens can be spent by the manager.",
-      "args": [],
-      "ret": "Boolean"
     }
   },
   "/chains/{}/blocks/{}/context/contracts/{}/storage": {
@@ -961,6 +970,13 @@ rpc_docs = {
       "descr": "Seed of the cycle to which the block belongs.",
       "args": [],
       "ret": "String"
+    }
+  },
+  "/chains/{}/blocks/{}/endorsing_power": {
+    "POST": {
+      "descr": "Get the endorsing power of an endorsement, that is, the number of slots that the endorser has",
+      "args": [],
+      "ret": "Integer"
     }
   },
   "/chains/{}/blocks/{}/hash": {
@@ -1319,6 +1335,8 @@ rpc_docs = {
   },
   "/chains/{}/blocks/{}/helpers/scripts": {
     "props": [
+      "entrypoint",
+      "entrypoints",
       "pack_data",
       "run_code",
       "run_operation",
@@ -1326,6 +1344,20 @@ rpc_docs = {
       "typecheck_code",
       "typecheck_data"
     ]
+  },
+  "/chains/{}/blocks/{}/helpers/scripts/entrypoint": {
+    "POST": {
+      "descr": "Return the type of the given entrypoint",
+      "args": [],
+      "ret": "Object"
+    }
+  },
+  "/chains/{}/blocks/{}/helpers/scripts/entrypoints": {
+    "POST": {
+      "descr": "Return the list of entrypoints of the given script",
+      "args": [],
+      "ret": "Object"
+    }
   },
   "/chains/{}/blocks/{}/helpers/scripts/pack_data": {
     "POST": {
@@ -1380,6 +1412,22 @@ rpc_docs = {
     "GET": {
       "descr": "All the metadata associated to the block.",
       "args": [],
+      "ret": "Object"
+    }
+  },
+  "/chains/{}/blocks/{}/minimal_valid_time": {
+    "GET": {
+      "descr": "Minimal valid time for a block given a priority and an endorsing power.",
+      "args": [
+        {
+          "name": "priority",
+          "descr": "\u00af\\_(\u30c4)_/\u00af"
+        },
+        {
+          "name": "endorsing_power",
+          "descr": "\u00af\\_(\u30c4)_/\u00af"
+        }
+      ],
       "ret": "Object"
     }
   },
@@ -1446,6 +1494,18 @@ rpc_docs = {
       "descr": "Current and next protocol.",
       "args": [],
       "ret": "Object"
+    }
+  },
+  "/chains/{}/blocks/{}/required_endorsements": {
+    "GET": {
+      "descr": "Minimum number of endorsements for a block to be valid, given a delay of the block's timestamp with respect to the minimum time to bake at the block's priority",
+      "args": [
+        {
+          "name": "block_delay",
+          "descr": "\u00af\\_(\u30c4)_/\u00af"
+        }
+      ],
+      "ret": "Integer"
     }
   },
   "/chains/{}/blocks/{}/votes": {

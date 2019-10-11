@@ -31,7 +31,7 @@ localhost = RpcProvider(
 )
 tzscan = RpcProvider(
     mainnet='https://mainnet-node.tzscan.io/',
-    alphanet='https://alphanet-node.tzscan.io/',
+    alphanet='https://babylonnet-node.tzscan.io/',
     zeronet='https://zeronet-node.tzscan.io/'
 )
 tzbeta = RpcProvider(
@@ -39,8 +39,7 @@ tzbeta = RpcProvider(
     alphanet='https://rpcalpha.tzbeta.net/'
 )
 tezbox = RpcProvider(
-    mainnet='https://rpc.tezrpc.me/',
-    alphanet='https://alphanet.tezrpc.me/'
+    mainnet='https://rpc.tezrpc.me/'
 )
 cryptonomic = RpcProvider(
     mainnet='https://tezos-prod.cryptonomic-infra.tech/',

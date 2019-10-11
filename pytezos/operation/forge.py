@@ -1,6 +1,6 @@
 from pytezos.encoding import forge_address, forge_bool, forge_nat, forge_array, forge_public_key, \
     forge_base58
-from pytezos.michelson.forge import forge_micheline, forge_script
+from pytezos.michelson.forge import forge_entrypoint, forge_micheline, forge_script
 
 # TODO: https://tezos.gitlab.io/master/protocols/005_PsBABY5H.html#changes-to-the-binary-format-of-operations
 
@@ -70,7 +70,8 @@ def forge_transaction(content):
 
     if content.get('parameters'):
         res += forge_bool(True)
-        res += forge_array(forge_micheline(content['parameters']))
+        res += forge_entrypoint(content['parameters']['entrypoint'])
+        res += forge_array(forge_micheline(content['parameters']['value']))
     else:
         res += forge_bool(False)
 

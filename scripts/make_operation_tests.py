@@ -2,8 +2,9 @@ import json
 from os.path import join, dirname, exists
 from os import mkdir
 
-from pytezos import alphanet
+from pytezos import pytezos
 from conseil import conseil
+from conseil.api import ConseilApi
 from tests import relpath
 from tests.templates import operation_forging_test_case
 
@@ -16,7 +17,6 @@ def get_transaction_with_params(like, limit=1):
     return Operation.query(Operation.block_level, Operation.operation_group_hash) \
         .filter(Operation.kind == 'transaction',
                 Operation.parameters.like(like),
-                Operation.block_level > 500000,
                 Operation.internal.is_(False)) \
         .limit(limit) \
         .all()
@@ -25,7 +25,6 @@ def get_transaction_with_params(like, limit=1):
 def get_origination_with_script(limit=1):
     return Operation.query(Operation.block_level, Operation.operation_group_hash) \
         .filter(Operation.kind == 'origination',
-                Operation.block_level > 500000,
                 Operation.script.isnot(None)) \
         .limit(limit) \
         .all()
@@ -36,18 +35,17 @@ def get_operation(kind, limit=1):
         .filter(Operation.kind == kind,
                 Operation.parameters.is_(None),
                 Operation.script.is_(None),
-                Operation.block_level > 500000,
                 Operation.internal.is_(False)) \
         .limit(limit) \
         .all()
 
 
 def get_unsigned_data(block_level, operation_group_hash):
-    return alphanet.blocks[block_level].operations[operation_group_hash].unsigned()
+    return pytezos.shell.blocks[block_level].operations[operation_group_hash].unsigned()
 
 
 def forge(block_level, unsigned_data):
-    return alphanet.blocks[block_level].helpers.forge.operations.post(unsigned_data)
+    return pytezos.shell.blocks[block_level].helpers.forge.operations.post(unsigned_data)
 
 
 def make_test(block_level, operation_group_hash):

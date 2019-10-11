@@ -140,6 +140,14 @@ len_tags = [
     }
 ]
 
+reserved_entries = {
+    'default': b'\x00',
+    'root': b'\x01',
+    'do': b'\x02',
+    'set_delegate': b'\x03',
+    'remove_delegate': b'\x04'
+}
+
 
 def forge_int(value: int):
     res = bytearray()
@@ -154,6 +162,13 @@ def forge_int(value: int):
 
     res[-1] &= 0b01111111
     return bytes(res)
+
+
+def forge_entrypoint(entrypoint):
+    if entrypoint in reserved_entries:
+        return reserved_entries[entrypoint]
+    else:
+        return b'\xff' + forge_array(entrypoint.encode(), len_bytes=1)
 
 
 def forge_micheline(data):
