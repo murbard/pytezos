@@ -1,10 +1,11 @@
+# Inspired by https://github.com/jansorg/tezos-intellij/blob/master/grammar/michelson.bnf
+
 from ply.lex import Lexer, lex
 from ply.yacc import yacc
 import re
 import json
 
-# Inspired by https://github.com/jansorg/tezos-intellij/blob/master/grammar/michelson.bnf
-# TODO: sync primitives with BABY
+from pytezos.michelson.macros import expand_macro
 
 
 class MichelsonParserError(ValueError):
@@ -16,28 +17,27 @@ class Sequence(list):
 
 
 class SimpleMichelsonLexer(Lexer):
-    tokens = (
-        'PRIM', 'INT', 'BYTE', 'STR',
-        'LEFT_CURLY', 'RIGHT_CURLY', 'LEFT_PAREN', 'RIGHT_PAREN', 'SEMI',
-        'ANNOT'
-    )
-    t_PRIM = r'[A-Za-z][A-Za-z0-9_]+'
+    tokens = ('INT', 'BYTE', 'STR', 'ANNOT', 'PRIM',
+              'LEFT_CURLY', 'RIGHT_CURLY', 'LEFT_PAREN', 'RIGHT_PAREN', 'SEMI')
+
     t_INT = r'-?[0-9]+'
     t_BYTE = r'0x[A-Fa-f0-9]+'
     t_STR = r'\"(\\.|[^\"])*\"'
+    t_ANNOT = r'[:@%]+([_a-zA-Z][_0-9a-zA-Z\.]*)?'
+    t_PRIM = r'[A-Za-z][A-Za-z0-9_]+'
     t_LEFT_CURLY = r'\{'
     t_RIGHT_CURLY = r'\}'
     t_LEFT_PAREN = r'\('
     t_RIGHT_PAREN = r'\)'
     t_SEMI = r';'
-    # t_COMMENT = r'#[^\n]+'
-    # t_MULTI_COMMENT = r'/"\* ~\*"/'
-    t_ANNOT = r'[:@%]+([_a-zA-Z][_0-9a-zA-Z\.]*)?'
-    t_ignore = ' \r\n\t\f'
+
+    t_ignore_MULTI_COMMENT = r'/\*.*?\*/'
+    t_ignore_COMMENT = r'#[^\n]*'
+    t_ignore = ' \t\r\n\f'
 
     def __init__(self):
         super(SimpleMichelsonLexer, self).__init__()
-        self.lexer = lex(module=self, reflags=re.DOTALL)
+        self.lexer = lex(module=self, reflags=re.MULTILINE)
 
     def t_error(self, t):
         t.type = t.value[0]
@@ -74,11 +74,11 @@ class MichelsonParser(object):
 
     def p_expr(self, p):
         '''expr : PRIM annots args'''
-        p[0] = {'prim': p[1]}
-        if p[2]:
-            p[0]['annots'] = p[2]
-        if p[3]:
-            p[0]['args'] = p[3]
+        p[0] = expand_macro(
+            prim=p[1],
+            annots=p[2] or [],
+            args=p[3] or []
+        )
 
     def p_annots(self, p):
         '''annots : annot

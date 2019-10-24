@@ -38,6 +38,10 @@ class TypedDict(dict):
         return type(f'{key_type.__name__.capitalize()}Dict', (TypedDict,), {'__key_type__': key_type})
 
 
+def skip_nones(**kwargs) -> dict:
+    return {k: v for k, v in kwargs.items() if v is not None}
+
+
 def is_micheline(value):
     if isinstance(value, list):
         def get_prim(x):
@@ -117,10 +121,6 @@ def get_flat_nested(nested: Nested):
     return flat_args
 
 
-def make_dict(**kwargs) -> dict:
-    return {k: v for k, v in kwargs.items() if v is not None}
-
-
 def collapse_micheline(code) -> dict:
     metadata = dict()
 
@@ -134,7 +134,7 @@ def collapse_micheline(code) -> dict:
         fieldname = get_annotation(node, '%')
         typename = get_annotation(node, ':')
 
-        metadata[path] = make_dict(
+        metadata[path] = skip_nones(
             prim=node['prim'],
             typename=typename,
             fieldname=fieldname,

@@ -1,3 +1,5 @@
+from functools import lru_cache
+
 from pytezos.michelson.contract import Contract, ContractParameter, ContractStorage
 from pytezos.michelson.micheline import michelson_to_micheline
 
@@ -8,16 +10,15 @@ parameter
 """
 storage_tz = "storage (map nat address)"
 
-parameter = ContractParameter(michelson_to_micheline(parameter_tz))
-storage = ContractStorage(michelson_to_micheline(storage_tz))
-
 
 class NonFungibleTokenImpl(Contract):
 
     @property
+    @lru_cache(maxsize=None)
     def parameter(self) -> ContractParameter:
-        return parameter
+        return ContractParameter(michelson_to_micheline(parameter_tz))
 
     @property
+    @lru_cache(maxsize=None)
     def storage(self) -> ContractStorage:
-        return storage
+        return ContractStorage(michelson_to_micheline(storage_tz))

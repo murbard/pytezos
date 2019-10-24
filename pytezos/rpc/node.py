@@ -2,20 +2,48 @@ import requests
 from json import JSONDecodeError
 from hashlib import sha1
 from urllib.parse import urlencode
+from pprint import pformat
 
 
 def urljoin(*args):
     return "/".join(map(lambda x: str(x).strip('/'), args))
 
 
-class RpcError(ValueError):
+def strip_proto(error_id):
+    return '.'.join(error_id.split('.')[2:])
 
-    def __init__(self, res: requests.Response):
-        super(RpcError, self).__init__(res.text)
-        self.res = res
+
+class RpcError(Exception):
+    __handlers__ = {}
+
+    @classmethod
+    def __init_subclass__(cls, error_id=None, **kwargs):
+        super().__init_subclass__(**kwargs)
+        if isinstance(error_id, list):
+            for eid in error_id:
+                cls.__handlers__[eid] = cls
+        else:
+            assert error_id is not None
+            cls.__handlers__[error_id] = cls
+
+    @classmethod
+    def from_response(cls, res: requests.Response):
+        handler = RpcError
+        if res.headers.get('content-type') == 'application/json':
+            errors = res.json()
+            assert isinstance(errors, list)
+            error = errors[-1]
+            for key in [error['id'], strip_proto(error['id'])]:
+                if key in cls.__handlers__:
+                    handler = cls.__handlers__
+                    break
+        else:
+            error = res.text
+
+        return handler(error)
 
     def __str__(self):
-        return f'{self.res.request.method} {self.res.request.url} <{self.res.status_code}>\n{self.res.text}'
+        return pformat(self.args)
 
 
 class RpcNode:
@@ -47,7 +75,7 @@ class RpcNode:
             **kwargs
         )
         if res.status_code != 200:
-            raise RpcError(res)
+            raise RpcError.from_response(res) from None
 
         return res
 
