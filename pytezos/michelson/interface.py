@@ -4,7 +4,7 @@ from pprint import pformat
 from pytezos.operation.result import OperationResult
 from pytezos.michelson.contract import Contract
 from pytezos.michelson.converter import convert
-from pytezos.michelson.micheline import make_dict
+from pytezos.michelson.micheline import skip_nones
 from pytezos.michelson.formatter import micheline_to_michelson
 from pytezos.operation.group import OperationGroup
 from pytezos.operation.content import format_mutez
@@ -13,14 +13,21 @@ from pytezos.tools.docstring import get_class_docstring
 from pytezos.rpc.node import RpcError
 
 
-class MichelsonRuntimeError(RuntimeError):
+class MichelsonRuntimeError(Exception):
 
     @classmethod
-    def from_rpc_error(cls, error: RpcError):
-        if error.res.status_code in [500, 400, 422]:
-            return MichelsonRuntimeError(error.res.json())
+    def from_rpc_error(cls, e: RpcError):
+        content_type = e.res.headers.get('content-type')
+        if content_type == 'application/json':
+            errors = e.res.json()
+            assert isinstance(errors, list)
+            lines = [
+                '\n'.join([f'{k}: {v}' for k, v in error.items() if 'code' not in k])
+                for error in errors
+            ]
+            return MichelsonRuntimeError('\n\n'.join(lines))
         else:
-            return MichelsonRuntimeError(error.res.text)
+            return MichelsonRuntimeError(e.res.text)
 
 
 class ContractCallResult(OperationResult):
@@ -76,8 +83,10 @@ class ContractCall(Interop):
     def __repr__(self):
         res = [
             super(ContractCall, self).__repr__(),
-            '\nPayload',
-            pformat(self.operation_group.json_payload()),
+            f'.address  # {self.address}',
+            f'.amount  # {self.amount}',
+            '\nParameters',
+            pformat(self.parameters),
             '\nHelpers',
             get_class_docstring(self.__class__)
         ]
@@ -131,7 +140,7 @@ class ContractCall(Interop):
         :return: ContractCallResult
         """
         if storage is not None:
-            query = make_dict(
+            query = skip_nones(
                 script=self.contract.code,
                 storage=self.contract.storage.encode(storage),
                 input=self.parameters,
