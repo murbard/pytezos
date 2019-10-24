@@ -24,21 +24,27 @@ class ContractParameter(metaclass=InlineDocstring):
         ]
         return '\n'.join(res)
 
-    def decode(self, data, entrypoint=None):
+    def _get_entry_root(self, entrypoint):
+        if entrypoint == 'root':
+            return '0'
+        else:
+            return self.schema.json_to_bin[f'/{entrypoint}']
+
+    def decode(self, data):
         """
         Convert Micheline data into Python object using internal schema.
-        :param data: Micheline expression or Michelson string
-        :param entrypoint:
+        :param data: Micheline expression or Michelson string or {entrypoint: "string", value: "expression"}
         :return: object
         """
-        if isinstance(data, str):
-            data = michelson_to_micheline(data)
-
-        if entrypoint is not None:
-            root = self.schema.json_to_bin[entrypoint]
-            res = decode_micheline(data, self.schema, root)
-            return {entrypoint: res}
+        if isinstance(data, dict) \
+                and set(data.keys()) == {'entrypoint', 'value'} \
+                and data['entrypoint'] != 'root':
+            res = decode_micheline(data, self.schema, root=self._get_entry_root(data['entrypoint']))
+            return {data['entrypoint']: res}
         else:
+            if isinstance(data, str):
+                data = michelson_to_micheline(data)
+
             return decode_micheline(data, self.schema)
 
     def encode(self, data):
@@ -47,7 +53,14 @@ class ContractParameter(metaclass=InlineDocstring):
         :param data: Python object
         :return: object
         """
-        return encode_micheline(data, self.schema)
+        if isinstance(data, dict) and len(data) == 1:
+            entrypoint = next(iter(data))
+            value = encode_micheline(data[entrypoint], self.schema, root=self._get_entry_root(entrypoint))
+        else:
+            entrypoint = 'root'
+            value = encode_micheline(data, self.schema)
+
+        return dict(entrypoint=entrypoint, value=value)
 
     def entries(self, default='call'):
         """

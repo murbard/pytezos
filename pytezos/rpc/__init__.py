@@ -37,5 +37,4 @@ tzkt = RpcProvider(
 
 mainnet = tzkt.mainnet
 babylonnet = tzkt.babylonnet
-sandboxnet = tzkt.sandboxnet
 zeronet = tzkt.zeronet

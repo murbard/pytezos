@@ -124,10 +124,12 @@ class ContractCall(Interop):
         Generate command line for tezos client.
         :return: str
         """
-        arg = micheline_to_michelson(self.parameters, inline=True)
+        arg = micheline_to_michelson(self.parameters['value'], inline=True)
         source = self.key.public_key_hash()
         amount = format_mutez(self.amount)
-        return f'transfer {amount} from {source} to {self.address} -arg "{arg}"'
+        entrypoint = self.parameters['entrypoint']
+        return f'transfer {amount} from {source} to {self.address} "' \
+               f'--entrypoint "{entrypoint}" --arg "{arg}"'
 
     def result(self, storage=None, source=None, sender=None, gas_limit=None):
         """
@@ -139,21 +141,20 @@ class ContractCall(Interop):
         :param gas_limit: Specify gas limit (default is gas hard limit)
         :return: ContractCallResult
         """
+        chain_id = self.shell.chains.main.chain_id()
         if storage is not None:
             query = skip_nones(
                 script=self.contract.code,
                 storage=self.contract.storage.encode(storage),
-                input=self.parameters,
+                entrypoint=self.parameters['entrypoint'],
+                input=self.parameters['value'],
                 amount=format_mutez(self.amount),
+                chain_id=chain_id,
                 source=sender,
                 payer=source,
                 gas=gas_limit
             )
-            try:
-                code_run_res = self.shell.head.helpers.scripts.run_code.post(query)
-            except RpcError as e:
-                raise MichelsonRuntimeError.from_rpc_error(e) from None
-
+            code_run_res = self.shell.head.helpers.scripts.run_code.post(query)
             return ContractCallResult.from_code_run(
                 code_run_res, parameters=self.parameters, contract=self.contract)
         else:
