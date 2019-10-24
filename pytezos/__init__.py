@@ -10,7 +10,7 @@ Just type:
 And follow the interactive documentation.
 """
 
-from pytezos.rpc import RpcProvider, localhost, mainnet, alphanet, zeronet
+from pytezos.rpc import RpcProvider, localhost, mainnet, babylonnet, zeronet
 from pytezos.crypto import Key
 from pytezos.proto import Proto
 from pytezos.michelson.contract import Contract

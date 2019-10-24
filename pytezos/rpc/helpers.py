@@ -169,6 +169,31 @@ class PreapplyOperationsQuery(RpcQuery, path='/chains/{}/blocks/{}/helpers/preap
         return self._post(json=operations)
 
 
+class ScriptsEntrypoint(RpcQuery, path='/chains/{}/blocks/{}/helpers/scripts/entrypoint'):
+
+    def post(self, script, entrypoint=None):
+        """
+        Return the type of the given entrypoint
+        :param script: Micheline expression
+        :param entrypoint: Name of the entrypoint (leave None if there's only one)
+        """
+        payload = {'script': script}
+        if entrypoint:
+            payload['entrypoint'] = entrypoint
+
+        return self._post(payload)
+
+
+class ScriptsEntrypoints(RpcQuery, path='/chains/{}/blocks/{}/helpers/scripts/entrypoints'):
+
+    def post(self, script):
+        """
+        Return the list of entrypoints of the given script
+        :param script: Micheline expression
+        """
+        return self._post({'script': script})
+
+
 class ScriptsPackDataQuery(RpcQuery, path='/chains/{}/blocks/{}/helpers/scripts/pack_data'):
 
     def post(self, expression):

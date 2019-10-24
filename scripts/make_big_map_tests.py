@@ -8,7 +8,7 @@ from conseil.api import ConseilApi
 from tests import relpath
 from tests.templates import big_map_test_case
 
-Operation = conseil.tezos.alphanet.operations
+Operation = conseil.tezos.babylonnet.operations
 
 data_dir = join(dirname(dirname(__file__)), 'tests/big_map_diff')
 

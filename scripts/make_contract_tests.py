@@ -11,8 +11,8 @@ from tests.templates import michelson_coding_test_case, micheline_coding_test_ca
 
 data_dir = join(dirname(dirname(__file__)), 'tests/contracts')
 
-Account = conseil.tezos.alphanet.accounts
-Operation = conseil.tezos.alphanet.operations
+Account = conseil.tezos.babylonnet.accounts
+Operation = conseil.tezos.babylonnet.operations
 
 
 def get_accounts(limit=1):
