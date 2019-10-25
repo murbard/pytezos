@@ -80,10 +80,7 @@ class MichelsonParser(object):
             args=p[3] or [],
             is_root=True
         )
-        if p[1] == 'UNPAIR':
-            p[0] = Sequence([expr])
-        else:
-            p[0] = Sequence(expr) if isinstance(expr, list) else expr
+        p[0] = Sequence(expr) if isinstance(expr, list) else expr
 
     def p_annots(self, p):
         '''annots : annot

@@ -12,6 +12,7 @@ CAR = dict(prim='CAR')
 CDR = dict(prim='CDR')
 CAR__ = dict(prim='CAR', annots=['@%%'])
 CDR__ = dict(prim='CDR', annots=['@%%'])
+DROP = dict(prim='DROP')
 FAIL = [UNIT, FAILWITH]
 
 primitives = {
@@ -90,9 +91,9 @@ def dip_n(instr, depth=1):
     if depth <= 0:
         return instr
     elif depth == 1:
-        return expr(prim='DIP', args=[[instr]])
+        return expr(prim='DIP', args=[seq(instr)])
     else:
-        return expr(prim='DIP', args=[{'int': str(depth)}, [instr]])
+        return expr(prim='DIP', args=[{'int': str(depth)}, seq(instr)])
 
 
 @macro(r'^CMP(EQ|NEQ|LT|GT|LE|GE)$')
@@ -278,21 +279,32 @@ def expand_if_some(prim, annots, args) -> dict:
 @macro(r'^SET_CAR$')
 def expand_set_car(prim, annots, args) -> list:
     assert not args
-    car_annots = get_field_annots(annots) or ['%']
-    assert len(car_annots) == 1
-    return [CDR__,
+    if annots:
+        assert len(annots) == 1
+        access_check = [DUP,
+                        expr(prim='CAR', annots=annots),
+                        DROP]
+    else:
+        access_check, annots = [], ['%']
+    return [*access_check,
+            CDR__,
             SWAP,
-            expr(prim='PAIR', annots=[car_annots[0], '%@'])]
+            expr(prim='PAIR', annots=[annots[0], '%@'])]
 
 
 @macro(r'^SET_CDR$')
 def expand_set_cdr(prim, annots, args) -> list:
     assert not args
-    cdr_annots = get_field_annots(annots) or ['%']
-    assert len(cdr_annots) == 1
-    return [CAR__,
-            SWAP,
-            expr(prim='PAIR', annots=['%@', cdr_annots[0]])]
+    if annots:
+        assert len(annots) == 1
+        access_check = [DUP,
+                        expr(prim='CDR', annots=annots),
+                        DROP]
+    else:
+        access_check, annots = [], ['%']
+    return [*access_check,
+            CAR__,
+            expr(prim='PAIR', annots=['%@', annots[0]])]
 
 
 def expand_set_cxr(prim, annots):
@@ -306,7 +318,7 @@ def expand_set_caxr(prim, annots, args) -> list:
     assert not args
     set_cxr, pair = expand_set_cxr(prim, annots)
     return [DUP,
-            dip_n([CAR__, *set_cxr]),
+            dip_n([CAR__, set_cxr]),
             CDR__,
             SWAP,
             pair]
@@ -317,7 +329,7 @@ def expand_set_cdxr(prim, annots, args) -> list:
     assert not args
     set_cxr, pair = expand_set_cxr(prim, annots)
     return [DUP,
-            dip_n([CDR__, *set_cxr]),
+            dip_n([CDR__, set_cxr]),
             CAR__,
             pair]
 
