@@ -274,6 +274,8 @@ def parse_micheline(data, bin_to_json: dict, bin_types: dict, bin_root='0'):
                 else:
                     json_path = dirname(get_json_path(bin_path, params))
                     json_values[json_path] = bin_type
+            elif bin_type == 'big_map':
+                pass
             else:
                 set_value(bin_path, params, decode_literal(node, bin_types[bin_path]))
 

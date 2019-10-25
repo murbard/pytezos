@@ -3,7 +3,7 @@ from os.path import dirname, join
 from unittest import TestCase
 from decimal import Decimal
 
-from pytezos import ContractInterface, pytezos, format_timestamp, MichelsonRuntimeError
+from pytezos import ContractInterface, pytezos, format_timestamp, MichelsonRuntimeError, TezArithmeticError
 
 source = 'tz1irF8HUsQp2dLhKNMhteG1qALNU9g3pfdN'
 party = 'tz1h3rQ8wBxFd8L9B3d7Jhaawu6Z568XU3xY'
@@ -100,7 +100,7 @@ class AtomexContractTest(TestCase):
     def test_initiate_payoff_overflow(self):
         now = pytezos.now()
 
-        with self.assertRaises(MichelsonRuntimeError):
+        with self.assertRaises(TezArithmeticError):
             self.atomex \
                 .initiate(participant=party,
                           hashed_secret=hashed_secret,
@@ -161,7 +161,7 @@ class AtomexContractTest(TestCase):
             .result(storage=initial_storage, source=party)
 
         big_map_diff = initial_storage[0]
-        big_map_diff[hashed_secret]['settings']['amount'] = Decimal('1.98')
+        big_map_diff[hashed_secret]['amount'] = Decimal('1.98')
         self.assertDictEqual(big_map_diff, res.big_map_diff)
 
     def test_add_after_expiration(self):

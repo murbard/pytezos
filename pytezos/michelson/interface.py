@@ -10,24 +10,6 @@ from pytezos.operation.group import OperationGroup
 from pytezos.operation.content import format_mutez
 from pytezos.interop import Interop
 from pytezos.tools.docstring import get_class_docstring
-from pytezos.rpc.node import RpcError
-
-
-class MichelsonRuntimeError(Exception):
-
-    @classmethod
-    def from_rpc_error(cls, e: RpcError):
-        content_type = e.res.headers.get('content-type')
-        if content_type == 'application/json':
-            errors = e.res.json()
-            assert isinstance(errors, list)
-            lines = [
-                '\n'.join([f'{k}: {v}' for k, v in error.items() if 'code' not in k])
-                for error in errors
-            ]
-            return MichelsonRuntimeError('\n\n'.join(lines))
-        else:
-            return MichelsonRuntimeError(e.res.text)
 
 
 class ContractCallResult(OperationResult):

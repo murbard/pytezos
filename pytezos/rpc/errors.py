@@ -12,3 +12,15 @@ class MichelsonBadReturn(RpcError, error_id='michelson_v1.bad_return'):
     """
     Unexpected stack at the end of a lambda or script
     """
+
+
+class MichelsonRuntimeError(RpcError, error_id='michelson_v1'):
+    """
+    Catch all michelson_v1 errors
+    """
+
+
+class TezArithmeticError(RpcError, error_id='tez'):
+    """
+    Catch all tez errors
+    """

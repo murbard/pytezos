@@ -13,6 +13,14 @@ def strip_proto(error_id):
     return '.'.join(error_id.split('.')[2:])
 
 
+def get_error_rel_id(error_id):
+    return '.'.join(error_id.split('.')[2:])
+
+
+def get_error_class(error_id):
+    return error_id.split('.')[-2]
+
+
 class RpcError(Exception):
     __handlers__ = {}
 
@@ -33,9 +41,9 @@ class RpcError(Exception):
             errors = res.json()
             assert isinstance(errors, list)
             error = errors[-1]
-            for key in [error['id'], strip_proto(error['id'])]:
+            for key in [error['id'], get_error_rel_id(error['id']), get_error_class(error['id'])]:
                 if key in cls.__handlers__:
-                    handler = cls.__handlers__
+                    handler = cls.__handlers__[key]
                     break
         else:
             error = res.text
