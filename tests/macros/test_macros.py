@@ -38,3 +38,10 @@ class MacrosTest(TestCase):
         micheline = michelson_to_micheline(source)
         res = micheline_to_michelson(micheline)
         self.assertScriptEqual(expanded, res)
+
+    def test_map_cadadr_macro(self):
+        source = get_data(path='macros/map_cadadr/source.tz')
+        expanded = get_data(path='macros/map_cadadr/expanded.tz')
+        micheline = michelson_to_micheline(source)
+        res = micheline_to_michelson(micheline)
+        self.assertScriptEqual(expanded, res)

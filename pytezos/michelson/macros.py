@@ -374,7 +374,7 @@ def expand_map_cxr(prim, annots, args):
 def expand_map_caxr(prim, annots, args) -> list:
     map_cxr, pair = expand_map_cxr(prim, annots, args)
     return [DUP,
-            dip_n([CAR__, *map_cxr]),
+            dip_n([CAR__, map_cxr]),
             CDR__,
             SWAP,
             pair]
@@ -384,6 +384,6 @@ def expand_map_caxr(prim, annots, args) -> list:
 def expand_map_cdxr(prim, annots, args) -> list:
     map_cxr, pair = expand_map_cxr(prim, annots, args)
     return [DUP,
-            dip_n([CDR__, *map_cxr]),
+            dip_n([CDR__, map_cxr]),
             CAR__,
             pair]
