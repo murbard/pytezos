@@ -1,6 +1,6 @@
 from pytezos.encoding import forge_address, forge_bool, forge_nat, forge_array, forge_public_key, \
     forge_base58
-from pytezos.michelson.forge import forge_micheline, forge_script
+from pytezos.michelson.forge import forge_entrypoint, forge_micheline, forge_script
 
 # TODO: https://tezos.gitlab.io/master/protocols/005_PsBABY5H.html#changes-to-the-binary-format-of-operations
 
@@ -12,10 +12,10 @@ operation_tags = {
     'double_endorsement_evidence': 2,
     'double_baking_evidence': 3,
     'activate_account': 4,
-    'reveal': 7,
-    'transaction': 8,
-    'origination': 9,
-    'delegation': 10
+    'reveal': 107,
+    'transaction': 108,
+    'origination': 109,
+    'delegation': 110
 }
 
 
@@ -49,7 +49,7 @@ def forge_activate_account(content: dict):
 
 def forge_reveal(content):
     res = forge_nat(operation_tags[content['kind']])
-    res += forge_address(content['source'])
+    res += forge_address(content['source'], tz_only=True)
     res += forge_nat(int(content['fee']))
     res += forge_nat(int(content['counter']))
     res += forge_nat(int(content['gas_limit']))
@@ -60,7 +60,7 @@ def forge_reveal(content):
 
 def forge_transaction(content):
     res = forge_nat(operation_tags[content['kind']])
-    res += forge_address(content['source'])
+    res += forge_address(content['source'], tz_only=True)
     res += forge_nat(int(content['fee']))
     res += forge_nat(int(content['counter']))
     res += forge_nat(int(content['gas_limit']))
@@ -70,7 +70,8 @@ def forge_transaction(content):
 
     if content.get('parameters'):
         res += forge_bool(True)
-        res += forge_array(forge_micheline(content['parameters']))
+        res += forge_entrypoint(content['parameters']['entrypoint'])
+        res += forge_array(forge_micheline(content['parameters']['value']))
     else:
         res += forge_bool(False)
 
@@ -79,36 +80,27 @@ def forge_transaction(content):
 
 def forge_origination(content):
     res = forge_nat(operation_tags[content['kind']])
-    res += forge_address(content['source'])
+    res += forge_address(content['source'], tz_only=True)
     res += forge_nat(int(content['fee']))
     res += forge_nat(int(content['counter']))
     res += forge_nat(int(content['gas_limit']))
     res += forge_nat(int(content['storage_limit']))
-    res += forge_address(content.get('manager_pubkey', content.get('managerPubkey')), tz_only=True)
     res += forge_nat(int(content['balance']))
-
-    no_script = 'script' not in content
-    res += forge_bool(content.get('spendable', no_script))
-    res += forge_bool(content.get('delegatable', no_script))
 
     if content.get('delegate'):
         res += forge_bool(True)
         res += forge_address(content['delegate'], tz_only=True)
     else:
         res += forge_bool(False)
-        
-    if content.get('script'):
-        res += forge_bool(True)
-        res += forge_script(content['script'])
-    else:
-        res += forge_bool(False)
+
+    res += forge_script(content['script'])
 
     return res
 
 
 def forge_delegation(content):
     res = forge_nat(operation_tags[content['kind']])
-    res += forge_address(content['source'])
+    res += forge_address(content['source'], tz_only=True)
     res += forge_nat(int(content['fee']))
     res += forge_nat(int(content['counter']))
     res += forge_nat(int(content['gas_limit']))

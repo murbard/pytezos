@@ -1,11 +1,11 @@
 from os.path import exists, expanduser
 
-from pytezos.rpc import ShellQuery, RpcNode, mainnet, alphanet, zeronet, localhost
+from pytezos.rpc import ShellQuery, RpcNode, mainnet, babylonnet, zeronet, localhost
 from pytezos.crypto import Key
 from pytezos.encoding import is_key
 from pytezos.tools.docstring import InlineDocstring
 
-default_shell = 'alphanet'
+default_shell = 'babylonnet'
 default_key = 'edsk33N474hxzA4sKeWVM6iuGNGDpX2mGwHNxEA4UbWS8sW3Ta3NKH'  # please, use responsibly
 
 
@@ -27,7 +27,7 @@ class Interop(metaclass=InlineDocstring):
         if isinstance(shell, str):
             networks = {
                 'mainnet': mainnet,
-                'alphanet': alphanet,
+                'babylonnet': babylonnet,
                 'zeronet': zeronet,
                 'sandboxnet': localhost.sandboxnet
             }
@@ -61,7 +61,7 @@ class Interop(metaclass=InlineDocstring):
     def using(self, shell: ShellQuery = None, key: Key = None):
         """
         Change current rpc endpoint and account (private key)
-        :param shell: one of 'alphanet', 'mainnet', 'zeronet', or RPC node uri, or instance of `ShellQuery`
+        :param shell: one of 'babylonnet', 'mainnet', 'zeronet', or RPC node uri, or instance of `ShellQuery`
         :param key: base58 encoded key, path to the faucet file, alias from tezos-client, or instance of `Key`
         :return: A copy of current object with changes applied
         """

@@ -31,7 +31,13 @@ class TestCrypto(TestCase):
          'tz28YZoayJjVz2bRgGeVjxE8NonMiJ3r2Wdu'),
         ('p2sk3PM77YMR99AvD3fSSxeLChMdiQ6kkEzqoPuSwQqhPsh29irGLC',
          'p2pk679D18uQNkdjpRxuBXL5CqcDKTKzsiXVtc9oCUT6xb82zQmgUks',
-         'tz3agP9LGe2cXmKQyYn6T68BHKjjktDbbSWX')
+         'tz3agP9LGe2cXmKQyYn6T68BHKjjktDbbSWX'),
+        ('p2sk2rHNfHbuqq1Q6RZAnXfwoA3fFk1xtUFPrNVj7mhwxmvY4xmrEd',
+         'p2pk663exKaDHnzFmUeBsmYjKUMJYPyW1WQJzmhyYgNrUuo5Ef9SXxG',
+         'tz3VqqyCrvZni4jbxVrzG2EeVQ97D9LARjJz'),
+        ('p2sk2Md6rioE62a7hVdD8xdYGDLH2erDbAcD4i15e8DSpnHruhVHBw',
+         'p2pk66yEDuRC5RLHpVj8hvAS5fr8HnU2YsLvFNdwQoW3jH8WUynMwGG',
+         'tz3Q2KTKWw3xqiowvfX4N7gyyAfCz8hTvcnk')
     ])
     def test_derive_key_data(self, sk, pk, hash):
         public_key = Key.from_encoded_key(pk)

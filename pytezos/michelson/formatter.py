@@ -113,4 +113,4 @@ def micheline_to_michelson(data, inline=False):
     try:
         return format_node(data, inline=inline, is_root=True)
     except (KeyError, IndexError, TypeError):
-        raise MichelsonFormatterError('Failed to format Micheline expression') from None
+        raise MichelsonFormatterError('Failed to format Micheline expression')

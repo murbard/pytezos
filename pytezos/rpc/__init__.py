@@ -27,37 +27,14 @@ class RpcProvider:
 
 
 localhost = RpcProvider(
-    mainnet='http://127.0.0.1:8732/',
-    alphanet='http://127.0.0.1:8732/',
-    zeronet='http://127.0.0.1:8732/',
     sandboxnet='http://127.0.0.1:8732/'
 )
-tzscan = RpcProvider(
-    mainnet='https://mainnet-node.tzscan.io/',
-    alphanet='https://alphanet-node.tzscan.io/',
-    zeronet='https://zeronet-node.tzscan.io/'
-)
-tzbeta = RpcProvider(
-    mainnet='https://rpc.tzbeta.net/',
-    alphanet='https://rpcalpha.tzbeta.net/'
-)
-tezbox = RpcProvider(
-    mainnet='https://rpc.tezrpc.me/',
-    alphanet='https://alphanet.tezrpc.me/'
-)
-cryptonomic = RpcProvider(
-    mainnet='https://tezos-prod.cryptonomic-infra.tech/',
-    alphanet='https://tezos-dev.cryptonomic-infra.tech/'
-)
-tulip = RpcProvider(
-    mainnet='https://rpc.tulip.tools/mainnet/',
-    alphanet='https://rpc.tulip.tools/alphanet/',
-    zeronet='https://rpc.tulip.tools/zeronet/'
-)
-letzbake = RpcProvider(
-    mainnet='https://teznode.letzbake.com:443/'
+tzkt = RpcProvider(
+    mainnet='https://rpc.tzkt.io/mainnet/',
+    babylonnet='https://rpc.tzkt.io/babylonnet/',
+    zeronet='https://rpc.tzkt.io/zeronet/'
 )
 
-mainnet = tzscan.mainnet
-alphanet = cryptonomic.alphanet
-zeronet = tzscan.zeronet
+mainnet = tzkt.mainnet
+babylonnet = tzkt.babylonnet
+zeronet = tzkt.zeronet

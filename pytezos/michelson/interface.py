@@ -10,24 +10,6 @@ from pytezos.operation.group import OperationGroup
 from pytezos.operation.content import format_mutez
 from pytezos.interop import Interop
 from pytezos.tools.docstring import get_class_docstring
-from pytezos.rpc.node import RpcError
-
-
-class MichelsonRuntimeError(Exception):
-
-    @classmethod
-    def from_rpc_error(cls, e: RpcError):
-        content_type = e.res.headers.get('content-type')
-        if content_type == 'application/json':
-            errors = e.res.json()
-            assert isinstance(errors, list)
-            lines = [
-                '\n'.join([f'{k}: {v}' for k, v in error.items() if 'code' not in k])
-                for error in errors
-            ]
-            return MichelsonRuntimeError('\n\n'.join(lines))
-        else:
-            return MichelsonRuntimeError(e.res.text)
 
 
 class ContractCallResult(OperationResult):
@@ -39,7 +21,7 @@ class ContractCallResult(OperationResult):
         result = results[0]
 
         return cls(
-            parameters=contract.parameter.decode(result.parameters),
+            parameters=contract.parameter.decode(data=result.parameters),
             storage=contract.storage.decode(result.storage),
             big_map_diff=contract.storage.big_map_diff_decode(result.big_map_diff),
             operations=result.operations
@@ -124,10 +106,12 @@ class ContractCall(Interop):
         Generate command line for tezos client.
         :return: str
         """
-        arg = micheline_to_michelson(self.parameters, inline=True)
+        arg = micheline_to_michelson(self.parameters['value'], inline=True)
         source = self.key.public_key_hash()
         amount = format_mutez(self.amount)
-        return f'transfer {amount} from {source} to {self.address} -arg "{arg}"'
+        entrypoint = self.parameters['entrypoint']
+        return f'transfer {amount} from {source} to {self.address} "' \
+               f'--entrypoint "{entrypoint}" --arg "{arg}"'
 
     def result(self, storage=None, source=None, sender=None, gas_limit=None):
         """
@@ -135,25 +119,24 @@ class ContractCall(Interop):
         :param storage: Python object only. If storage is specified, `run_code` is called instead of `run_operation`.
         :param source: Can be specified for unit testing purposes
         :param sender: Can be specified for unit testing purposes,
-        see https://tezos.gitlab.io/mainnet/whitedoc/michelson.html#operations-on-contracts for the difference
+        see https://tezos.gitlab.io/whitedoc/michelson.html#operations-on-contracts for the difference
         :param gas_limit: Specify gas limit (default is gas hard limit)
         :return: ContractCallResult
         """
+        chain_id = self.shell.chains.main.chain_id()
         if storage is not None:
             query = skip_nones(
                 script=self.contract.code,
                 storage=self.contract.storage.encode(storage),
-                input=self.parameters,
+                entrypoint=self.parameters['entrypoint'],
+                input=self.parameters['value'],
                 amount=format_mutez(self.amount),
+                chain_id=chain_id,
                 source=sender,
                 payer=source,
                 gas=gas_limit
             )
-            try:
-                code_run_res = self.shell.head.helpers.scripts.run_code.post(query)
-            except RpcError as e:
-                raise MichelsonRuntimeError.from_rpc_error(e) from None
-
+            code_run_res = self.shell.head.helpers.scripts.run_code.post(query)
             return ContractCallResult.from_code_run(
                 code_run_res, parameters=self.parameters, contract=self.contract)
         else:

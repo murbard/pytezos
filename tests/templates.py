@@ -1,7 +1,7 @@
 michelson_coding_test_case = """from unittest import TestCase
 
 from tests import get_data
-from pytezos.michelson.coding import micheline_to_michelson, michelson_to_micheline
+from pytezos.michelson.micheline import micheline_to_michelson, michelson_to_micheline
 
 
 class MichelsonCodingTest{case}(TestCase):
@@ -44,7 +44,7 @@ test_michelson_inverse = """
 micheline_coding_test_case = """from unittest import TestCase
 
 from tests import get_data
-from pytezos.michelson.coding import build_schema, encode_micheline, decode_micheline
+from pytezos.michelson.converter import build_schema, encode_micheline, decode_micheline
 
 
 class MichelineCodingTest{case}(TestCase):

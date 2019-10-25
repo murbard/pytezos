@@ -4,7 +4,7 @@ from math import ceil
 from pytezos.crypto import blake2b_32
 from pytezos.operation.content import ContentMixin
 from pytezos.operation.forge import forge_operation_group
-from pytezos.operation.fees import FeesProvider
+from pytezos.operation.fees import calculate_fee, default_fee, default_gas_limit, default_storage_limit, burn_cap
 from pytezos.operation.result import OperationResult, OperationError
 from pytezos.encoding import forge_base58, base58_encode
 from pytezos.interop import Interop
@@ -27,10 +27,11 @@ validation_passes = {
 
 class OperationGroup(Interop, ContentMixin):
 
-    def __init__(self, contents=None, protocol=None, branch=None, signature=None, shell=None, key=None):
+    def __init__(self, contents=None, protocol=None, chain_id=None, branch=None, signature=None, shell=None, key=None):
         super(OperationGroup, self).__init__(shell=shell, key=key)
         self.contents = contents or []
         self.protocol = protocol
+        self.chain_id = chain_id
         self.branch = branch
         self.signature = signature
 
@@ -48,6 +49,7 @@ class OperationGroup(Interop, ContentMixin):
         return OperationGroup(
             contents=kwargs.get('contents', self.contents.copy()),
             protocol=kwargs.get('protocol', self.protocol),
+            chain_id=kwargs.get('chain_id', self.chain_id),
             branch=kwargs.get('branch', self.branch),
             signature=kwargs.get('signature', self.signature),
             shell=kwargs.get('shell', self.shell),
@@ -90,11 +92,11 @@ class OperationGroup(Interop, ContentMixin):
         (not optimal, use `autofill` to simulate operation and get precise values).
         :return: OperationGroup
         """
+        chain_id = self.chain_id or self.shell.chains.main.chain_id()
         branch = self.branch or self.shell.head.predecessor.hash()
         protocol = self.protocol or self.shell.head.header()['protocol']
         source = self.key.public_key_hash()
         counter = self.shell.contracts[source].count()
-        fees_provider = FeesProvider.from_protocol(protocol)
 
         replace_map = {
             'pkh': source,
@@ -105,9 +107,9 @@ class OperationGroup(Interop, ContentMixin):
             'period': lambda x: str(self.shell.head.voting_period()),
             'public_key': lambda x: self.key.public_key(),
             'manager_pubkey': source,  # I know, it hurts
-            'fee': lambda x: str(fees_provider.fee(x)),
-            'gas_limit': lambda x: str(fees_provider.gas_limit(x)),
-            'storage_limit': lambda x: str(fees_provider.storage_limit(x)),
+            'fee': lambda x: str(default_fee(x)),
+            'gas_limit': lambda x: str(default_gas_limit(x)),
+            'storage_limit': lambda x: str(default_storage_limit(x)),
         }
 
         def fill_content(content):
@@ -120,6 +122,7 @@ class OperationGroup(Interop, ContentMixin):
         return self._spawn(
             contents=list(map(fill_content, self.contents)),
             protocol=protocol,
+            chain_id=chain_id,
             branch=branch
         )
 
@@ -129,9 +132,12 @@ class OperationGroup(Interop, ContentMixin):
         :return: RPC response
         """
         return self.shell.head.helpers.scripts.run_operation.post({
-            'branch': self.branch,
-            'contents': self.contents,
-            'signature': base58_encode(b'0' * 64, b'sig').decode()
+            'operation': {
+                'branch': self.branch,
+                'contents': self.contents,
+                'signature': base58_encode(b'0' * 64, b'sig').decode()
+            },
+            'chain_id': self.chain_id
         })
 
     def forge(self, validate=True):
@@ -164,17 +170,16 @@ class OperationGroup(Interop, ContentMixin):
         if not OperationResult.is_applied(opg_with_metadata):
             raise OperationError(OperationResult.errors(opg_with_metadata)) from None
 
-        fees_provider = FeesProvider.from_protocol(opg.protocol)
-        extra_size = int(ceil((32 + 64) / len(opg.contents)))  # size of serialized branch and signature)
+        extra_size = (32 + 64) // len(opg.contents) + 1  # size of serialized branch and signature)
 
         def fill_content(content):
             if validation_passes[content['kind']] == 3:
                 consumed_gas = OperationResult.consumed_gas(content) + gas_reserve
                 paid_storage_size_diff = OperationResult.paid_storage_size_diff(content)
-                fee = fees_provider.calculate_fee(content, consumed_gas, extra_size)
+                fee = calculate_fee(content, consumed_gas, extra_size)
                 content.update(
-                    gas_limit=str(consumed_gas),
-                    storage_limit=str(paid_storage_size_diff + fees_provider.burn_cap(content)),
+                    gas_limit=str(consumed_gas + gas_reserve),
+                    storage_limit=str(paid_storage_size_diff + burn_cap(content)),
                     fee=str(fee)
                 )
 

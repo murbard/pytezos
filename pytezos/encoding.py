@@ -258,8 +258,8 @@ def forge_bool(value) -> bytes:
     return b'\xff' if value else b'\x00'
 
 
-def forge_array(data) -> bytes:
-    return len(data).to_bytes(4, 'big') + data
+def forge_array(data, len_bytes=4) -> bytes:
+    return len(data).to_bytes(len_bytes, 'big') + data
 
 
 def forge_base58(value) -> bytes:

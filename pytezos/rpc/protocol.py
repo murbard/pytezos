@@ -216,6 +216,19 @@ class ContextSeedQuery(RpcQuery, path='/chains/{}/blocks/{}/context/seed'):
         return self._post()
 
 
+class EndorsingPower(RpcQuery, path='/chains/{}/blocks/{}/endorsing_power'):
+
+    def post(self, endorsement_operation):
+        """
+        Get the endorsing power of an endorsement operation, that is, the number of slots that the op has
+        :param endorsement_operation:
+        { "branch": $block_hash,
+        "contents": [ $operation.alpha.contents ... ],
+        "signature": $Signature }
+        """
+        return self._post({'sendorsement_operation': endorsement_operation})
+
+
 class OperationListListQuery(RpcQuery, path=['/chains/{}/blocks/{}/operations']):
 
     def __getitem__(self, item):

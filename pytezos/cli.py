@@ -13,7 +13,7 @@ def get_contract(path):
         assert len(files) == 1
         contract = Contract.from_file(abspath(files[0]))
 
-    elif any(map(lambda x: path.startswith(x), ['zeronet', 'alphanet', 'mainnet'])):
+    elif any(map(lambda x: path.startswith(x), ['zeronet', 'babylonnet', 'mainnet'])):
         network, address = path.split(':')
         ptz = pytezos.using(shell=network)
         script = ptz.shell.contracts[address].script()

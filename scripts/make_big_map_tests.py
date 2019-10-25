@@ -2,12 +2,13 @@ import json
 from os.path import join, dirname, exists
 from os import mkdir
 
-from pytezos import alphanet
+from pytezos import pytezos
 from conseil import conseil
+from conseil.api import ConseilApi
 from tests import relpath
 from tests.templates import big_map_test_case
 
-Operation = conseil.tezos.alphanet.operations
+Operation = conseil.tezos.babylonnet.operations
 
 data_dir = join(dirname(dirname(__file__)), 'tests/big_map_diff')
 
@@ -29,7 +30,7 @@ def make_test(block_level, operation_group_hash):
     else:
         mkdir(operation_dir)
 
-    opg = alphanet.blocks[block_level].operations[operation_group_hash]()
+    opg = pytezos.shell.blocks[block_level].operations[operation_group_hash]()
     content = opg['contents'][0]
     try:
         big_map_diff = content['metadata']['operation_result']['big_map_diff']
@@ -40,7 +41,7 @@ def make_test(block_level, operation_group_hash):
     with open(diff_path, 'w+') as f:
         f.write(json.dumps(big_map_diff, indent=2))
 
-    script = alphanet.contracts[content['destination']]().get('script')
+    script = pytezos.shell.contracts[content['destination']]().get('script')
     code_path = join(operation_dir, 'storage_section.json')
     with open(code_path, 'w+') as f:
         f.write(json.dumps(script['code'][1], indent=2))

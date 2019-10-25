@@ -74,11 +74,12 @@ class MichelsonParser(object):
 
     def p_expr(self, p):
         '''expr : PRIM annots args'''
-        p[0] = expand_macro(
+        expr = expand_macro(
             prim=p[1],
             annots=p[2] or [],
             args=p[3] or []
         )
+        p[0] = Sequence(expr) if isinstance(expr, list) else expr
 
     def p_annots(self, p):
         '''annots : annot
