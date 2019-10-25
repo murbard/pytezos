@@ -33,7 +33,7 @@ primitives = {
 }
 macros = []
 
-PxrNode = namedtuple('PxrNode', ['depth', 'annots', 'args'])
+PxrNode = namedtuple('PxrNode', ['depth', 'annots', 'args', 'is_root'])
 
 
 def macro(regexp):
@@ -56,9 +56,7 @@ def expand_macro(prim, annots, args, is_root=False):
         groups = regexp.findall(prim)
         if groups:
             assert len(groups) == 1
-            res = handler(groups[0], annots, args)
-            #print(f'{prim} -> {micheline_to_michelson(res)}')
-            return [res] if is_root else res
+            return handler(groups[0], annots, args)
 
     assert False, f'Unknown macro: {prim}'
 
@@ -92,9 +90,9 @@ def dip_n(instr, depth=1):
     if depth <= 0:
         return instr
     elif depth == 1:
-        return expr(prim='DIP', args=[seq(instr)])
+        return expr(prim='DIP', args=[[instr]])
     else:
-        return expr(prim='DIP', args=[{'int': str(depth)}, seq(instr)])
+        return expr(prim='DIP', args=[{'int': str(depth)}, [instr]])
 
 
 @macro(r'^CMP(EQ|NEQ|LT|GT|LE|GE)$')
@@ -197,16 +195,17 @@ def expand_duxp(prim, annots, args) -> list:
 
 
 def build_pxr_tree(pxr_macro, pxr_annots) -> PxrNode:
-    def parse(prim, annots, depth=0):
+    def parse(prim, annots, depth=0, is_root=False):
         letter, prim = prim[0], prim[1:]
         if letter == 'P':
-            left, l_annot, prim, annots = parse(prim, annots, depth + 1)
-            right, r_annot, prim, annots = parse(prim, annots, depth + 1)
-            return PxrNode(depth, [l_annot, r_annot], [left, right]), None, prim, annots
+            dip_depth = depth
+            left, l_annot, prim, annots, depth = parse(prim, annots, depth)
+            right, r_annot, prim, annots, depth = parse(prim, annots, depth)
+            return PxrNode(dip_depth, [l_annot, r_annot], [left, right], is_root), None, prim, annots, depth
         else:
             annot, annots = (annots[0], annots[1:]) if annots else (None, [])
-            return letter, annot, prim, annots
-    root, _, _, _ = parse(pxr_macro, pxr_annots)
+            return letter, annot, prim, annots, depth + 1
+    root, _, _, _, _ = parse(pxr_macro, pxr_annots, is_root=True)
     return root
 
 
@@ -226,7 +225,7 @@ def traverse_pxr_tree(prim, annots, produce):
 def expand_pxr(prim, annots, args) -> list:
     def produce(node: PxrNode):
         pair_annots = [node.annots[0] or '%', node.annots[1]] if any(node.annots) else []
-        if node.depth == 0:
+        if node.is_root:
             pair_annots.extend(get_var_annots(annots))
         return expr(prim='PAIR', annots=skip_nones(pair_annots))
 
