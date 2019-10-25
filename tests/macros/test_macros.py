@@ -45,3 +45,10 @@ class MacrosTest(TestCase):
         micheline = michelson_to_micheline(source)
         res = micheline_to_michelson(micheline)
         self.assertScriptEqual(expanded, res)
+
+    def test_big_map_get_add(self):
+        source = get_data(path='macros/big_map_get_add/source.tz')
+        expanded = get_data(path='macros/big_map_get_add/expanded.tz')
+        micheline = michelson_to_micheline(source)
+        res = micheline_to_michelson(micheline)
+        self.assertScriptEqual(expanded, res)

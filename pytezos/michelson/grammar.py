@@ -77,8 +77,7 @@ class MichelsonParser(object):
         expr = expand_macro(
             prim=p[1],
             annots=p[2] or [],
-            args=p[3] or [],
-            is_root=True
+            args=p[3] or []
         )
         p[0] = Sequence(expr) if isinstance(expr, list) else expr
 
