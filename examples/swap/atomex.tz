@@ -34,7 +34,7 @@ code {
                    DUP; NOW; IFCMPLT {} { PUSH string "wrong refund_time"; FAILWITH };
                    DIP { DUP }; SWAP;
                    AMOUNT @amount; SUB;
-                   SENDER;
+                   SOURCE;
                    DUP; CONTRACT @initiator unit; IF_SOME {DROP} { PUSH string "wrong sender address"; FAILWITH };
                    DIP { PPAIIR; SWAP; }; PPAIIR; SOME @xcat;
                    SWAP;
@@ -71,7 +71,7 @@ code {
                    SWAP; CAAR @%;
                    DIIP
                      {
-                       SENDER;
+                       SOURCE;
                        CONTRACT @sender unit; IF_SOME {} { PUSH string "wrong sender address"; FAILWITH };
                        SWAP; CDR @%; UNPPAIIR @% @% @%; DROP;
                        NOW; IFCMPLT {} { PUSH string "refund_time has already come"; FAILWITH };

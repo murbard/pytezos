@@ -7,14 +7,10 @@ from pytezos import ContractInterface, pytezos, format_timestamp, MichelsonRunti
 
 source = 'tz1irF8HUsQp2dLhKNMhteG1qALNU9g3pfdN'
 party = 'tz1h3rQ8wBxFd8L9B3d7Jhaawu6Z568XU3xY'
-proxy = 'KT1WhouvVKZFH94VXj9pa8v4szvfrBwXoBUj'
+proxy = 'tz1grSQDByRpnVs7sPtaprNZRp531ZKz6Jmm'
 secret = 'dca15ce0c01f61ab03139b4673f4bd902203dc3b898a89a5d35bad794e5cfd4f'
 hashed_secret = '05bce5c12071fbca95b13d49cb5ef45323e0216d618bb4575c519b74be75e3da'
 empty_storage = [{}, None]
-
-#
-# def setUpModule():
-#     sys.tracebacklimit = 0
 
 
 class AtomexContractTest(TestCase):

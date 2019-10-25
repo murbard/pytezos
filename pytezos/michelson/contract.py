@@ -176,7 +176,7 @@ class ContractStorage(metaclass=InlineDocstring):
                 decode_literal(item['key'], key_prim):
                     decode_micheline(item['value'], self.schema, root=value_root) if item.get('value') else None
                 for item in diff
-                if item['action'] != 'alloc'
+                if item.get('action') != 'alloc'
             }
         else:
             return {}

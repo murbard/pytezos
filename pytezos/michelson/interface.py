@@ -119,7 +119,7 @@ class ContractCall(Interop):
         :param storage: Python object only. If storage is specified, `run_code` is called instead of `run_operation`.
         :param source: Can be specified for unit testing purposes
         :param sender: Can be specified for unit testing purposes,
-        see https://tezos.gitlab.io/mainnet/whitedoc/michelson.html#operations-on-contracts for the difference
+        see https://tezos.gitlab.io/whitedoc/michelson.html#operations-on-contracts for the difference
         :param gas_limit: Specify gas limit (default is gas hard limit)
         :return: ContractCallResult
         """
