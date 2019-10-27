@@ -35,20 +35,22 @@ class RpcError(Exception):
             cls.__handlers__[error_id] = cls
 
     @classmethod
+    def from_errors(cls, errors: list):
+        error = errors[-1]
+        for key in [error['id'], get_error_rel_id(error['id']), get_error_class(error['id'])]:
+            if key in cls.__handlers__:
+                handler = cls.__handlers__[key]
+                return handler(error)
+        return RpcError(error)
+
+    @classmethod
     def from_response(cls, res: requests.Response):
-        handler = RpcError
         if res.headers.get('content-type') == 'application/json':
             errors = res.json()
             assert isinstance(errors, list)
-            error = errors[-1]
-            for key in [error['id'], get_error_rel_id(error['id']), get_error_class(error['id'])]:
-                if key in cls.__handlers__:
-                    handler = cls.__handlers__[key]
-                    break
+            return cls.from_errors(errors)
         else:
-            error = res.text
-
-        return handler(error)
+            return RpcError(res.text)
 
     def __str__(self):
         return pformat(self.args)

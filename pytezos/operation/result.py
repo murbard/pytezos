@@ -1,5 +1,4 @@
-class OperationError(ValueError):
-    pass
+from pytezos.rpc.errors import RpcError
 
 
 class OperationResult:
@@ -85,7 +84,7 @@ class OperationResult:
     @classmethod
     def from_operation_group(cls, operation_group: dict, **predicates):
         if not cls.is_applied(operation_group):
-            raise OperationError(cls.errors(operation_group))
+            raise RpcError.from_errors(cls.errors(operation_group)) from None
 
         def dispatch(content):
             if content['kind'] == 'transaction':

@@ -11,6 +11,10 @@ from pytezos.tools.docstring import get_attr_docstring
 from pytezos.rpc.search import CyclesQuery, VotingPeriodsQuery
 
 
+def make_operation_result(**kwargs):
+    return {'metadata': {'operation_result': kwargs}}
+
+
 class ShellQuery(RpcQuery, path=''):
 
     @property
@@ -63,8 +67,12 @@ class ShellQuery(RpcQuery, path=''):
         header = self.head.header()
         if block_hash is None:
             block_hash = header['hash']
+
         prev_block_dt = datetime.strptime(header['timestamp'], '%Y-%m-%dT%H:%M:%SZ')
-        sleep(block_time * 1.1 - prev_block_dt.second)
+        delay_sec = block_time - prev_block_dt.second
+        print(f'Wait {delay_sec} seconds until block {block_hash} is finalized')
+        sleep(delay_sec)
+
         for i in range(block_time):
             current_block_hash = self.head.hash()
             if current_block_hash == block_hash:
@@ -111,8 +119,15 @@ class PendingOperationsQuery(RpcQuery, path='/chains/{}/mempool/pending_operatio
         operations_dict = self()
         for status, operations in operations_dict.items():
             for operation in operations:
-                if operation['hash'] == item:
-                    return {'status': status, **operation}
+                if isinstance(operation, dict):
+                    if operation['hash'] == item:
+                        return {**make_operation_result(status=status), **operation}
+                elif isinstance(operation, list):
+                    if operation[0] == item:
+                        errors = operation[1].pop('error', default=[])
+                        return {**make_operation_result(status=status, errors=errors), **operation[1]}
+                else:
+                    assert False, operation
         raise StopIteration
 
     def __repr__(self):

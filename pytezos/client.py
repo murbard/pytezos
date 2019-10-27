@@ -1,5 +1,6 @@
 from functools import lru_cache
 from datetime import datetime
+from decimal import Decimal
 
 from pytezos.operation.group import OperationGroup
 from pytezos.operation.content import ContentMixin
@@ -65,6 +66,9 @@ class PyTezosClient(Interop, ContentMixin):
         """
         address = account_id or self.key.public_key_hash()
         return self.shell.contracts[address]()
+
+    def balance(self) -> Decimal:
+        return (Decimal(self.account()['balance']) / 10 ** 6).quantize(Decimal('0.000001'))
 
     def now(self) -> int:
         """

@@ -4,7 +4,8 @@ from pytezos.crypto import blake2b_32
 from pytezos.operation.content import ContentMixin
 from pytezos.operation.forge import forge_operation_group
 from pytezos.operation.fees import calculate_fee, default_fee, default_gas_limit, default_storage_limit, burn_cap
-from pytezos.operation.result import OperationResult, OperationError
+from pytezos.operation.result import OperationResult
+from pytezos.rpc.errors import RpcError
 from pytezos.encoding import forge_base58, base58_encode
 from pytezos.interop import Interop
 from pytezos.tools.docstring import get_class_docstring
@@ -167,7 +168,7 @@ class OperationGroup(Interop, ContentMixin):
         opg = self.fill()
         opg_with_metadata = opg.run()
         if not OperationResult.is_applied(opg_with_metadata):
-            raise OperationError(OperationResult.errors(opg_with_metadata)) from None
+            raise RpcError.from_errors(OperationResult.errors(opg_with_metadata)) from None
 
         extra_size = (32 + 64) // len(opg.contents) + 1  # size of serialized branch and signature)
 
@@ -227,15 +228,16 @@ class OperationGroup(Interop, ContentMixin):
         return self.shell.head.helpers.preapply.operations.post(
             operations=[self.json_payload()])[0]
 
-    def inject(self, _async=True, num_blocks_wait=1):
+    def inject(self, _async=True, check_result=True, num_blocks_wait=1):
         """
         Inject signed operation group.
         :param _async: do not wait for operation inclusion (default is True)
+        :param check_result:
         :param num_blocks_wait:
         """
         opg_with_metadata = self.preapply()
         if not OperationResult.is_applied(opg_with_metadata):
-            raise ValueError(OperationResult.errors(opg_with_metadata))
+            raise RpcError.from_errors(OperationResult.errors(opg_with_metadata)) from None
 
         opg_hash = self.shell.injection.operation.post(
             operation=self.binary_payload(), _async=False)
@@ -251,10 +253,14 @@ class OperationGroup(Interop, ContentMixin):
                 self.shell.wait_next_block()
                 try:
                     pending_opg = self.shell.mempool.pending_operations[opg_hash]
-                    if pending_opg['status'] != 'applied':
-                        raise ValueError(OperationResult.errors(pending_opg))
+                    if not OperationResult.is_applied(pending_opg):
+                        raise RpcError.from_errors(OperationResult.errors(pending_opg)) from None
                 except StopIteration:
-                    return self.shell.blocks[-(i + 1):].find_operation(opg_hash)
+                    res = self.shell.blocks[-(i + 1):].find_operation(opg_hash)
+                    if check_result:
+                        if not OperationResult.is_applied(res):
+                            raise RpcError.from_errors(OperationResult.errors(res)) from None
+                    return res
 
         raise TimeoutError(opg_hash)
 
