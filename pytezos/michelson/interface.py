@@ -97,7 +97,6 @@ class ContractCall(Interop):
     def inject(self):
         """
         Autofill, sign and inject resulting operation group.
-        :return: RPC response (operation group hash)
         """
         return self.operation_group.autofill().sign().inject()
 

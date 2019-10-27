@@ -1,5 +1,4 @@
 from pprint import pformat
-from math import ceil
 
 from pytezos.crypto import blake2b_32
 from pytezos.operation.content import ContentMixin
@@ -228,18 +227,36 @@ class OperationGroup(Interop, ContentMixin):
         return self.shell.head.helpers.preapply.operations.post(
             operations=[self.json_payload()])[0]
 
-    def inject(self, _async=False):
+    def inject(self, _async=True, num_blocks_wait=1):
         """
         Inject signed operation group.
-        :param _async: default is False
-        :return: RPC response (operation group hash)
+        :param _async: do not wait for operation inclusion (default is True)
+        :param num_blocks_wait:
         """
         opg_with_metadata = self.preapply()
         if not OperationResult.is_applied(opg_with_metadata):
             raise ValueError(OperationResult.errors(opg_with_metadata))
 
-        return self.shell.injection.operation.post(
-            operation=self.binary_payload(), _async=_async)
+        opg_hash = self.shell.injection.operation.post(
+            operation=self.binary_payload(), _async=False)
+
+        if _async:
+            return {
+                'chain_id': self.chain_id,
+                'hash': opg_hash,
+                **self.json_payload()
+            }
+        else:
+            for i in range(num_blocks_wait):
+                self.shell.wait_next_block()
+                try:
+                    pending_opg = self.shell.mempool.pending_operations[opg_hash]
+                    if pending_opg['status'] != 'applied':
+                        raise ValueError(OperationResult.errors(pending_opg))
+                except StopIteration:
+                    return self.shell.blocks[-(i + 1):].find_operation(opg_hash)
+
+        raise TimeoutError(opg_hash)
 
     def result(self):
         """

@@ -4,7 +4,19 @@ from glob import glob
 from pprint import pprint
 
 from pytezos import pytezos, Contract
+from pytezos.operation.result import OperationResult
 from pytezos.michelson.docstring import generate_docstring
+from pytezos.tools.github import create_deployment, create_deployment_status
+
+
+def make_bcd_link(network, address):
+    net = {
+        'babylonnet': 'babylon',
+        'sandboxnet': 'sandbox',
+        'mainnet': 'mainnet',
+        'zeronet': 'zeronet'
+    }
+    return f'https://better-call.dev/{net[network]}/{address}'
 
 
 def get_contract(path):
@@ -51,51 +63,70 @@ class PyTezosCli:
         else:
             assert False, action
 
-    def activate(self, path, dry_run=False):
+    def activate(self, path, network='babylonnet'):
         """
-        Activate faucet key
+        Activates and reveals faucet key
         :param path: Path to the .json file downloaded from https://faucet.tzalpha.net/
         :param dry_run: Set this flag if you just want to see what would happen
         """
-        opg = pytezos.using(key=path).activate_account().autofill().sign()
-        if dry_run:
-            pprint(opg.preapply())
-        else:
-            opg.inject()
-            print(f'Congrats! Soon your will be able to use your key.')
+        print('Initializing network and key')
+        ptz = pytezos.using(key=path, shell=network)
 
-    def reveal(self, dry_run=False):
-        """
-        Reveal public key
-        :param dry_run: Set this flag if you just want to see what would happen
-        """
-        pass
+        print(f'Sending activate account operation')
+        opg = ptz.activate_account().autofill().sign().inject(_async=False)
+        if not OperationResult.is_applied(opg):
+            raise ValueError(OperationResult.errors(opg))
 
-    def deploy(self, path=None, storage=None, dry_run=False):
+        print(f'Sending reveal operation')
+        opg = ptz.reveal().autofill().sign().inject(_async=False)
+        if not OperationResult.is_applied(opg):
+            raise ValueError(OperationResult.errors(opg))
+
+        print(f'Your key {ptz.key.public_key_hash()} is now active and revealed')
+
+    def deploy(self, path=None, storage=None, network='babylonnet', key=None,
+               github_repo=None, github_oauth_token=None, dry_run=False):
         """
-        Deploy contract to the alphane
+        Deploy contract to the specified network
         :param path: Path to the .tz file
         :param storage: Storage in JSON format (not Micheline)
+        :param network:
+        :param key:
+        :param github_repo:
+        :param github_oauth_token:
         :param dry_run: Set this flag if you just want to see what would happen
         """
+        print('Initializing network and key')
+        ptz = pytezos.using(shell=network, key=key)
+
+        print('Parsing contract and storage data')
         contract = get_contract(path)
         if storage is not None:
             storage = contract.storage.encode(storage)
 
+        print('Preparing operation group')
         script = contract.script(storage=storage)
-        opg = pytezos.origination(script=script).autofill().sign()
+        opg = ptz.origination(script=script).autofill().sign()
+
         if dry_run:
             pprint(opg.preapply())
         else:
-            opg_hash = opg.inject()
-            print(f'As soon as your origination is included in a block, '
-                  f'you can check it at https://better-call.dev/{opg_hash}')
+            print('Injecting operation group and waiting for inclusion')
+            opg_with_metadata = opg.inject(_async=False)
+            if not OperationResult.is_applied(opg_with_metadata):
+                raise ValueError(OperationResult.errors(opg_with_metadata))
+            else:
+                print('Operation group is applied, parsing metadata')
 
-    def test(self, action=None, path=None):
-        """
-        :param action: On of `init`
-        :param path: Path to the .tz file
-        """
+            originated_contracts = OperationResult.originated_contracts(opg_with_metadata)
+            assert len(originated_contracts) == 1
+            bcd_link = make_bcd_link(network, originated_contracts[0])
+            print(f'Contract was successfully deployed: {bcd_link}')
+
+            # if github_repo:
+            #     deployment = create_deployment(github_repo, github_oauth_token, environment=network)
+            #     create_deployment_status(github_repo, github_oauth_token, deployment['id'],
+            #                              state='success', environment=network, environment_url=bcd_link)
 
 
 def main():
