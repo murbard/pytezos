@@ -18,7 +18,7 @@ def create_deployment(repo_slug, oauth_token, environment, ref='master'):
 def create_deployment_status(repo_slug, oauth_token, deployment_id, state, environment, environment_url=None):
     assert state in {'success', 'failure'}
     return requests.post(
-        url=join('https://api.github.com/repos', repo_slug, 'deployments', deployment_id, 'statuses'),
+        url=join('https://api.github.com/repos', repo_slug, 'deployments', str(deployment_id), 'statuses'),
         headers={
             'Accept': 'application/vnd.github.flash-preview+json',
             'Authorization': f'token {oauth_token}'
