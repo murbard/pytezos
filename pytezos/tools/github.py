@@ -11,7 +11,8 @@ def create_deployment(repo_slug, oauth_token, environment, ref='master'):
         },
         json={
             'ref': ref,
-            'environment': environment
+            'environment': environment,
+            'required_contexts': []  # bypass checking
         }).json()
 
 
