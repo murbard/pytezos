@@ -3,8 +3,20 @@ from os.path import abspath
 from glob import glob
 from pprint import pprint
 
-from pytezos import pytezos, Contract
+from pytezos import pytezos, Contract, RpcError
+from pytezos.operation.result import OperationResult
 from pytezos.michelson.docstring import generate_docstring
+from pytezos.tools.github import create_deployment, create_deployment_status
+
+
+def make_bcd_link(network, address):
+    net = {
+        'babylonnet': 'babylon',
+        'sandboxnet': 'sandbox',
+        'mainnet': 'mainnet',
+        'zeronet': 'zeronet'
+    }
+    return f'https://better-call.dev/{net[network]}/{address}'
 
 
 def get_contract(path):
@@ -51,51 +63,88 @@ class PyTezosCli:
         else:
             assert False, action
 
-    def activate(self, path, dry_run=False):
+    def activate(self, path, network='babylonnet'):
         """
-        Activate faucet key
+        Activates and reveals key from the faucet file
         :param path: Path to the .json file downloaded from https://faucet.tzalpha.net/
-        :param dry_run: Set this flag if you just want to see what would happen
+        :param network: Default is Babylonnet
         """
-        opg = pytezos.using(key=path).activate_account().autofill().sign()
-        if dry_run:
-            pprint(opg.preapply())
+        ptz = pytezos.using(key=path, shell=network)
+        print(f'Activating {ptz.key.public_key_hash()} in the {network}')
+
+        if ptz.balance() == 0:
+            try:
+                opg = ptz.activate_account().autofill().sign()
+                print(f'Injecting activation operation:')
+                pprint(opg.json_payload())
+                opg.inject(_async=False)
+            except RpcError as e:
+                pprint(e)
+                exit(-1)
+            else:
+                print(f'Activation succeeded! Claimed balance: {ptz.balance()} ꜩ')
         else:
-            opg.inject()
-            print(f'Congrats! Soon your will be able to use your key.')
+            print('Already activated')
 
-    def reveal(self, dry_run=False):
-        """
-        Reveal public key
-        :param dry_run: Set this flag if you just want to see what would happen
-        """
-        pass
+        try:
+            opg = ptz.reveal().autofill().sign()
+            print(f'Injecting reveal operation:')
+            pprint(opg.json_payload())
+            opg.inject(_async=False)
+        except RpcError as e:
+            pprint(e)
+            exit(-1)
+        else:
+            print(f'Your key {ptz.key.public_key_hash()} is now active and revealed')
 
-    def deploy(self, path=None, storage=None, dry_run=False):
+    def deploy(self, path, storage=None, network='babylonnet', key=None,
+               github_repo_slug=None, github_oauth_token=None, dry_run=False):
         """
-        Deploy contract to the alphane
+        Deploy contract to the specified network
         :param path: Path to the .tz file
         :param storage: Storage in JSON format (not Micheline)
+        :param network:
+        :param key:
+        :param github_repo_slug:
+        :param github_oauth_token:
         :param dry_run: Set this flag if you just want to see what would happen
         """
+        ptz = pytezos.using(shell=network, key=key)
+        print(f'Deploying contract using {ptz.key.public_key_hash()} in the {network}')
+
         contract = get_contract(path)
         if storage is not None:
             storage = contract.storage.encode(storage)
 
-        script = contract.script(storage=storage)
-        opg = pytezos.origination(script=script).autofill().sign()
-        if dry_run:
-            pprint(opg.preapply())
-        else:
-            opg_hash = opg.inject()
-            print(f'As soon as your origination is included in a block, '
-                  f'you can check it at https://better-call.dev/{opg_hash}')
+        try:
+            opg = ptz.origination(script=contract.script(storage=storage)).autofill().sign()
+            print(f'Injecting origination operation:')
+            pprint(opg.json_payload())
 
-    def test(self, action=None, path=None):
-        """
-        :param action: On of `init`
-        :param path: Path to the .tz file
-        """
+            if dry_run:
+                pprint(opg.preapply())
+                exit(0)
+            else:
+                opg = opg.inject(_async=False)
+        except RpcError as e:
+            pprint(e)
+            exit(-1)
+        else:
+            originated_contracts = OperationResult.originated_contracts(opg)
+            assert len(originated_contracts) == 1
+            bcd_link = make_bcd_link(network, originated_contracts[0])
+            print(f'Contract was successfully deployed: {bcd_link}')
+
+            if github_repo_slug:
+                deployment = create_deployment(github_repo_slug, github_oauth_token,
+                                               environment=network)
+                pprint(deployment)
+                status = create_deployment_status(github_repo_slug, github_oauth_token,
+                                                  deployment_id=deployment['id'],
+                                                  state='success',
+                                                  environment=network,
+                                                  environment_url=bcd_link)
+                pprint(status)
 
 
 def main():

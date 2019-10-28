@@ -1,11 +1,11 @@
 from pprint import pformat
-from math import ceil
 
 from pytezos.crypto import blake2b_32
 from pytezos.operation.content import ContentMixin
 from pytezos.operation.forge import forge_operation_group
 from pytezos.operation.fees import calculate_fee, default_fee, default_gas_limit, default_storage_limit, burn_cap
-from pytezos.operation.result import OperationResult, OperationError
+from pytezos.operation.result import OperationResult
+from pytezos.rpc.errors import RpcError
 from pytezos.encoding import forge_base58, base58_encode
 from pytezos.interop import Interop
 from pytezos.tools.docstring import get_class_docstring
@@ -168,7 +168,7 @@ class OperationGroup(Interop, ContentMixin):
         opg = self.fill()
         opg_with_metadata = opg.run()
         if not OperationResult.is_applied(opg_with_metadata):
-            raise OperationError(OperationResult.errors(opg_with_metadata)) from None
+            raise RpcError.from_errors(OperationResult.errors(opg_with_metadata)) from None
 
         extra_size = (32 + 64) // len(opg.contents) + 1  # size of serialized branch and signature)
 
@@ -228,18 +228,42 @@ class OperationGroup(Interop, ContentMixin):
         return self.shell.head.helpers.preapply.operations.post(
             operations=[self.json_payload()])[0]
 
-    def inject(self, _async=False):
+    def inject(self, _async=True, check_result=True, num_blocks_wait=2):
         """
         Inject signed operation group.
-        :param _async: default is False
-        :return: RPC response (operation group hash)
+        :param _async: do not wait for operation inclusion (default is True)
+        :param check_result:
+        :param num_blocks_wait:
         """
         opg_with_metadata = self.preapply()
         if not OperationResult.is_applied(opg_with_metadata):
-            raise ValueError(OperationResult.errors(opg_with_metadata))
+            raise RpcError.from_errors(OperationResult.errors(opg_with_metadata)) from None
 
-        return self.shell.injection.operation.post(
-            operation=self.binary_payload(), _async=_async)
+        opg_hash = self.shell.injection.operation.post(
+            operation=self.binary_payload(), _async=False)
+
+        if _async:
+            return {
+                'chain_id': self.chain_id,
+                'hash': opg_hash,
+                **self.json_payload()
+            }
+        else:
+            for i in range(num_blocks_wait):
+                self.shell.wait_next_block()
+                try:
+                    pending_opg = self.shell.mempool.pending_operations[opg_hash]
+                    if not OperationResult.is_applied(pending_opg):
+                        raise RpcError.from_errors(OperationResult.errors(pending_opg)) from None
+                    print(f'Still in mempool: {opg_hash}')
+                except StopIteration:
+                    res = self.shell.blocks[-(i + 1):].find_operation(opg_hash)
+                    if check_result:
+                        if not OperationResult.is_applied(res):
+                            raise RpcError.from_errors(OperationResult.errors(res)) from None
+                    return res
+
+        raise TimeoutError(opg_hash)
 
     def result(self):
         """
