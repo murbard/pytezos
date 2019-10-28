@@ -228,7 +228,7 @@ class OperationGroup(Interop, ContentMixin):
         return self.shell.head.helpers.preapply.operations.post(
             operations=[self.json_payload()])[0]
 
-    def inject(self, _async=True, check_result=True, num_blocks_wait=1):
+    def inject(self, _async=True, check_result=True, num_blocks_wait=2):
         """
         Inject signed operation group.
         :param _async: do not wait for operation inclusion (default is True)
@@ -255,6 +255,7 @@ class OperationGroup(Interop, ContentMixin):
                     pending_opg = self.shell.mempool.pending_operations[opg_hash]
                     if not OperationResult.is_applied(pending_opg):
                         raise RpcError.from_errors(OperationResult.errors(pending_opg)) from None
+                    print(f'Still in mempool: {opg_hash}')
                 except StopIteration:
                     res = self.shell.blocks[-(i + 1):].find_operation(opg_hash)
                     if check_result:
