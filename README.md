@@ -50,7 +50,7 @@ $ pip install pytezos
 #### Google Colab
 
 `````python
->>> !apt apt install libsodium-dev libsecp256k1-dev libgmp-dev
+>>> !apt install libsodium-dev libsecp256k1-dev libgmp-dev
 >>> !pip install pytezos
 `````
 
