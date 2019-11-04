@@ -99,6 +99,8 @@ Change current rpc endpoint and account (private key)
 Note, that by default `pytezos` is initialized with `alphanet` and a predefined private key for demo purpose,
 so you can start to interact immediately, but it's highly recommended to use your own key. Let's do that!
 
+### Faucet account
+
 Go to the [https://faucet.tzalpha.net/](https://faucet.tzalpha.net/) and download key file.
 Then configure the client (we can leave `shell` parameter empty, but we will set it explicitly for better understanding)
 ```python
@@ -117,6 +119,29 @@ Networks
 .mainnet  # https://rpc.tulip.tools/mainnet/
 .alphanet  # https://rpc.tulip.tools/alphanet/
 .zeronet  # https://rpc.tulip.tools/zeronet/
+```
+
+### Sandboxed mode
+
+Accounts are pre-created in Sandboxed mode, this shows how to find the secret keys:
+```
+$ grep SECRET src/bin_client/tezos-init-sandboxed-client.sh
+export BOOTSTRAP1_SECRET="unencrypted:edsk3gUfUPyBSfrS9CCgmCiQsTCHGkviBDusMxDJstFtojtc1zcpsh"
+export BOOTSTRAP2_SECRET="unencrypted:edsk39qAm1fiMjgmPkw1EgQYkMzkJezLNewd7PLNHTkr6w9XA2zdfo"
+export BOOTSTRAP3_SECRET="unencrypted:edsk4ArLQgBTLWG5FJmnGnT689VKoqhXwmDPBuGx3z4cvwU9MmrPZZ"
+export BOOTSTRAP4_SECRET="unencrypted:edsk2uqQB9AY4FvioK2YMdfmyMrer5R8mGFyuaLLFfSRo8EoyNdht3"
+export BOOTSTRAP5_SECRET="unencrypted:edsk4QLrcijEffxV31gGdN2HU7UpyJjA8drFoNcmnB28n89YjPNRFm"
+export ACTIVATOR_SECRET="unencrypted:edsk31vznjHSSpGExDMHYASz45VZqXN4DPxvsa4hAyY8dHM28cZzp6"
+```
+Use one of these unencrypted private keys to connect to the sandbox:
+```
+>>> from pytezos import pytezos
+>>> pytezos.using(shell='http://localhost:18731', key='edsk3gUfUPyBSfrS9CCgmCiQsTCHGkviBDusMxDJstFtojtc1zcpsh')
+<pytezos.client.PyTezosClient object at 0x7f2c2d78da10>
+
+Properties
+.key  # tz1KqTpEZ7Yob7QbPE4Hy4Wo8fHG8LhKxZSx
+.shell  # http://localhost:18731 ()
 ```
 
 ## Activate account
