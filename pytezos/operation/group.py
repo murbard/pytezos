@@ -228,16 +228,18 @@ class OperationGroup(Interop, ContentMixin):
         return self.shell.head.helpers.preapply.operations.post(
             operations=[self.json_payload()])[0]
 
-    def inject(self, _async=True, check_result=True, num_blocks_wait=2):
+    def inject(self, _async=True, preapply=True, check_result=True, num_blocks_wait=2):
         """
         Inject signed operation group.
         :param _async: do not wait for operation inclusion (default is True)
+        :param preapply:
         :param check_result:
         :param num_blocks_wait:
         """
-        opg_with_metadata = self.preapply()
-        if not OperationResult.is_applied(opg_with_metadata):
-            raise RpcError.from_errors(OperationResult.errors(opg_with_metadata)) from None
+        if preapply:
+            opg_with_metadata = self.preapply()
+            if not OperationResult.is_applied(opg_with_metadata):
+                raise RpcError.from_errors(OperationResult.errors(opg_with_metadata)) from None
 
         opg_hash = self.shell.injection.operation.post(
             operation=self.binary_payload(), _async=False)

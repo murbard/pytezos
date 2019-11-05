@@ -25,7 +25,7 @@ class ContractParameter(metaclass=InlineDocstring):
         return '\n'.join(res)
 
     def _get_entry_root(self, entrypoint):
-        if entrypoint == 'root':
+        if entrypoint in {'default', 'root'}:
             return '0'
         else:
             return self.schema.json_to_bin[f'/{entrypoint}']
@@ -38,7 +38,7 @@ class ContractParameter(metaclass=InlineDocstring):
         """
         if isinstance(data, dict) \
                 and set(data.keys()) == {'entrypoint', 'value'} \
-                and data['entrypoint'] != 'root':
+                and data['entrypoint'] not in {'root', 'default'}:
             res = decode_micheline(data, self.schema, root=self._get_entry_root(data['entrypoint']))
             return {data['entrypoint']: res}
         else:
@@ -57,7 +57,7 @@ class ContractParameter(metaclass=InlineDocstring):
             entrypoint = next(iter(data))
             value = encode_micheline(data[entrypoint], self.schema, root=self._get_entry_root(entrypoint))
         else:
-            entrypoint = 'root'
+            entrypoint = 'default'
             value = encode_micheline(data, self.schema)
 
         return dict(entrypoint=entrypoint, value=value)

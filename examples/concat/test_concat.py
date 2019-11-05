@@ -8,7 +8,7 @@ class ConcatContractTest(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.concat = ContractInterface.create_from(join(dirname(__file__), 'concat.tz'), shell='sandboxnet')
+        cls.concat = ContractInterface.create_from(join(dirname(__file__), 'concat.tz'))
         cls.maxDiff = None
 
     def test_concat(self):
