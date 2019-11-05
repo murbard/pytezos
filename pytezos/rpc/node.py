@@ -9,16 +9,14 @@ def urljoin(*args):
     return "/".join(map(lambda x: str(x).strip('/'), args))
 
 
-def strip_proto(error_id):
-    return '.'.join(error_id.split('.')[2:])
-
-
-def get_error_rel_id(error_id):
-    return '.'.join(error_id.split('.')[2:])
-
-
-def get_error_class(error_id):
-    return error_id.split('.')[-2]
+def gen_error_variants(error_id) -> list:
+    chunks = error_id.split('.')
+    variants = [error_id]
+    if len(chunks) > 1:
+        variants.append(chunks[-2])
+        if len(chunks) > 2:
+            variants.append('.'.join(chunks[2:]))
+    return variants
 
 
 class RpcError(Exception):
@@ -37,7 +35,7 @@ class RpcError(Exception):
     @classmethod
     def from_errors(cls, errors: list):
         error = errors[-1]
-        for key in [error['id'], get_error_rel_id(error['id']), get_error_class(error['id'])]:
+        for key in gen_error_variants(error['id']):
             if key in cls.__handlers__:
                 handler = cls.__handlers__[key]
                 return handler(error)
