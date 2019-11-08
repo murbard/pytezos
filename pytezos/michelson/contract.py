@@ -39,7 +39,7 @@ class ContractParameter(metaclass=InlineDocstring):
         if isinstance(data, dict) \
                 and set(data.keys()) == {'entrypoint', 'value'} \
                 and data['entrypoint'] not in {'root', 'default'}:
-            res = decode_micheline(data, self.schema, root=self._get_entry_root(data['entrypoint']))
+            res = decode_micheline(data['value'], self.schema, root=self._get_entry_root(data['entrypoint']))
             return {data['entrypoint']: res}
         else:
             if isinstance(data, str):
