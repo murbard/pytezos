@@ -24,3 +24,9 @@ class TezArithmeticError(RpcError, error_id='tez'):
     """
     Catch all tez errors
     """
+
+
+class MichelsonScriptRejected(RpcError, error_id='script_rejected'):
+    """
+    A FAILWITH instruction was reached
+    """
