@@ -13,7 +13,7 @@ def make_bcd_link(network, address):
     net = {
         'babylonnet': 'babylon',
         'sandboxnet': 'sandbox',
-        'mainnet': 'mainnet',
+        'mainnet': 'main',
         'zeronet': 'zeronet'
     }
     return f'https://better-call.dev/{net[network]}/{address}'
