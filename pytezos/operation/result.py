@@ -51,7 +51,7 @@ class OperationResult:
     @staticmethod
     def errors(operation_group: dict):
         for result in OperationResult.iter_results(operation_group):
-            if result['status'] == 'failed':
+            if result['status'] != 'applied':
                 return result['errors']
 
     @staticmethod
