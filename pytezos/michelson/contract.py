@@ -1,11 +1,14 @@
 from functools import lru_cache
-from os.path import basename, exists, expanduser
+from collections import defaultdict
+from os.path import basename, exists, expanduser, dirname, join
 
+from pytezos.crypto import blake2b_32
+from pytezos.encoding import base58_encode
 from pytezos.tools.docstring import get_class_docstring, InlineDocstring
 from pytezos.michelson.docstring import generate_docstring
 from pytezos.michelson.micheline import encode_literal, decode_literal, make_default, michelson_to_micheline
 from pytezos.michelson.formatter import micheline_to_michelson
-from pytezos.michelson.converter import build_schema, decode_micheline, encode_micheline
+from pytezos.michelson.converter import build_schema, decode_micheline, encode_micheline, build_big_map_schema
 
 
 class ContractParameter(metaclass=InlineDocstring):
@@ -91,6 +94,7 @@ class ContractStorage(metaclass=InlineDocstring):
     def __init__(self, section):
         self.code = section
         self.schema = build_schema(section)
+        self.big_map_schema = None
         self.__doc__ = generate_docstring(self.schema, 'storage')
 
     def __repr__(self):
@@ -128,68 +132,106 @@ class ContractStorage(metaclass=InlineDocstring):
         """
         return make_default(self.schema.bin_types, root)
 
-    def _locate_big_map(self, big_map_path=None):
-        if big_map_path is None:
-            # Default Big Map location (prior to Babylon https://blog.nomadic-labs.com/michelson-updates-in-005.html)
-            return self.schema.bin_types['000'], '001'
-        else:
-            bin_path = self.schema.json_to_bin[big_map_path]
-            return self.schema.bin_types[bin_path + '0'], bin_path + '1'
+    def big_map_init(self, data):
+        """
+        Initialize big_map_id <-> JSON path mapping (since Babylon)
+        :param data: Micheline expression (raw contract storage)
+        """
+        self.big_map_schema = build_big_map_schema(data, self.schema)
 
-    def big_map_query(self, key, big_map_path=None):
+    def _locate_big_map(self, big_map_id=None):
+        if big_map_id is None:
+            # Default Big Map location (prior to Babylon https://blog.nomadic-labs.com/michelson-updates-in-005.html)
+            return self.schema.bin_types['000'], '001', self.schema.bin_to_json['00']
+        else:
+            assert self.big_map_schema, "Please call `big_map_init` first"
+            bin_path = self.big_map_schema.id_to_bin[int(big_map_id)]
+            json_path = self.schema.bin_to_json[bin_path]
+            return self.schema.bin_types[bin_path + '0'], bin_path + '1', json_path
+
+    def big_map_id(self, big_map_path) -> int:
+        assert self.big_map_schema, "Please call `big_map_init` first"
+        bin_path = self.schema.json_to_bin[big_map_path]
+        return self.big_map_schema.bin_to_id[bin_path]
+
+    def _is_old_style_big_map(self) -> bool:
+        return len(self.big_map_schema.bin_to_id) == 1 \
+               and next(iter(self.big_map_schema.bin_to_id)) == '00'
+
+    def big_map_query(self, path):
         """
         Construct a query for big_map_get request
-        :param key: BigMap key, string, int, or hex-string
-        :param big_map_path: Json path to BigMap, leave None to use default
+        :param path: BigMap key, string, int, or hex-string
         (since Babylon you can have more than one BigMap at arbitrary position)
+        :param storage:
         :return: dict
         """
-        # TODO: convert to big_map id (integer)
-        key_prim, _ = self._locate_big_map(big_map_path)
-        return dict(
-            key=encode_literal(key, key_prim),
-            type={'prim': key_prim}
-        )
+        key = basename(path)
+        big_map_path = dirname(path)
+        big_map_id = self.big_map_id(join('/', big_map_path)) if big_map_path else None
+        key_prim, _, _ = self._locate_big_map(big_map_id)
+        encoded_key = encode_literal(key, key_prim)
 
-    def big_map_decode(self, value, big_map_path=None):
+        if big_map_id:
+            query = dict(
+                big_map_id=big_map_id,
+                script_expr=base58_encode(blake2b_32(encoded_key.encode()), b'expr')
+            )
+        else:
+            query = dict(
+                key=encoded_key,
+                type={'prim': key_prim}
+            )
+
+        return query
+
+    def big_map_decode(self, value, big_map_id=None):
         """
         Convert big_map_get result into a Python object
         :param value: Micheline expression for a BigMap entry
-        :param big_map_path: Json path to BigMap, leave None to use default
         (since Babylon you can have more than one BigMap at arbitrary position)
+        :param big_map_id: BigMap pointer (integer)
         :return: object
         """
-        _, value_root = self._locate_big_map(big_map_path)
+        _, value_root, _ = self._locate_big_map(big_map_id)
         return decode_micheline(value, self.schema, root=value_root)
 
-    def big_map_diff_decode(self, diff: list, big_map_path=None) -> dict:
+    def big_map_diff_decode(self, diff: list) -> dict:
         """
         Convert big_map_diff from operation_result section into Python objects
         :param diff: [{"key": $micheline, "value": $micheline}, ...]
-        :param big_map_path: Json path to BigMap, leave None to use default
-        (since Babylon you can have more than one BigMap at arbitrary position)
-        :return: dict
+        :return: {"path/to/big/map": {"key": "value"}} for Babylon; {"key": "value"} for old contracts
         """
-        if diff:
-            key_prim, value_root = self._locate_big_map(big_map_path)
-            return {
-                decode_literal(item['key'], key_prim):
-                    decode_micheline(item['value'], self.schema, root=value_root) if item.get('value') else None
-                for item in diff
-                if item.get('action') != 'alloc'
-            }
-        else:
+        if not isinstance(diff, list):
             return {}
 
-    def big_map_diff_encode(self, big_map: dict, big_map_path=None):
+        res = defaultdict(dict)
+
+        for item in diff:
+            if item.get('action') == 'alloc':
+                continue
+
+            big_map_id = item.get('big_map')
+            key_prim, value_root, big_map_path = self._locate_big_map(big_map_id)
+
+            key = decode_literal(item['key'], key_prim)
+            value = decode_micheline(item['value'], self.schema, root=value_root) if item.get('value') else None
+
+            if big_map_id and not self._is_old_style_big_map():
+                res[big_map_path.lstrip('/')][key] = value
+            else:
+                res[key] = value  # Backward compatibility
+
+        return res
+
+    # DEPRECATED (For old contracts only)
+    def big_map_diff_encode(self, big_map: dict):
         """
         Convert Python representation of BigMap (dict) into big_map_diff
         :param big_map: { $key: $micheline, ... }
-        :param big_map_path: Json path to BigMap, leave None to use default
-        (since Babylon you can have more than one BigMap at arbitrary position)
         :return: [{"key": $micheline, "value": $micheline}, ... ]
         """
-        key_prim, value_root = self._locate_big_map(big_map_path)
+        key_prim, value_root, _ = self._locate_big_map()
 
         def make_item(x):
             key = encode_literal(x[0], key_prim, binary=True)

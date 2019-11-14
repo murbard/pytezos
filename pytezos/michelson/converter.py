@@ -1,5 +1,5 @@
 from pytezos.michelson.micheline import Schema, collapse_micheline, build_maps, parse_micheline, make_json, \
-    parse_json, make_micheline, is_micheline, michelson_to_micheline
+    parse_json, make_micheline, is_micheline, michelson_to_micheline, BigMapSchema
 from pytezos.michelson.formatter import micheline_to_michelson
 from pytezos.michelson.docstring import generate_docstring
 
@@ -86,3 +86,23 @@ def convert(source, schema: Schema = None, output='micheline', inline=False):
         return source
     else:
         assert False, output
+
+
+def build_big_map_schema(data, schema: Schema) -> BigMapSchema:
+    bin_to_id = dict()
+    id_to_bin = dict()
+
+    def get_big_map_id(node, path):
+        if len(path) == 0:
+            assert node.get('int'), (node, path)
+            return int(node['int'])
+        else:
+            assert node.get('args'), (node, path)
+            return get_big_map_id(node['args'][int(path[0])], path[1:])
+
+    for bin_path, prim in schema.bin_types.items():
+        if prim == 'big_map':
+            big_map_id = get_big_map_id(data, bin_path[1:])
+            bin_to_id[bin_path], id_to_bin[big_map_id] = big_map_id, bin_path
+
+    return BigMapSchema(bin_to_id, id_to_bin)

@@ -75,9 +75,11 @@ class PyTezosClient(Interop, ContentMixin):
         Timestamp of the current head (UTC)
         :return: int
         """
-        ts = self.shell.head.predecessor.header()['timestamp']
+        constants = self.shell.block.context.constants()  # cached
+        ts = self.shell.head.header()['timestamp']
         dt = datetime.strptime(ts, '%Y-%m-%dT%H:%M:%SZ')
-        return int((dt - datetime(1970, 1, 1)).total_seconds()) + 60
+        first_delay = constants['time_between_blocks'][0]
+        return int((dt - datetime(1970, 1, 1)).total_seconds()) + int(first_delay)
 
     @lru_cache(maxsize=None)
     def _get_contract_interface(self, contract_id, factory=Contract):
