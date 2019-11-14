@@ -12,6 +12,7 @@ from pytezos.michelson.grammar import MichelsonParser
 
 Nested = namedtuple('Nested', ['prim', 'args'])
 Schema = namedtuple('Schema', ['metadata', 'bin_types', 'bin_to_json', 'json_to_bin'])
+BigMapSchema = namedtuple('BigMapSchema', ['bin_to_id', 'id_to_bin'])
 meaningful_types = ['key', 'key_hash', 'signature', 'timestamp', 'address']
 
 

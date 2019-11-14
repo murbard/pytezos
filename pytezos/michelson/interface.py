@@ -19,7 +19,7 @@ class ContractCallResult(OperationResult):
         results = cls.from_operation_group(operation_group, kind='transaction', destination=address)
         assert len(results) == 1, results
         result = results[0]
-
+        contract.storage.big_map_init(result.storage)
         return cls(
             parameters=contract.parameter.decode(data=result.parameters),
             storage=contract.storage.decode(result.storage),
@@ -29,6 +29,7 @@ class ContractCallResult(OperationResult):
 
     @classmethod
     def from_code_run(cls, code_run: dict, parameters, contract: Contract):
+        contract.storage.big_map_init(code_run['storage'])
         return cls(
             parameters=contract.parameter.decode(parameters),
             storage=contract.storage.decode(code_run['storage']),
@@ -269,12 +270,12 @@ class ContractInterface(Interop):
         :param block_id: Block height / hash / offset to use, default is `head`
         :return: object
         """
-        key = basename(path)
-        big_map_path = dirname(path)
-        big_map_path = join('/', big_map_path) if big_map_path else None
-        query = self.contract.storage.big_map_query(key, big_map_path)
-        value = self.shell.blocks[block_id].context.contracts[self.address].big_map_get.post(query)
-        return self.contract.storage.big_map_decode(value, big_map_path)
+        query = self.contract.storage.big_map_query(path)
+        if query.get('big_map_id'):
+            value = self.shell.blocks[block_id].context.big_maps[query['big_map_id']][query['script_expr']]()
+        else:
+            value = self.shell.blocks[block_id].context.contracts[self.address].big_map_get.post(query)
+        return self.contract.storage.big_map_decode(value, query.get('big_map_id'))
 
     def storage(self, block_id='head'):
         """

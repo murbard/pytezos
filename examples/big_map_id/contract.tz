@@ -1,0 +1,723 @@
+{ parameter
+    (or (or (or (pair %burn (nat %burnValue) (address %owner))
+                (pair %mint (address %mintOwner) (nat %mintValue)))
+            (or (bool %pause) (address %setAdmin)))
+        (pair %transfer (pair (address %fromOwner) (address %toOwner)) (nat %value))) ;
+  storage
+    (pair (pair (pair (address %admin) (big_map %balances address nat))
+                (pair (bool %paused) (string %shareType)))
+          (nat %totalSupply)) ;
+  code { LAMBDA
+           (pair address (pair (pair (pair address (big_map address nat)) (pair bool string)) nat))
+           bool
+           { DUP ;
+             CAR ;
+             DIP { DUP } ;
+             SWAP ;
+             CDR ;
+             DIP { DUP } ;
+             SWAP ;
+             DIP { DUP ; CAR ; CAR ; CAR } ;
+             COMPARE ;
+             EQ ;
+             DIP { DROP 3 } } ;
+         DUP ;
+         LAMBDA
+           (pair (pair (pair address (big_map address nat)) (pair bool string)) nat)
+           bool
+           { DUP ; CAR ; CDR ; CAR ; DIP { DROP } } ;
+         SWAP ;
+         LAMBDA
+           (pair (lambda
+                    (pair address (pair (pair (pair address (big_map address nat)) (pair bool string)) nat))
+                    bool)
+                 (pair address (pair (pair (pair address (big_map address nat)) (pair bool string)) nat)))
+           (pair (list operation)
+                 (pair (pair (pair address (big_map address nat)) (pair bool string)) nat))
+           { DUP ;
+             CAR ;
+             SWAP ;
+             CDR ;
+             DUP ;
+             CAR ;
+             DIP { DUP } ;
+             SWAP ;
+             CDR ;
+             DUP ;
+             SENDER ;
+             PAIR ;
+             DIP { DIP 3 { DUP } ; DIG 3 } ;
+             EXEC ;
+             DUP ;
+             IF { DIP 2 { DUP } ;
+                  DIG 2 ;
+                  DIP { DIP { DUP } ;
+                        SWAP ;
+                        DUP ;
+                        CDR ;
+                        SWAP ;
+                        CAR ;
+                        DUP ;
+                        CDR ;
+                        SWAP ;
+                        CAR ;
+                        CDR } ;
+                  PAIR ;
+                  PAIR ;
+                  PAIR ;
+                  SWAP ;
+                  DIP { DIP { DROP } } ;
+                  PUSH unit Unit }
+                { PUSH string "[set_admin] need admin privileges" ; FAILWITH } ;
+             DROP ;
+             DIP { DUP } ;
+             SWAP ;
+             NIL operation ;
+             PAIR ;
+             DIP { DROP 5 } } ;
+         SWAP ;
+         APPLY ;
+         DIP { DIP { DUP } ; DUP ; DIP { PAIR } ; SWAP } ;
+         SWAP ;
+         LAMBDA
+           (pair (pair address nat)
+                 (pair (pair (pair address (big_map address nat)) (pair bool string)) nat))
+           (pair (pair (pair address (big_map address nat)) (pair bool string)) nat)
+           { DUP ;
+             CAR ;
+             CAR ;
+             DIP { DUP } ;
+             SWAP ;
+             CAR ;
+             CDR ;
+             DIP 2 { DUP } ;
+             DIG 2 ;
+             CDR ;
+             DUP ;
+             CAR ;
+             CAR ;
+             CDR ;
+             DIP 3 { DUP } ;
+             DIG 3 ;
+             DIP { DIP { DUP } ; SWAP ; CAR ; CAR ; CDR } ;
+             GET ;
+             DUP ;
+             PUSH nat 0 ;
+             SWAP ;
+             IF_NONE
+               { DIP 4 { DUP } ; DIG 4 ; DIP { DROP } ; PUSH unit Unit }
+               { DUP ;
+                 DIP { DIP 5 { DUP } ; DIG 5 } ;
+                 ADD ;
+                 DIP { DIP { DUP } ; SWAP ; DROP } ;
+                 SWAP ;
+                 DROP ;
+                 DIP { DROP } ;
+                 PUSH unit Unit } ;
+             DROP ;
+             DIP 5 { DUP } ;
+             DIG 5 ;
+             DIP { DUP ; SOME ; DIP { DIP 3 { DUP } ; DIG 3 ; CAR ; CAR ; CDR } } ;
+             UPDATE ;
+             DIP { DIP 3 { DUP } ;
+                   DIG 3 ;
+                   DUP ;
+                   CDR ;
+                   SWAP ;
+                   CAR ;
+                   DUP ;
+                   CDR ;
+                   SWAP ;
+                   CAR ;
+                   CAR } ;
+             SWAP ;
+             PAIR ;
+             PAIR ;
+             PAIR ;
+             DIP 4 { DROP } ;
+             DUG 3 ;
+             DIP 3 { DUP } ;
+             DIG 3 ;
+             CDR ;
+             DIP { DIP 4 { DUP } ; DIG 4 } ;
+             ADD ;
+             DIP { DIP 3 { DUP } ; DIG 3 ; CAR } ;
+             SWAP ;
+             PAIR ;
+             DIP 4 { DROP } ;
+             DUG 3 ;
+             DIP 3 { DUP } ;
+             DIG 3 ;
+             DIP { DROP 7 } } ;
+         DUP ;
+         DIP { PAIR } ;
+         SWAP ;
+         LAMBDA
+           (pair (pair (lambda
+                          (pair (pair address nat)
+                                (pair (pair (pair address (big_map address nat)) (pair bool string)) nat))
+                          (pair (pair (pair address (big_map address nat)) (pair bool string)) nat))
+                       (pair (lambda (pair (pair (pair address (big_map address nat)) (pair bool string)) nat) bool)
+                             (lambda
+                                (pair address (pair (pair (pair address (big_map address nat)) (pair bool string)) nat))
+                                bool)))
+                 (pair (pair address nat)
+                       (pair (pair (pair address (big_map address nat)) (pair bool string)) nat)))
+           (pair (list operation)
+                 (pair (pair (pair address (big_map address nat)) (pair bool string)) nat))
+           { DUP ;
+             CAR ;
+             SWAP ;
+             CDR ;
+             DIP { DUP ; CDR ; SWAP ; CAR ; DIP { DUP ; CDR ; SWAP ; CAR } } ;
+             DUP ;
+             CAR ;
+             CAR ;
+             DIP { DUP } ;
+             SWAP ;
+             CAR ;
+             CDR ;
+             DIP 2 { DUP } ;
+             DIG 2 ;
+             CDR ;
+             DUP ;
+             DIP { DIP 5 { DUP } ; DIG 5 } ;
+             EXEC ;
+             DUP ;
+             IF { PUSH string "[mint] contract is paused" ; FAILWITH }
+                { PUSH unit Unit } ;
+             DROP ;
+             DIP { DUP } ;
+             SWAP ;
+             SENDER ;
+             PAIR ;
+             DIP { DIP 7 { DUP } ; DIG 7 } ;
+             EXEC ;
+             DUP ;
+             IF { PUSH unit Unit }
+                { PUSH string "[mint] need admin privileges" ; FAILWITH } ;
+             DROP ;
+             DIP 3 { DUP } ;
+             DIG 3 ;
+             PUSH nat 0 ;
+             SWAP ;
+             COMPARE ;
+             GT ;
+             DUP ;
+             IF { PUSH unit Unit }
+                { PUSH string "[mint] value must be positive" ; FAILWITH } ;
+             DROP ;
+             DIP 5 { DUP } ;
+             DIG 5 ;
+             DIP { DIP 4 { DUP } ; DIG 4 } ;
+             PAIR ;
+             DIP { DIP 3 { DUP } ; DIG 3 } ;
+             PAIR ;
+             DIP { DIP 7 { DUP } ; DIG 7 } ;
+             EXEC ;
+             DIP { DIP 3 { DUP } ; DIG 3 ; DROP } ;
+             DIP 4 { DROP } ;
+             DUG 3 ;
+             DIP 3 { DUP } ;
+             DIG 3 ;
+             NIL operation ;
+             PAIR ;
+             DIP { DROP 10 } } ;
+         SWAP ;
+         APPLY ;
+         DIP { DIP { DIP { DIP { DUP } ; DUP ; DIP { PAIR } ; SWAP } ; SWAP } ;
+               SWAP } ;
+         SWAP ;
+         LAMBDA
+           (pair (pair address nat)
+                 (pair (pair (pair address (big_map address nat)) (pair bool string)) nat))
+           (pair (pair (pair address (big_map address nat)) (pair bool string)) nat)
+           { DUP ;
+             CAR ;
+             CAR ;
+             DIP { DUP } ;
+             SWAP ;
+             CAR ;
+             CDR ;
+             DIP 2 { DUP } ;
+             DIG 2 ;
+             CDR ;
+             DUP ;
+             CAR ;
+             CAR ;
+             CDR ;
+             DIP 3 { DUP } ;
+             DIG 3 ;
+             DIP { DIP { DUP } ; SWAP ; CAR ; CAR ; CDR } ;
+             GET ;
+             DUP ;
+             PUSH nat 0 ;
+             SWAP ;
+             IF_NONE
+               { PUSH string "[doBurn] unknown owner" ; FAILWITH }
+               { DUP ;
+                 DUP ;
+                 DIP { DIP 6 { DUP } ; DIG 6 } ;
+                 COMPARE ;
+                 GE ;
+                 DUP ;
+                 IF { DIP 2 { DUP } ;
+                      DIG 2 ;
+                      DIP { DIP 7 { DUP } ; DIG 7 } ;
+                      SUB ;
+                      ABS ;
+                      DIP { DIP 3 { DUP } ; DIG 3 ; DROP } ;
+                      DIP 4 { DROP } ;
+                      DUG 3 ;
+                      PUSH unit Unit }
+                    { PUSH string "[doBurn] not enough to burn" ; FAILWITH } ;
+                 DIP { DROP 3 } } ;
+             DROP ;
+             DIP 5 { DUP } ;
+             DIG 5 ;
+             DIP { DUP ; SOME ; DIP { DIP 3 { DUP } ; DIG 3 ; CAR ; CAR ; CDR } } ;
+             UPDATE ;
+             DIP { DIP 3 { DUP } ;
+                   DIG 3 ;
+                   DUP ;
+                   CDR ;
+                   SWAP ;
+                   CAR ;
+                   DUP ;
+                   CDR ;
+                   SWAP ;
+                   CAR ;
+                   CAR } ;
+             SWAP ;
+             PAIR ;
+             PAIR ;
+             PAIR ;
+             DIP 4 { DROP } ;
+             DUG 3 ;
+             DIP 3 { DUP } ;
+             DIG 3 ;
+             CDR ;
+             DIP { DIP 4 { DUP } ; DIG 4 } ;
+             SUB ;
+             ABS ;
+             DIP { DIP 3 { DUP } ; DIG 3 ; CAR } ;
+             SWAP ;
+             PAIR ;
+             DIP 4 { DROP } ;
+             DUG 3 ;
+             DIP 3 { DUP } ;
+             DIG 3 ;
+             DIP { DROP 7 } } ;
+         DUP ;
+         DIP { PAIR } ;
+         SWAP ;
+         LAMBDA
+           (pair (pair (lambda
+                          (pair (pair address nat)
+                                (pair (pair (pair address (big_map address nat)) (pair bool string)) nat))
+                          (pair (pair (pair address (big_map address nat)) (pair bool string)) nat))
+                       (pair (lambda (pair (pair (pair address (big_map address nat)) (pair bool string)) nat) bool)
+                             (lambda
+                                (pair address (pair (pair (pair address (big_map address nat)) (pair bool string)) nat))
+                                bool)))
+                 (pair (pair address nat)
+                       (pair (pair (pair address (big_map address nat)) (pair bool string)) nat)))
+           (pair (list operation)
+                 (pair (pair (pair address (big_map address nat)) (pair bool string)) nat))
+           { DUP ;
+             CAR ;
+             SWAP ;
+             CDR ;
+             DIP { DUP ; CDR ; SWAP ; CAR ; DIP { DUP ; CDR ; SWAP ; CAR } } ;
+             DUP ;
+             CAR ;
+             CAR ;
+             DIP { DUP } ;
+             SWAP ;
+             CAR ;
+             CDR ;
+             DIP 2 { DUP } ;
+             DIG 2 ;
+             CDR ;
+             DUP ;
+             DIP { DIP 5 { DUP } ; DIG 5 } ;
+             EXEC ;
+             DUP ;
+             IF { PUSH string "[burn] contract is paused" ; FAILWITH }
+                { PUSH unit Unit } ;
+             DROP ;
+             DIP { DUP } ;
+             SWAP ;
+             SENDER ;
+             PAIR ;
+             DIP { DIP 7 { DUP } ; DIG 7 } ;
+             EXEC ;
+             DUP ;
+             IF { PUSH unit Unit }
+                { PUSH string "[burn] need admin privileges" ; FAILWITH } ;
+             DROP ;
+             DIP 3 { DUP } ;
+             DIG 3 ;
+             PUSH nat 0 ;
+             SWAP ;
+             COMPARE ;
+             GT ;
+             DUP ;
+             IF { PUSH unit Unit }
+                { PUSH string "[burn] value must be positive" ; FAILWITH } ;
+             DROP ;
+             DIP 5 { DUP } ;
+             DIG 5 ;
+             DIP { DIP 4 { DUP } ; DIG 4 } ;
+             PAIR ;
+             DIP { DIP 3 { DUP } ; DIG 3 } ;
+             PAIR ;
+             DIP { DIP 7 { DUP } ; DIG 7 } ;
+             EXEC ;
+             DIP { DIP 3 { DUP } ; DIG 3 ; DROP } ;
+             DIP 4 { DROP } ;
+             DUG 3 ;
+             DIP 3 { DUP } ;
+             DIG 3 ;
+             NIL operation ;
+             PAIR ;
+             DIP { DROP 10 } } ;
+         SWAP ;
+         APPLY ;
+         DIP { DIP { DIP { DIP { DIP { DIP { DUP } ; DUP ; DIP { PAIR } ; SWAP } ; SWAP } ;
+                           SWAP } ;
+                     SWAP } ;
+               SWAP } ;
+         SWAP ;
+         LAMBDA
+           (pair (pair address address)
+                 (pair nat (pair (pair (pair address (big_map address nat)) (pair bool string)) nat)))
+           (pair (pair (pair address (big_map address nat)) (pair bool string)) nat)
+           { DUP ;
+             CAR ;
+             CAR ;
+             DIP { DUP } ;
+             SWAP ;
+             CAR ;
+             CDR ;
+             DIP 2 { DUP } ;
+             DIG 2 ;
+             CDR ;
+             CAR ;
+             DIP 3 { DUP } ;
+             DIG 3 ;
+             CDR ;
+             CDR ;
+             DUP ;
+             CAR ;
+             CAR ;
+             CDR ;
+             DIP 3 { DUP } ;
+             DIG 3 ;
+             DIP { DIP { DUP } ; SWAP ; CAR ; CAR ; CDR } ;
+             GET ;
+             DIP 5 { DUP } ;
+             DIG 5 ;
+             DIP { DIP 2 { DUP } ; DIG 2 ; CAR ; CAR ; CDR } ;
+             GET ;
+             DUP ;
+             IF_NONE
+               { PUSH string "[doTransfer] unknown owner" ; FAILWITH }
+               { DUP ;
+                 DIP { DIP 5 { DUP } ; DIG 5 } ;
+                 COMPARE ;
+                 GE ;
+                 DUP ;
+                 IF { DIP 8 { DUP } ;
+                      DIG 8 ;
+                      DIP { DIP { DUP } ;
+                            SWAP ;
+                            DIP { DIP 6 { DUP } ; DIG 6 } ;
+                            SUB ;
+                            ABS ;
+                            SOME ;
+                            DIP { DIP 5 { DUP } ; DIG 5 ; CAR ; CAR ; CDR } } ;
+                      UPDATE ;
+                      DIP { DIP 5 { DUP } ;
+                            DIG 5 ;
+                            DUP ;
+                            CDR ;
+                            SWAP ;
+                            CAR ;
+                            DUP ;
+                            CDR ;
+                            SWAP ;
+                            CAR ;
+                            CAR } ;
+                      SWAP ;
+                      PAIR ;
+                      PAIR ;
+                      PAIR ;
+                      DIP 6 { DROP } ;
+                      DUG 5 ;
+                      DIP 3 { DUP } ;
+                      DIG 3 ;
+                      IF_NONE
+                        { DIP 7 { DUP } ;
+                          DIG 7 ;
+                          DIP { DIP 6 { DUP } ;
+                                DIG 6 ;
+                                SOME ;
+                                DIP { DIP 5 { DUP } ; DIG 5 ; CAR ; CAR ; CDR } } ;
+                          UPDATE ;
+                          DIP { DIP 5 { DUP } ;
+                                DIG 5 ;
+                                DUP ;
+                                CDR ;
+                                SWAP ;
+                                CAR ;
+                                DUP ;
+                                CDR ;
+                                SWAP ;
+                                CAR ;
+                                CAR } ;
+                          SWAP ;
+                          PAIR ;
+                          PAIR ;
+                          PAIR ;
+                          DIP 6 { DROP } ;
+                          DUG 5 ;
+                          PUSH unit Unit }
+                        { DIP 8 { DUP } ;
+                          DIG 8 ;
+                          DIP { DUP ;
+                                DIP { DIP 7 { DUP } ; DIG 7 } ;
+                                ADD ;
+                                SOME ;
+                                DIP { DIP 6 { DUP } ; DIG 6 ; CAR ; CAR ; CDR } } ;
+                          UPDATE ;
+                          DIP { DIP 6 { DUP } ;
+                                DIG 6 ;
+                                DUP ;
+                                CDR ;
+                                SWAP ;
+                                CAR ;
+                                DUP ;
+                                CDR ;
+                                SWAP ;
+                                CAR ;
+                                CAR } ;
+                          SWAP ;
+                          PAIR ;
+                          PAIR ;
+                          PAIR ;
+                          DIP 7 { DROP } ;
+                          DUG 6 ;
+                          DROP ;
+                          PUSH unit Unit } }
+                    { PUSH string "[doTransfer] not enough to burn" ; FAILWITH } ;
+                 DIP { DROP 2 } } ;
+             DROP ;
+             DIP 3 { DUP } ;
+             DIG 3 ;
+             DIP { DROP 8 } } ;
+         DUP ;
+         DIP { PAIR } ;
+         SWAP ;
+         LAMBDA
+           (pair (pair (lambda
+                          (pair (pair address address)
+                                (pair nat (pair (pair (pair address (big_map address nat)) (pair bool string)) nat)))
+                          (pair (pair (pair address (big_map address nat)) (pair bool string)) nat))
+                       (pair (lambda (pair (pair (pair address (big_map address nat)) (pair bool string)) nat) bool)
+                             (lambda
+                                (pair address (pair (pair (pair address (big_map address nat)) (pair bool string)) nat))
+                                bool)))
+                 (pair (pair address address)
+                       (pair nat (pair (pair (pair address (big_map address nat)) (pair bool string)) nat))))
+           (pair (list operation)
+                 (pair (pair (pair address (big_map address nat)) (pair bool string)) nat))
+           { DUP ;
+             CAR ;
+             SWAP ;
+             CDR ;
+             DIP { DUP ; CDR ; SWAP ; CAR ; DIP { DUP ; CDR ; SWAP ; CAR } } ;
+             DUP ;
+             CAR ;
+             CAR ;
+             DIP { DUP } ;
+             SWAP ;
+             CAR ;
+             CDR ;
+             DIP 2 { DUP } ;
+             DIG 2 ;
+             CDR ;
+             CAR ;
+             DIP 3 { DUP } ;
+             DIG 3 ;
+             CDR ;
+             CDR ;
+             DUP ;
+             DIP { DIP 6 { DUP } ; DIG 6 } ;
+             EXEC ;
+             DUP ;
+             IF { PUSH string "[transfer] contract is paused" ; FAILWITH }
+                { PUSH unit Unit } ;
+             DROP ;
+             DIP { DUP } ;
+             SWAP ;
+             SENDER ;
+             PAIR ;
+             DIP { DIP 8 { DUP } ; DIG 8 } ;
+             EXEC ;
+             DIP { DIP 4 { DUP } ; DIG 4 ; SENDER ; COMPARE ; EQ } ;
+             OR ;
+             DUP ;
+             IF { PUSH unit Unit }
+                { PUSH string "[transfer] need admin privileges or must be the sender" ;
+                  FAILWITH } ;
+             DROP ;
+             DIP 3 { DUP } ;
+             DIG 3 ;
+             PUSH nat 0 ;
+             SWAP ;
+             COMPARE ;
+             GT ;
+             DUP ;
+             IF { PUSH unit Unit }
+                { PUSH string "[transfer] value must be positive" ; FAILWITH } ;
+             DROP ;
+             DIP 6 { DUP } ;
+             DIG 6 ;
+             DIP { DIP 5 { DUP } ; DIG 5 } ;
+             PAIR ;
+             DIP { DIP 4 { DUP } ; DIG 4 ; DIP { DIP 3 { DUP } ; DIG 3 } ; PAIR } ;
+             PAIR ;
+             DIP { DIP 8 { DUP } ; DIG 8 } ;
+             EXEC ;
+             DIP { DIP 3 { DUP } ; DIG 3 ; DROP } ;
+             DIP 4 { DROP } ;
+             DUG 3 ;
+             DIP 3 { DUP } ;
+             DIG 3 ;
+             NIL operation ;
+             PAIR ;
+             DIP { DROP 11 } } ;
+         SWAP ;
+         APPLY ;
+         DIP { DIP { DIP { DIP { DIP { DIP { DIP { DIP { DUP } ; SWAP } ; SWAP } ; SWAP } ;
+                                 SWAP } ;
+                           SWAP } ;
+                     SWAP } ;
+               SWAP } ;
+         SWAP ;
+         LAMBDA
+           (pair (lambda
+                    (pair address (pair (pair (pair address (big_map address nat)) (pair bool string)) nat))
+                    bool)
+                 (pair bool (pair (pair (pair address (big_map address nat)) (pair bool string)) nat)))
+           (pair (list operation)
+                 (pair (pair (pair address (big_map address nat)) (pair bool string)) nat))
+           { DUP ;
+             CAR ;
+             SWAP ;
+             CDR ;
+             DUP ;
+             CAR ;
+             DIP { DUP } ;
+             SWAP ;
+             CDR ;
+             DUP ;
+             SENDER ;
+             PAIR ;
+             DIP { DIP 3 { DUP } ; DIG 3 } ;
+             EXEC ;
+             DUP ;
+             IF { DIP 2 { DUP } ;
+                  DIG 2 ;
+                  DIP { DIP { DUP } ;
+                        SWAP ;
+                        DUP ;
+                        CDR ;
+                        SWAP ;
+                        CAR ;
+                        DUP ;
+                        CAR ;
+                        SWAP ;
+                        CDR ;
+                        CDR } ;
+                  PAIR ;
+                  SWAP ;
+                  PAIR ;
+                  PAIR ;
+                  SWAP ;
+                  DIP { DIP { DROP } } ;
+                  PUSH unit Unit }
+                { PUSH string "[pause] need admin privileges" ; FAILWITH } ;
+             DROP ;
+             DIP { DUP } ;
+             SWAP ;
+             NIL operation ;
+             PAIR ;
+             DIP { DROP 5 } } ;
+         SWAP ;
+         APPLY ;
+         DIP 10 { DUP } ;
+         DIG 10 ;
+         CAR ;
+         DIP 11 { DUP } ;
+         DIG 11 ;
+         CDR ;
+         DIP { DUP } ;
+         SWAP ;
+         IF_LEFT
+           { DUP ;
+             IF_LEFT
+               { DUP ;
+                 IF_LEFT
+                   { DUP ;
+                     DUP ;
+                     CDR ;
+                     DIP { DUP ; CAR } ;
+                     PAIR ;
+                     DIP { DIP 4 { DUP } ; DIG 4 } ;
+                     PAIR ;
+                     DIP { DIP 9 { DUP } ; DIG 9 } ;
+                     EXEC ;
+                     DIP { DROP 2 } }
+                   { DUP ;
+                     DUP ;
+                     CAR ;
+                     DIP { DUP ; CDR } ;
+                     PAIR ;
+                     DIP { DIP 4 { DUP } ; DIG 4 } ;
+                     PAIR ;
+                     DIP { DIP 11 { DUP } ; DIG 11 } ;
+                     EXEC ;
+                     DIP { DROP 2 } } ;
+                 DIP { DROP } }
+               { DUP ;
+                 IF_LEFT
+                   { DUP ;
+                     DUP ;
+                     DIP { DIP 4 { DUP } ; DIG 4 } ;
+                     PAIR ;
+                     DIP { DIP 6 { DUP } ; DIG 6 } ;
+                     EXEC ;
+                     DIP { DROP 2 } }
+                   { DUP ;
+                     DUP ;
+                     DIP { DIP 4 { DUP } ; DIG 4 } ;
+                     PAIR ;
+                     DIP { DIP 13 { DUP } ; DIG 13 } ;
+                     EXEC ;
+                     DIP { DROP 2 } } ;
+                 DIP { DROP } } ;
+             DIP { DROP } }
+           { DUP ;
+             DUP ;
+             CAR ;
+             CAR ;
+             DIP { DUP ; CAR ; CDR } ;
+             PAIR ;
+             DIP { DUP ; CDR ; DIP { DIP 2 { DUP } ; DIG 2 } ; PAIR } ;
+             PAIR ;
+             DIP { DIP 5 { DUP } ; DIG 5 } ;
+             EXEC ;
+             DIP { DROP 2 } } ;
+         DIP { DROP 13 } } }

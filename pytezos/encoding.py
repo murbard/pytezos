@@ -22,6 +22,7 @@ base58_encodings = [
 
     (b"id",    30,   tb([153, 103]),               16,   u"cryptobox public key hash"),
 
+    (b'expr',  54,   tb([13, 44, 64, 27]),         32,   u'script expression'),
     (b"edsk",  54,   tb([13, 15, 58, 7]),          32,   u"ed25519 seed"),
     (b"edpk",  54,   tb([13, 15, 37, 217]),        32,   u"ed25519 public key"),
     (b"spsk",  54,   tb([17, 162, 224, 201]),      32,   u"secp256k1 secret key"),
@@ -42,7 +43,7 @@ base58_encodings = [
     (b"p2sig", 98,   tb([54, 240, 44, 52]),        64,   u"p256 signature"),
     (b"sig",   96,   tb([4, 130, 43]),             64,   u"generic signature"),
 
-    (b'Net',   15,   tb([87, 82, 0]),              4,    u"chain id")
+    (b'Net',   15,   tb([87, 82, 0]),              4,    u"chain id"),
 ]
 
 operation_tags = {
