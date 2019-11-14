@@ -154,6 +154,10 @@ class ContractStorage(metaclass=InlineDocstring):
         bin_path = self.schema.json_to_bin[big_map_path]
         return self.big_map_schema.bin_to_id[bin_path]
 
+    def _is_old_style_big_map(self) -> bool:
+        return len(self.big_map_schema.bin_to_id) == 1 \
+               and next(iter(self.big_map_schema.bin_to_id)) == '00'
+
     def big_map_query(self, path):
         """
         Construct a query for big_map_get request
@@ -213,7 +217,7 @@ class ContractStorage(metaclass=InlineDocstring):
             key = decode_literal(item['key'], key_prim)
             value = decode_micheline(item['value'], self.schema, root=value_root) if item.get('value') else None
 
-            if big_map_id:
+            if big_map_id and not self._is_old_style_big_map():
                 res[big_map_path.lstrip('/')][key] = value
             else:
                 res[key] = value  # Backward compatibility
