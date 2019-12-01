@@ -8,7 +8,7 @@ from getpass import getpass
 from fastecdsa.ecdsa import sign, verify
 from fastecdsa.keys import get_public_key
 from fastecdsa.curve import P256
-from fastecdsa.encoding.util import int_to_bytes, bytes_to_int
+from fastecdsa.encoding.util import bytes_to_int
 from fastecdsa.encoding.sec1 import SEC1Encoder
 from pyblake2 import blake2b
 from mnemonic import Mnemonic
@@ -323,7 +323,7 @@ class Key(metaclass=InlineDocstring):
         # P256
         elif self.curve == b"p2":
             r, s = sign(msg=message, d=bytes_to_int(self.secret_exponent), hashfunc=blake2b_32)
-            signature = int_to_bytes(r) + int_to_bytes(s)
+            signature = r.to_bytes(32, 'big') + s.to_bytes(32, 'big')
         else:
             assert False
 
