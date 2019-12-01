@@ -117,3 +117,7 @@ class TestCrypto(TestCase):
     ])
     def test_bad_mnemonic(self, mnemonic):
         self.assertRaises(ValueError, Key.from_mnemonic, mnemonic)
+
+    def test_regression_p256_short_sig(self):
+        key = Key.from_encoded_key('p2sk3xPfYsoExTVi7bGSH2KoHgpxFNqewUczHkLtQvr1bwnbhzGM9Y')
+        key.sign('try25')
