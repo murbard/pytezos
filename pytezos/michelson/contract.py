@@ -39,11 +39,13 @@ class ContractParameter(metaclass=InlineDocstring):
         :param data: Micheline expression or Michelson string or {entrypoint: "string", value: "expression"}
         :return: object
         """
-        if isinstance(data, dict) \
-                and set(data.keys()) == {'entrypoint', 'value'} \
-                and data['entrypoint'] not in {'root', 'default'}:
-            res = decode_micheline(data['value'], self.schema, root=self._get_entry_root(data['entrypoint']))
-            return {data['entrypoint']: res}
+        if isinstance(data, dict) and set(data.keys()) == {'entrypoint', 'value'}:
+            if data['entrypoint'] not in {'root', 'default'}:
+                res = decode_micheline(data['value'], self.schema,
+                                       root=self._get_entry_root(data['entrypoint']))
+                return {data['entrypoint']: res}
+            else:
+                return decode_micheline(data['value'], self.schema)  # TODO: default subpath (see BCD issue)
         else:
             if isinstance(data, str):
                 data = michelson_to_micheline(data)
