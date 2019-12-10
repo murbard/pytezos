@@ -34,7 +34,9 @@ class RpcError(Exception):
 
     @classmethod
     def from_errors(cls, errors: list):
-        assert errors
+        if not errors:
+            return RpcError('Unspecified error')
+
         error = errors[-1]
         for key in gen_error_variants(error['id']):
             if key in cls.__handlers__:
