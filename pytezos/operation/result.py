@@ -52,7 +52,7 @@ class OperationResult:
     def errors(operation_group: dict):
         for result in OperationResult.iter_results(operation_group):
             if result['status'] != 'applied':
-                return result['errors']
+                return result.get('errors', [])
 
     @staticmethod
     def originated_contracts(operation_group: dict):

@@ -17,15 +17,15 @@ class ContractCallResult(OperationResult):
     @classmethod
     def from_contract_call(cls, operation_group: dict, address, contract: Contract):
         results = cls.from_operation_group(operation_group, kind='transaction', destination=address)
-        assert len(results) == 1, results
-        result = results[0]
-        contract.storage.big_map_init(result.storage)
-        return cls(
-            parameters=contract.parameter.decode(data=result.parameters),
-            storage=contract.storage.decode(result.storage),
-            big_map_diff=contract.storage.big_map_diff_decode(result.big_map_diff),
-            operations=result.operations
-        )
+        if len(results) == 1:
+            result = results[0]
+            contract.storage.big_map_init(result.storage)
+            return cls(
+                parameters=contract.parameter.decode(data=result.parameters),
+                storage=contract.storage.decode(result.storage),
+                big_map_diff=contract.storage.big_map_diff_decode(result.big_map_diff),
+                operations=result.operations
+            )
 
     @classmethod
     def from_code_run(cls, code_run: dict, parameters, contract: Contract):
