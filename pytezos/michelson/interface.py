@@ -110,8 +110,8 @@ class ContractCall(Interop):
         source = self.key.public_key_hash()
         amount = format_mutez(self.amount)
         entrypoint = self.parameters['entrypoint']
-        return f'transfer {amount} from {source} to {self.address} "' \
-               f'--entrypoint "{entrypoint}" --arg "{arg}"'
+        return f'transfer {amount} from {source} to {self.address} ' \
+               f'--entrypoint \'{entrypoint}\' --arg \'{arg}\''
 
     def result(self, storage=None, source=None, sender=None, gas_limit=None):
         """
