@@ -13,7 +13,7 @@ class KeyHash(Key):
 
     def __init__(self, public_key_hash):
         super(KeyHash, self).__init__(0)
-        self.public_key_hash = public_key_hash
+        self._pkh = public_key_hash
 
     def __repr__(self):
         res = [
@@ -24,7 +24,7 @@ class KeyHash(Key):
         return '\n'.join(res)
 
     def public_key_hash(self):
-        return self.public_key_hash
+        return self._pkh
 
     def public_key(self):
         raise NotImplementedError
