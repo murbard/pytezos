@@ -69,7 +69,8 @@ class ShellQuery(RpcQuery, path=''):
             block_hash = header['hash']
 
         prev_block_dt = datetime.strptime(header['timestamp'], '%Y-%m-%dT%H:%M:%SZ')
-        delay_sec = block_time - prev_block_dt.second
+        elapsed_sec = (datetime.utcnow() - prev_block_dt).seconds
+        delay_sec = 0 if elapsed_sec > block_time else block_time - elapsed_sec
         print(f'Wait {delay_sec} seconds until block {block_hash} is finalized')
         sleep(delay_sec)
 
