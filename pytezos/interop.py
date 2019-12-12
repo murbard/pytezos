@@ -1,12 +1,42 @@
 from os.path import exists, expanduser
 
-from pytezos.rpc import ShellQuery, RpcNode, mainnet, babylonnet, zeronet, localhost
+from pytezos.rpc import ShellQuery, RpcNode, mainnet, babylonnet, zeronet, localhost, pool
 from pytezos.crypto import Key
-from pytezos.encoding import is_key
+from pytezos.encoding import is_key, is_pkh
 from pytezos.tools.docstring import InlineDocstring
 
 default_shell = 'babylonnet'
 default_key = 'edsk33N474hxzA4sKeWVM6iuGNGDpX2mGwHNxEA4UbWS8sW3Ta3NKH'  # please, use responsibly
+
+
+class KeyHash(Key):
+
+    def __init__(self, public_key_hash):
+        super(KeyHash, self).__init__(0)
+        self.public_key_hash = public_key_hash
+
+    def __repr__(self):
+        res = [
+            super(Key, self).__repr__(),
+            f'\nPublic key hash',
+            self.public_key_hash()
+        ]
+        return '\n'.join(res)
+
+    def public_key_hash(self):
+        return self.public_key_hash
+
+    def public_key(self):
+        raise NotImplementedError
+
+    def secret_key(self, passphrase=None, ed25519_seed=True):
+        raise NotImplementedError
+
+    def sign(self, message, generic=False):
+        raise NotImplementedError
+
+    def verify(self, signature, message):
+        raise NotImplementedError
 
 
 class Interop(metaclass=InlineDocstring):
@@ -29,7 +59,8 @@ class Interop(metaclass=InlineDocstring):
                 'mainnet': mainnet,
                 'babylonnet': babylonnet,
                 'zeronet': zeronet,
-                'sandboxnet': localhost.sandboxnet
+                'sandboxnet': localhost.sandboxnet,
+                'mainnet-pool': pool.mainnet
             }
             if shell in networks:
                 self.shell = networks[shell]
@@ -46,6 +77,8 @@ class Interop(metaclass=InlineDocstring):
         if isinstance(key, str):
             if is_key(key):
                 self.key = Key.from_encoded_key(key)
+            elif is_pkh(key):
+                self.key = KeyHash(key)
             elif exists(expanduser(key)):
                 self.key = Key.from_faucet(key)
             else:

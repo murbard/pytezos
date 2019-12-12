@@ -1,6 +1,4 @@
 import hashlib
-import pysodium
-import secp256k1
 import binascii
 import json
 from os.path import expanduser, join, abspath
@@ -12,6 +10,14 @@ from fastecdsa.encoding.util import bytes_to_int
 from fastecdsa.encoding.sec1 import SEC1Encoder
 from pyblake2 import blake2b
 from mnemonic import Mnemonic
+
+try:
+    import pysodium
+    import secp256k1
+except ImportError as e:
+    pysodium = object()
+    secp256k1 = object()
+    print("Failed to load cryptographic libraries, some features will be unavailable\n", e)
 
 from pytezos.encoding import scrub_input, base58_decode, base58_encode
 from pytezos.tools.docstring import InlineDocstring, get_class_docstring

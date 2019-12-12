@@ -128,3 +128,27 @@ class RpcNode:
 
     def put(self, path, params=None):
         return self.request('PUT', path, params=params).json()
+
+
+class RpcMultiNode(RpcNode):
+
+    def __init__(self, uri, network):
+        super(RpcMultiNode, self).__init__(uri=uri, network=network)
+        if not isinstance(uri, list):
+            self.uri = [uri]
+        self.nodes = list(map(lambda x: RpcNode(x, network), self.uri))
+        self._next_i = 0
+
+    def __repr__(self):
+        res = [
+            super(RpcNode, self).__repr__(),
+            f'\nNode addresses ({self.network})',
+            *self.uri
+        ]
+        return '\n'.join(res)
+
+    def request(self, method, path, **kwargs) -> requests.Response:
+        assert self._next_i < len(self.nodes)
+        res = self.nodes[self._next_i].request(method, path, **kwargs)
+        self._next_i = (self._next_i + 1) % len(self.nodes)
+        return res

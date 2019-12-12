@@ -2,17 +2,18 @@ from pytezos.rpc.shell import *
 from pytezos.rpc.protocol import *
 from pytezos.rpc.helpers import *
 from pytezos.rpc.search import *
-from pytezos.rpc.node import RpcNode
+from pytezos.rpc.node import RpcNode, RpcMultiNode
 
 
 class RpcProvider:
 
-    def __init__(self, **urls):
+    def __init__(self, klass=RpcNode, **urls):
         self.urls = urls
+        self.klass = klass
 
     @lru_cache(maxsize=None)
     def __getattr__(self, network) -> ShellQuery:
-        return ShellQuery(node=RpcNode(uri=self.urls[network], network=network))
+        return ShellQuery(node=self.klass(uri=self.urls[network], network=network))
 
     def __dir__(self):
         return list(super(RpcProvider, self).__dir__()) + list(self.urls.keys())
@@ -33,6 +34,19 @@ tzkt = RpcProvider(
     mainnet='https://rpc.tzkt.io/mainnet/',
     babylonnet='https://rpc.tzkt.io/babylonnet/',
     zeronet='https://rpc.tzkt.io/zeronet/'
+)
+pool = RpcProvider(
+    klass=RpcMultiNode,
+    mainnet=[
+        'https://rpc.tzkt.io/mainnet/',
+        'https://tezos-prod.cryptonomic-infra.tech/',
+        'https://rpc.tezrpc.me/',
+        'https://api.tezos.org.ua/'
+    ],
+    babylonnet=[
+        'https://rpc.tzkt.io/babylonnet/',
+        'https://tezos-dev.cryptonomic-infra.tech/',
+    ]
 )
 
 mainnet = tzkt.mainnet
