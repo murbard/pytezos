@@ -100,7 +100,10 @@ class OperationResult:
     @classmethod
     def from_origination(cls, content: dict):
         operation_result = cls.get_result(content)
-        return cls(originated_contracts=operation_result['originated_contracts'])
+        return cls(
+            storage=content['script']['storage'],
+            originated_contracts=operation_result['originated_contracts']
+        )
 
     @classmethod
     def from_transaction(cls, content: dict):
