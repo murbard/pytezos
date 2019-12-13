@@ -1,4 +1,5 @@
-from os.path import basename, dirname, join, exists, expanduser
+from os.path import exists, expanduser
+from typing import List
 from pprint import pformat
 
 from pytezos.operation.result import OperationResult
@@ -15,17 +16,29 @@ from pytezos.tools.docstring import get_class_docstring
 class ContractCallResult(OperationResult):
 
     @classmethod
-    def from_contract_call(cls, operation_group: dict, address, contract: Contract):
-        results = cls.from_operation_group(operation_group, kind='transaction', destination=address)
-        if len(results) == 1:
-            result = results[0]
-            contract.storage.big_map_init(result.storage)
-            return cls(
-                parameters=contract.parameter.decode(data=result.parameters),
-                storage=contract.storage.decode(result.storage),
-                big_map_diff=contract.storage.big_map_diff_decode(result.big_map_diff),
-                operations=result.operations
-            )
+    def from_contract_call(cls, operation_group: dict, address, contract: Contract) -> list:
+        results = list()
+        for content in OperationResult.iter_contents(operation_group):
+            if content['kind'] == 'transaction':
+                if content['destination'] == address:
+                    results.append(cls.from_transaction(content))
+            elif content['kind'] == 'origination':
+                result = cls.get_result(content)
+                if address in result.get('originated_contracts', []):
+                    results.append(cls.from_origination(content))
+
+        def decode_result(res):
+            kwargs = dict(storage=contract.storage.decode(res.storage))
+            if hasattr(res, 'big_map_diff'):
+                contract.storage.big_map_init(res.storage)
+                kwargs.update(big_map_diff=contract.storage.big_map_diff_decode(res.big_map_diff))
+            if hasattr(res, 'parameters'):
+                kwargs.update(parameters=contract.parameter.decode(data=res.parameters))
+            if hasattr(res, 'operations'):
+                kwargs.update(operations=res.operations)
+            return cls(**kwargs)
+
+        return list(map(decode_result, results))
 
     @classmethod
     def from_code_run(cls, code_run: dict, parameters, contract: Contract):
@@ -141,8 +154,9 @@ class ContractCall(Interop):
                 code_run_res, parameters=self.parameters, contract=self.contract)
         else:
             opg_with_metadata = self.operation_group.fill().run()
-            return ContractCallResult.from_contract_call(
+            res = ContractCallResult.from_contract_call(
                 opg_with_metadata, address=self.address, contract=self.contract)
+            return res[0] if res else None
 
     def view(self):
         """
@@ -286,7 +300,7 @@ class ContractInterface(Interop):
         storage = self.shell.blocks[block_id].context.contracts[self.address].storage()
         return self.contract.storage.decode(storage)
 
-    def operation_result(self, operation_group: dict) -> ContractCallResult:
+    def operation_result(self, operation_group: dict) -> List[ContractCallResult]:
         """
         Get operation parameters, storage and big_map_diff as Python objects.
         Can locate operation inside operation groups with multiple contents and/or internal operations.

@@ -41,7 +41,9 @@ pool = RpcProvider(
         'https://rpc.tzkt.io/mainnet/',
         'https://tezos-prod.cryptonomic-infra.tech/',
         'https://rpc.tezrpc.me/',
-        'https://api.tezos.org.ua/'
+        'https://api.tezos.org.ua/',
+        'https://api.tez.ie/',
+
     ],
     babylonnet=[
         'https://rpc.tzkt.io/babylonnet/',
