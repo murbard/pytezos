@@ -1,12 +1,13 @@
 from os.path import exists, expanduser
 
 from pytezos.rpc import ShellQuery, RpcNode, mainnet, babylonnet, zeronet, localhost, pool
-from pytezos.crypto import Key
+from pytezos.crypto import Key, is_installed
 from pytezos.encoding import is_key, is_pkh
 from pytezos.tools.docstring import InlineDocstring
 
 default_shell = 'babylonnet'
 default_key = 'edsk33N474hxzA4sKeWVM6iuGNGDpX2mGwHNxEA4UbWS8sW3Ta3NKH'  # please, use responsibly
+default_key_hash = 'tz1cnQZXoznhduu4MVWfJF6GSyP6mMHMbbWa'
 
 
 class KeyHash(Key):
@@ -72,7 +73,7 @@ class Interop(metaclass=InlineDocstring):
             raise NotImplementedError(shell)
 
         if key is None:
-            key = default_key
+            key = default_key if is_installed() else default_key_hash
 
         if isinstance(key, str):
             if is_key(key):

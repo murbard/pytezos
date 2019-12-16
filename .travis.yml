@@ -15,7 +15,7 @@ before_install:
   - source $HOME/.poetry/env
 
 install:
-  - poetry install -v
+  - poetry install -v -E crypto
 
 script:
   - poetry run pytest tests/
