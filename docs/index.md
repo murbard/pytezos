@@ -40,7 +40,7 @@ but if you feel lucky you can try to install natively:
 
 In console:
 ```
-$ pip install pytezos
+$ pip install pytezos[crypto]
 ```
 
 In Google Colab notebook:

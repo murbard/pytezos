@@ -44,7 +44,7 @@ but if you feel lucky you can try to install natively:
 ### Installation
 
 ```
-$ pip install pytezos
+$ pip install pytezos[crypto]
 ```
 
 #### Google Colab

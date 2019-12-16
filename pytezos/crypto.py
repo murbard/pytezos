@@ -17,7 +17,8 @@ try:
 except ImportError as e:
     pysodium = object()
     secp256k1 = object()
-    print("Failed to load cryptographic libraries, some features will be unavailable\n", e)
+    print("Please, install packages libsodium-dev, libsecp256k1-dev, and libgmp-dev, "
+          "and Python libraries pysodium and secp256k1")
 
 from pytezos.encoding import scrub_input, base58_decode, base58_encode
 from pytezos.tools.docstring import InlineDocstring, get_class_docstring
