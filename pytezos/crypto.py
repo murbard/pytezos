@@ -3,25 +3,44 @@ import binascii
 import json
 from os.path import expanduser, join, abspath
 from getpass import getpass
-from fastecdsa.ecdsa import sign, verify
-from fastecdsa.keys import get_public_key
-from fastecdsa.curve import P256
-from fastecdsa.encoding.util import bytes_to_int
-from fastecdsa.encoding.sec1 import SEC1Encoder
 from pyblake2 import blake2b
 from mnemonic import Mnemonic
+
+from pytezos.encoding import scrub_input, base58_decode, base58_encode
+from pytezos.tools.docstring import InlineDocstring, get_class_docstring
+
+
+class CryptoExtraFallback:
+
+    def __getattr__(self, item):
+        raise NotImplementedError(
+            "Please, install packages libsodium-dev, libsecp256k1-dev, and libgmp-dev, "
+            "and Python libraries pysodium, secp256k1, and fastecdsa")
+
+    def __call__(self, *args, **kwargs):
+        self.__getattr__('throw')
+
 
 try:
     import pysodium
     import secp256k1
+    import fastecdsa.ecdsa
+    import fastecdsa.keys
+    import fastecdsa.curve
+    import fastecdsa.encoding.sec1
+    from fastecdsa.encoding.util import bytes_to_int
 except ImportError as e:
-    pysodium = object()
-    secp256k1 = object()
-    print("Please, install packages libsodium-dev, libsecp256k1-dev, and libgmp-dev, "
-          "and Python libraries pysodium and secp256k1")
+    pysodium = CryptoExtraFallback()
+    secp256k1 = CryptoExtraFallback()
+    fastecdsa = CryptoExtraFallback()
+    bytes_to_int = CryptoExtraFallback()
+    __crypto__ = False
+else:
+    __crypto__ = True
 
-from pytezos.encoding import scrub_input, base58_decode, base58_encode
-from pytezos.tools.docstring import InlineDocstring, get_class_docstring
+
+def is_installed():
+    return __crypto__
 
 
 def blake2b_32(v=b''):
@@ -92,8 +111,8 @@ class Key(metaclass=InlineDocstring):
             public_point = sk.pubkey.serialize()
         # P256
         elif curve == b'p2':
-            pk = get_public_key(bytes_to_int(secret_exponent), curve=P256)
-            public_point = SEC1Encoder.encode_public_key(pk)
+            pk = fastecdsa.keys.get_public_key(bytes_to_int(secret_exponent), curve=fastecdsa.curve.P256)
+            public_point = fastecdsa.encoding.sec1.SEC1Encoder.encode_public_key(pk)
         else:
             assert False
 
@@ -329,7 +348,7 @@ class Key(metaclass=InlineDocstring):
                 pk.ecdsa_sign(message, digest=blake2b_32))
         # P256
         elif self.curve == b"p2":
-            r, s = sign(msg=message, d=bytes_to_int(self.secret_exponent), hashfunc=blake2b_32)
+            r, s = fastecdsa.ecdsa.sign(msg=message, d=bytes_to_int(self.secret_exponent), hashfunc=blake2b_32)
             signature = r.to_bytes(32, 'big') + s.to_bytes(32, 'big')
         else:
             assert False
@@ -374,9 +393,9 @@ class Key(metaclass=InlineDocstring):
                 raise ValueError('Signature is invalid.')
         # P256
         elif self.curve == b"p2":
-            pk = SEC1Encoder.decode_public_key(self.public_point, curve=P256)
+            pk = fastecdsa.encoding.sec1.SEC1Encoder.decode_public_key(self.public_point, curve=fastecdsa.curve.P256)
             r, s = bytes_to_int(signature[:32]), bytes_to_int(signature[32:])
-            if not verify(sig=(r, s), msg=message, Q=pk, hashfunc=blake2b_32):
+            if not fastecdsa.ecdsa.verify(sig=(r, s), msg=message, Q=pk, hashfunc=blake2b_32):
                 raise ValueError('Signature is invalid.')
         else:
             assert False

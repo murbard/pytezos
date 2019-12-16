@@ -1,4 +1,4 @@
-from os.path import basename, dirname, join, exists, expanduser
+from os.path import exists, expanduser
 from pprint import pformat
 
 from pytezos.operation.result import OperationResult

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pytezos"
-version = "2.2.4"
+version = "2.2.5"
 description = "Python toolkit for Tezos"
 license = "MIT"
 authors = ["Michael Zaikin <mz@baking-bad.org>", "Arthur Breitman", "Roman Serikov"]
@@ -27,12 +27,12 @@ ply = "*"
 simplejson = "*"
 mnemonic = "*"
 fire = "*"
-fastecdsa = "^1.7.1"
+fastecdsa = { version = "^1.7.1", optional = true }
 pysodium = { version = "^0.7.1", optional = true }
 secp256k1 = { version = "^0.13.2", optional = true }
 
 [tool.poetry.extras]
-crypto = [ "pysodium", "secp256k1" ]
+crypto = [ "fastecdsa", "pysodium", "secp256k1" ]
 
 [tool.poetry.dev-dependencies]
 parameterized = "^0.7.0"
