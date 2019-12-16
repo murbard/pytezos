@@ -27,12 +27,12 @@ ply = "*"
 simplejson = "*"
 mnemonic = "*"
 fire = "*"
-fastecdsa = { version = "^1.7.1", optional = true }
 pysodium = { version = "^0.7.1", optional = true }
 secp256k1 = { version = "^0.13.2", optional = true }
+fastecdsa = { version = "^1.7.1", optional = true }
 
 [tool.poetry.extras]
-crypto = [ "fastecdsa", "pysodium", "secp256k1" ]
+crypto = [ "pysodium", "secp256k1", "fastecdsa" ]
 
 [tool.poetry.dev-dependencies]
 parameterized = "^0.7.0"
