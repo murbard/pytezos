@@ -96,7 +96,7 @@ version = "5.0"
 category = "main"
 description = "Fast elliptic curve digital signatures"
 name = "fastecdsa"
-optional = false
+optional = true
 python-versions = "*"
 version = "1.7.5"
 
@@ -393,10 +393,10 @@ version = "0.6.0"
 more-itertools = "*"
 
 [extras]
-crypto = ["pysodium", "secp256k1"]
+crypto = ["pysodium", "secp256k1", "fastecdsa"]
 
 [metadata]
-content-hash = "d8ca6332f1a860d8df32fbb167174788c4d1345f36d6df79ceb019504876499e"
+content-hash = "4ea63499e2511a8605189851ea431e471ba5c74413b4e174f75e3aacdf809e11"
 python-versions = "^3.6"
 
 [metadata.hashes]
