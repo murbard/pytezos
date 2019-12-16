@@ -46,7 +46,7 @@ $ pip install pytezos[crypto]
 In Google Colab notebook:
 ```python
 >>> !apt install libsodium-dev libsecp256k1-dev libgmp-dev
->>> !pip install pytezos
+>>> !pip install pytezos[crypto]
 [RESTART RUNTIME]
 ```
 

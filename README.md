@@ -51,7 +51,7 @@ $ pip install pytezos[crypto]
 
 `````python
 >>> !apt install libsodium-dev libsecp256k1-dev libgmp-dev
->>> !pip install pytezos
+>>> !pip install pytezos[crypto]
 `````
 
 ### Usage
