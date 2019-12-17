@@ -85,8 +85,8 @@ class ContentMixin:
         """
         Activate recommended allocations for contributions to the TF fundraiser.
         More info https://activate.tezos.com/
-        :param pkh: Public key hash, leave empty for autocomplete
         :param activation_code: Secret code from pdf, leave empty for autocomplete
+        :param pkh: Public key hash, leave empty for autocomplete
         :return: dict or OperationGroup
         """
         return self.operation({
