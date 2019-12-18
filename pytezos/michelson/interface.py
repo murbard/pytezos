@@ -202,16 +202,16 @@ class ContractEntrypoint(Interop):
     def __call__(self, *args, **kwargs):
         if args:
             if len(args) == 1:
-                data = args[0]
+                (data, is_single) = (args[0], True)
             else:
-                data = list(args)
+                (data, is_single) = (list(args), False)
         elif kwargs:
-            data = kwargs
+            (data, is_single) = (kwargs, False)
         else:
-            data = []
+            (data, is_single) = ([], False)
 
         if self.name:
-            data = {self.name: data} if data else self.name
+            data = {self.name: data} if data or is_single else self.name
 
         parameters = self.contract.parameter.encode(data)
         return ContractCall(
