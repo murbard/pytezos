@@ -1,0 +1,2 @@
+class Stack:
+    pass
