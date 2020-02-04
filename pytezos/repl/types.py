@@ -1,48 +1,14 @@
-import functools
+import calendar
 from pprint import pformat
-from typing import Tuple, Callable
+from datetime import datetime
+
 import pytezos.encoding as encoding
 
-primitives = {}
-
-
-class Unit(object):
-    pass
-
-
-def primitive(prim, args_len=0):
-    def register_primitive(func):
-        primitives[prim] = (args_len, func)
-
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            return func(*args, **kwargs)
-        return wrapper
-    return register_primitive
-
-
-def is_comparable(type_node, pair_left_child=False):
-    prim, args, _ = parse_type(type_node)
-    comparable = {
-        'string', 'int', 'bytes', 'nat', 'bool'
-        'address', 'key_hash', 'mutez', 'timestamp'
-    }
-    if prim in comparable:
-        return True
-    if prim == 'pair' and not pair_left_child:
-        return all(map(is_comparable, args))
-    return False
-
-
-def assert_comparable(type_node):
-    assert is_comparable(type_node), f'Type is not comparable: {pformat(type_node)}'
-
-
-def has_big_map(type_node):
-    prim, args, _ = parse_type(type_node)
-    if prim == 'big_map':
-        return True
-    return any(map(has_big_map, args))
+COMPARABLE = 1
+PASSABLE = 2
+STORABLE = 4
+PUSHABLE = 8
+PACKABLE = 16
 
 
 def assert_list(node):
@@ -53,214 +19,355 @@ def assert_dict(node):
     assert isinstance(node, dict), f'Expected dict, got {type(node)}: {pformat(node)}'
 
 
-def assert_prim(node, prim):
-    node_prim = node.get('prim')
-    assert node_prim == prim, f'Expected {prim} got {node_prim}: {pformat(node)}'
-
-
 def assert_args_len(node, args_len: int):
     node_args = node.get('args', [])
     node_args_len = len(node_args)
     assert node_args_len == args_len, f'Expected {args_len} arg(s), got {node_args_len}: {pformat(node)}'
 
 
-def parse_type(type_node) -> Tuple[str, list, Callable]:
-    assert_dict(type_node)
-    prim = type_node.get('prim')
-    assert prim in primitives, f'Unknown primitive {prim}: {pformat(type_node)}'
-    args = type_node.get('args', [])
-    args_len, func = primitives[type_node['prim']]
-    assert_args_len(type_node, args_len)
-    return prim, args, func
-
-
-def get_args(node, prim, args_len: int) -> list:
-    assert_dict(node)
-    assert_prim(node, prim)
-    assert_args_len(node, args_len)
-    return node['args']
-
-
-def get_core_type(node) -> str:
-    assert_dict(node)
-    assert len(node.keys()) == 1, f'Expected single key, got {node.keys()}: {pformat(node)}'
-    return next(iter(node))
-
-
-def get_value(node, core_type) -> str:
-    assert_dict(node)
-    node_core_type = get_core_type(node)
-    assert node_core_type == core_type, f'Expected {core_type}, got {node_core_type}: {pformat(node)}'
-    return node[core_type]
-
-
-def parse_micheline(val_node, type_node):
-    _, args, func = parse_type(type_node)
-    return func(val_node, args)
-
-
-@primitive('string')
-def parse_string(val_node, type_args):
-    return get_value(val_node, core_type='string')
-
-
-@primitive('int')
-def parse_int(val_node, type_args):
-    value = get_value(val_node, core_type='int')
-    return int(value)
-
-
-@primitive('bytes')
-def parse_bytes(val_node, type_args):
-    value = get_value(val_node, core_type='bytes')
-    return bytes.fromhex(value)
-
-
-@primitive('nat')
-def parse_nat(val_node, type_args):
-    value = parse_int(val_node, type_args)
-    assert value >= 0, f'Cannot be negative: {value}'
-    return value
-
-
-@primitive('bool')
-def parse_bool(val_node, type_args):
+def check_prim(val_node, prim, args_len: int) -> bool:
     assert_dict(val_node)
-    assert_args_len(val_node, 0)
-    if val_node.get('prim') == 'False':
-        return False
-    else:
-        assert_prim(val_node, 'True')
-        return True
+    return val_node.get('prim') == prim \
+        and len(val_node.get('args', [])) == args_len
 
 
-@primitive('unit')
-def parse_unit(val_node, type_args):
-    _ = get_args(val_node, prim='Unit', args_len=0)
-    return Unit()
+def assert_prim(val_node, prim, args_len: int):
+    assert check_prim(val_node, prim, args_len), f'Expected {prim} ({args_len} args): {pformat(val_node)}'
 
 
-@primitive('list', args_len=1)
-def parse_list(val_node, type_args):
-    assert_list(val_node)
-    return [parse_micheline(item, type_args[0]) for item in val_node]
-
-
-@primitive('pair', args_len=2)
-def parse_pair(val_node, type_args):
-    args = get_args(val_node, prim='Pair', args_len=2)
-    return [parse_micheline(args[i], type_args[i]) for i in [0, 1]]
-
-
-@primitive('option', args_len=1)
-def parse_option(val_node, type_args):
+def check_type(val_node, core_type) -> bool:
     assert_dict(val_node)
-    if val_node.get('prim') == 'None':
-        assert_args_len(val_node, 0)
-        return None
-    else:
-        args = get_args(val_node, prim='Some', args_len=1)
-        return parse_micheline(args[0], type_args[0])
+    assert len(val_node.keys()) == 1, f'Expected single key, got {val_node.keys()}: {pformat(val_node)}'
+    return next(iter(val_node)) == core_type
 
 
-@primitive('or', args_len=2)
-def parse_or(val_node, type_args):
-    assert_dict(val_node)
-    if val_node.get('prim') == 'Left':
-        args = get_args(val_node, prim='Left', args_len=1)
-        idx = 0
-    else:
-        args = get_args(val_node, prim='Right', args_len=1)
-        idx = 1
-    return parse_micheline(args[0], type_args[idx])
+def assert_type(val_node, core_type):
+    assert check_type(val_node, core_type), f'Expected {core_type}: {pformat(val_node)}'
 
 
-@primitive('set', args_len=1)
-def parse_set(val_node, type_args):
-    assert_list(val_node)
-    assert_comparable(type_args[0])
-    assert len(set(val_node)) == len(val_node), f'Found duplicate elements: {pformat(val_node)}'
-    return {parse_micheline(item, type_args[0]) for item in val_node}
+class StackItem:
+    flags = 0
+    __cls__ = {}
+    __prim__ = {}
+
+    def __init__(self, type_node, val_node):
+        self.type_node = type_node
+        self.val_node = val_node
+        self.value = object()
+
+    @classmethod
+    def __init_subclass__(cls, prim='', args_len=0, **kwargs):
+        super().__init_subclass__(**kwargs)
+        cls.__cls__[prim] = cls, args_len
+        cls.__prim__[type(cls)] = prim
+
+    def __cmp__(self, other):
+        assert self.is_comparable(), f'Not a comparable type: {type(self)}'
+        assert type(self) == type(other), f'Different types: {type(self)} vs {type(other)}'
+        if self.value < other.value:
+            res = -1
+        elif self.value > other.value:
+            res = 1
+        else:
+            res = 0
+        return Int.new(res)
+
+    def __abs__(self):
+        assert False, 'Not allowed'
+
+    def __add__(self, other):
+        assert False, 'Not allowed'
+
+    @classmethod
+    def parse_type(cls, type_node):
+        assert_dict(type_node)
+        prim = type_node.get('prim')
+        assert prim in StackItem.__cls__, f'Unknown primitive {prim}: {pformat(type_node)}'
+        item_class, args_len = StackItem.__cls__[type_node['prim']]
+        assert_args_len(type_node, args_len)
+        return item_class
+
+    @classmethod
+    def parse(cls, type_node, val_node):
+        item_class = cls.parse_type(type_node)
+        return item_class(type_node=type_node, val_node=val_node)
+
+    @classmethod
+    def new(cls, value):
+        prim = cls.__prim__[type(cls)]
+        if isinstance(value, str):
+            core_type = 'string'
+        elif isinstance(value, int):
+            core_type = 'int'
+            value = str(value)
+        elif isinstance(value, bytes):
+            core_type = 'bytes'
+            value = value.hex()
+        else:
+            assert False, f'Unexpected core type: {type(value)}'
+        return cls(type_node={'prim': prim}, val_node={core_type: value})
+
+    def is_comparable(self) -> bool:
+        return self.flags & COMPARABLE != 0
+
+    def contains_big_map(self) -> bool:
+        child_cls = [StackItem.parse_type(arg) for arg in self.type_node['args']]
+        return any(map(lambda x: type(x) == BigMap or x.contains_big_map(), child_cls))
 
 
-def parse_elt(val_node, type_args) -> tuple:
-    k_node, v_node = get_args(val_node, prim='Elt', args_len=2)
-    return parse_micheline(k_node, type_args[0]), parse_micheline(v_node, type_args[1])
+class String(StackItem, prim='string'):
+    flags = COMPARABLE | PASSABLE | STORABLE | PUSHABLE | PACKABLE
+
+    def __init__(self, type_node, val_node):
+        super(String, self).__init__(type_node, val_node)
+        assert_type(val_node, core_type='string')
+        self.value = val_node['string']
 
 
-@primitive('map', args_len=2)
-def parse_map(val_node, type_args):
-    assert_list(val_node)
-    assert_comparable(type_args[0])
-    return dict([parse_elt(item, type_args) for item in val_node])
+class Int(StackItem, prim='int'):
+    flags = COMPARABLE | PASSABLE | STORABLE | PUSHABLE | PACKABLE
+
+    def __init__(self, type_node, val_node):
+        super(Int, self).__init__(type_node, val_node)
+        assert_type(val_node, core_type='int')
+        self.value = int(val_node['int'])
+
+    def __abs__(self):
+        return Nat.new(abs(self.value))
+
+    def __add__(self, other):
+        if type(other) in [Int, Nat]:
+            return Int.new(self.value + other.value)
+        elif type(other) == Timestamp:
+            return Timestamp.new(self.value + other.value)
+        else:
+            assert False, f'Unexpected operand type: {type(other)}'
+
+    def __divmod__(self, other):
+        if type(other) in [Int, Nat]:
+            if other.value == 0:
+                return Option.none(Pair.make(Int.new(0), Int.new(0)))
+            else:
+                q, r = divmod(self.value, other.value)
+                if r < 0:
+                    r += abs(other.value)
+                    q += 1
+                return Option.some(Pair.make(Int.new(q), Int.new(r)))
 
 
-@primitive('big_map', args_len=2)
-def parse_big_map(val_node, type_args):
-    assert not has_big_map(type_args[1]), f'Big map cannot contain big map: {pformat(type_args[1])}'
-    return parse_map(val_node, type_args)
+class Bytes(StackItem, prim='bytes'):
+    flags = COMPARABLE | PASSABLE | STORABLE | PUSHABLE | PACKABLE
+
+    def __init__(self, type_node, val_node):
+        super(Bytes, self).__init__(type_node, val_node)
+        assert_type(val_node, core_type='bytes')
+        self.value = bytes.fromhex(val_node['bytes'])
 
 
-@primitive('timestamp')
-def parse_timestamp(val_node, type_args):
-    core_type = get_core_type(val_node)
-    if core_type == 'int':
-        pass  # TODO
-    else:
-        return get_value(val_node, 'string')
+class Nat(Int, prim='nat'):
+
+    def __init__(self, type_node, val_node):
+        super(Nat, self).__init__(type_node, val_node)
+        assert self.value >= 0, f'Cannot be negative: {self.value}'
+
+    def __abs__(self):
+        assert False, 'Not allowed'
+
+    def __add__(self, other):
+        if type(other) == Int:
+            return Int.new(self.value + other.value)
+        elif type(other) == Nat:
+            return Nat.new(self.value + other.value)
+        else:
+            assert False, f'Unexpected operand type: {type(other)}'
 
 
-@primitive('mutez')
-def parse_mutez(val_node, type_args):
-    return parse_nat(val_node, type_args)
+class Bool(StackItem, prim='bool'):
+
+    def __init__(self, type_node, val_node):
+        super(Bool, self).__init__(type_node, val_node)
+        if check_prim(val_node, prim='False', args_len=0):
+            self.value = False
+        elif check_prim(val_node, prim='True', args_len=0):
+            self.value = True
+        else:
+            assert False, f'Expected {pformat(type_node)}: {pformat(val_node)}'
 
 
-@primitive('address')
-def parse_address(val_node, type_args):
-    core_type = get_core_type(val_node)
-    if core_type == 'bytes':
-        data = bytes.fromhex(val_node['bytes'])
-        return encoding.parse_address(data)
-    else:
-        return get_value(val_node, 'string')
+class Unit(StackItem, prim='unit'):
+
+    def __init__(self, type_node, val_node):
+        super(Unit, self).__init__(type_node, val_node)
+        assert_prim(val_node, prim='Unit', args_len=0)
 
 
-@primitive('contract', args_len=1)
-def parse_contract(val_node, type_args):  # TODO: entrypoint
-    return parse_address(val_node, type_args)
+class List(StackItem, prim='list', args_len=1):
+
+    def __init__(self, type_node, val_node):
+        super(List, self).__init__(type_node, val_node)
+        assert_list(val_node)
+        elt_cls = StackItem.parse_type(type_node['args'][0])
+        self.value = [elt_cls(type_node['args'][0], item) for item in val_node]
 
 
-@primitive('operation')
-def parse_operation(val_node, type_args):
-    assert False, 'You should not be here'
+class Pair(StackItem, prim='pair', args_len=1):
+
+    def __init__(self, type_node, val_node):
+        super(Pair, self).__init__(type_node, val_node)
+        assert_prim(val_node, prim='Pair', args_len=2)
+        self.value = tuple(StackItem.parse(type_node['args'][i], val_node['args'][i]) for i in [0, 1])
+
+    def is_comparable(self):
+        left_cls, right_cls = [StackItem.parse_type(arg) for arg in self.type_node['args']]
+        return type(left_cls) != Pair and right_cls.is_comparable()
+
+    @classmethod
+    def make(cls, left: StackItem, right: StackItem):
+        return Pair(type_node={'prim': 'pair', 'args': [left.type_node, right.type_node]},
+                    val_node={'prim': 'Pair', 'args': [left.val_node, right.val_node]})
 
 
-@primitive('key')
-def parse_key(val_node, type_args):
-    core_type = get_core_type(val_node)
-    if core_type == 'bytes':
-        data = bytes.fromhex(val_node['bytes'])
-        return encoding.parse_public_key(data)
-    else:
-        return get_value(val_node, 'string')
+class Option(StackItem, prim='pair', args_len=1):
+
+    def __init__(self, type_node, val_node):
+        super(Option, self).__init__(type_node, val_node)
+        if check_prim(val_node, prim='None', args_len=0):
+            self.value = None
+        elif check_prim(val_node, prim='Some', args_len=1):
+            self.value = StackItem.parse(type_node['args'][0], val_node['args'][0])
+        else:
+            assert False, f'Expected {pformat(type_node)}: {pformat(val_node)}'
+
+    @classmethod
+    def none(cls, item: StackItem):
+        return Option(type_node={'prim': 'option', 'args': [item.type_node]},
+                      val_node={'prim': 'None'})
+
+    @classmethod
+    def some(cls, item: StackItem):
+        return Option(type_node={'prim': 'option', 'args': [item.type_node]},
+                      val_node={'prim': 'Some', 'args': [item.val_node]})
 
 
-@primitive('key_hash')
-def parse_key_hash(val_node, type_args):
-    return parse_address(val_node, type_args)
+class Or(StackItem, prim='or', args_len=2):
+
+    def __init__(self, type_node, val_node):
+        super(Or, self).__init__(type_node, val_node)
+        if check_prim(val_node, prim='Left', args_len=1):
+            idx = 0
+        elif check_prim(val_node, prim='Right', args_len=1):
+            idx = 1
+        else:
+            assert False, f'Expected {pformat(type_node)}: {pformat(val_node)}'
+
+        self.value = StackItem.parse(type_node['args'][idx], val_node['args'][0])
 
 
-@primitive('signature')
-def parse_signature(val_node, type_args):
-    return get_value(val_node, 'string')
+class Set(StackItem, prim='set', args_len=1):
+
+    def __init__(self, type_node, val_node):
+        super(Set, self).__init__(type_node, val_node)
+        assert_list(val_node)
+        elt_cls = StackItem.parse_type(type_node['args'][0])
+        assert elt_cls.is_comparable(), f'Expected comparable item type: {pformat(type_node)}'
+
+        self.value = {elt_cls(type_node['args'][0], item) for item in val_node}
+        assert len(self.value) == len(val_node), f'Duplicate elements found: {pformat(val_node)}'
 
 
-@primitive('chain_id')
-def parse_chain_id(val_node, type_args):
-    return get_value(val_node, 'string')
+class Map(StackItem, prim='map', args_len=1):
+
+    def __init__(self, type_node, val_node):
+        super(Map, self).__init__(type_node, val_node)
+        assert_list(val_node)
+        key_cls, val_cls = [StackItem.parse_type(arg) for arg in type_node['args']]
+        assert key_cls.is_comparable(), f'Expected comparable key type: {pformat(type_node)}'
+
+        def parse_elt(elt):
+            assert_prim(elt, prim='Elt', args_len=2)
+            return key_cls(type_node['args'][0], elt['args'][0]), \
+                   val_cls(type_node['args'][1], elt['args'][1])
+
+        self.value = dict(map(parse_elt, val_node))
+        assert len(self.value) == len(val_node), f'Duplicate keys found: {pformat(val_node)}'
 
 
-@primitive('lambda', args_len=2)
-def parse_lambda(val_node, type_args):
-    args = get_args(val_node, 'Lambda', args_len=1)
-    return args[0]
+class BigMap(Map, prim='big_map', args_len=1):
+
+    def __init__(self, type_node, val_node):
+        super(BigMap, self).__init__(type_node, val_node)
+        assert not self.contains_big_map(), f'Big map cannot contain big maps: {pformat(type_node)}'
+
+
+class Timestamp(StackItem, prim='timestamp'):
+
+    def __init__(self, type_node, val_node):
+        super(Timestamp, self).__init__(type_node, val_node)
+        if check_type(val_node, 'int'):
+            self.value = int(val_node['int'])
+        elif check_type(val_node, 'string'):
+            dt = datetime.strptime(val_node['string'], '%Y-%m-%dT%H:%M:%SZ')
+            self.value = calendar.timegm(dt.utctimetuple())
+        else:
+            assert False, f'Expected {pformat(type_node)}: {pformat(val_node)}'
+
+    def __add__(self, other):
+        assert type(other) == Int, f'Unexpected operand type: {type(other)}'
+        return Timestamp.new(self.value + other.value)
+
+
+class Mutez(Nat, prim='mutez'):
+
+    def __add__(self, other):
+        assert type(other) == Mutez, f'Unexpected operand type: {type(other)}'
+        return Mutez.new(self.value + other.value)
+
+
+class Address(StackItem, prim='address'):
+
+    def __init__(self, type_node, val_node):
+        super(Address, self).__init__(type_node, val_node)
+        if check_type(val_node, core_type='string'):
+            self.value = val_node['string']
+        elif check_type(val_node, core_type='bytes'):
+            data = bytes.fromhex(val_node['bytes'])
+            self.value = encoding.parse_address(data)
+        else:
+            assert False, f'Expected {pformat(type_node)}: {pformat(val_node)}'
+
+
+class Contract(Address, prim='contract'):
+    pass
+
+
+class Operation(StackItem, prim='operation'):
+    pass
+
+
+class Key(StackItem, prim='key'):
+
+    def __init__(self, type_node, val_node):
+        super(Key, self).__init__(type_node, val_node)
+        if check_type(val_node, core_type='string'):
+            self.value = val_node['string']
+        elif check_type(val_node, core_type='bytes'):
+            data = bytes.fromhex(val_node['bytes'])
+            self.value = encoding.parse_public_key(data)
+        else:
+            assert False, f'Expected {pformat(type_node)}: {pformat(val_node)}'
+
+
+class KeyHash(Address, prim='key_hash'):
+    pass
+
+
+class Signature(StackItem, prim='signature'):
+    pass
+
+
+class ChainID(StackItem, prim='chain_id'):
+    pass
+
+
+class Lambda(StackItem, prim='lambda'):
+    pass
