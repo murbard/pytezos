@@ -86,29 +86,36 @@ def do_left(stack: Stack, prim, args):
     stack.ins(res)
 
 
-@primitive('MAP', args_len=1)
+@primitive('(MAP|ITER)', args_len=1)
 def do_map(stack: Stack, prim, args):
     coll = stack.pop()
+    save = prim == 'MAP'
+
     if type(coll) == List:
         res = list()
         for item in coll.value:
             stack.ins(item)
             # TODO: execute args[0]
-            val = stack.pop()
-            coll.assert_val_type(val)
-            res.append(val)
+            if save:
+                val = stack.pop()
+                coll.assert_val_type(val)
+                res.append(val)
+
     elif type(coll) == Map:
         res = dict()
         for key, value in coll.value.items():
             stack.ins(Pair(key, value))
             # TODO: execute args[0]
-            val = stack.pop()
-            coll.assert_val_type(val)
-            res[key] = res
+            if save:
+                val = stack.pop()
+                coll.assert_val_type(val)
+                res[key] = res
     else:
         assert False, f'Unexpected type: {type(coll)}'
-    coll.value = res
-    stack.ins(coll)
+
+    if save:
+        coll.value = res
+        stack.ins(coll)
 
 
 @primitive('MEM')
