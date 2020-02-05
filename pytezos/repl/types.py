@@ -11,12 +11,8 @@ PUSHABLE = 8
 PACKABLE = 16
 
 
-def assert_list(node):
-    assert isinstance(node, list), f'Expected list, got {type(node)}: {pformat(node)}'
-
-
-def assert_dict(node):
-    assert isinstance(node, dict), f'Expected dict, got {type(node)}: {pformat(node)}'
+def assert_type(value, py_type):
+    assert type(value) == py_type, f'Expected {py_type}, got {type(value)}'
 
 
 def assert_args_len(node, args_len: int):
@@ -25,315 +21,353 @@ def assert_args_len(node, args_len: int):
     assert node_args_len == args_len, f'Expected {args_len} arg(s), got {node_args_len}: {pformat(node)}'
 
 
-def check_prim(val_node, prim, args_len: int) -> bool:
-    assert_dict(val_node)
-    return val_node.get('prim') == prim \
-        and len(val_node.get('args', [])) == args_len
+def check_prim(val_expr, prim, args_len: int) -> bool:
+    assert_type(val_expr, dict)
+    return val_expr.get('prim') == prim \
+        and len(val_expr.get('args', [])) == args_len
 
 
-def assert_prim(val_node, prim, args_len: int):
-    assert check_prim(val_node, prim, args_len), f'Expected {prim} ({args_len} args): {pformat(val_node)}'
+def assert_prim(val_expr, prim, args_len: int):
+    assert check_prim(val_expr, prim, args_len), f'Expected {prim} ({args_len} args): {pformat(val_expr)}'
 
 
-def check_type(val_node, core_type) -> bool:
-    assert_dict(val_node)
-    assert len(val_node.keys()) == 1, f'Expected single key, got {val_node.keys()}: {pformat(val_node)}'
-    return next(iter(val_node)) == core_type
+def check_core(val_expr, core_type) -> bool:
+    assert_type(val_expr, dict)
+    assert len(val_expr.keys()) == 1, f'Expected single key, got {val_expr.keys()}: {pformat(val_expr)}'
+    return next(iter(val_expr)) == core_type
 
 
-def assert_type(val_node, core_type):
-    assert check_type(val_node, core_type), f'Expected {core_type}: {pformat(val_node)}'
+def assert_core(val_expr, core_type):
+    assert check_core(val_expr, core_type), f'Expected {core_type}: {pformat(val_expr)}'
+
+
+def assert_item(item: 'StackItem', item_type):
+    assert type(item) == item_type, f'Expected {item_type}, got {type(item)}'
 
 
 class StackItem:
+    prim = ''
     flags = 0
     __cls__ = {}
-    __prim__ = {}
 
-    def __init__(self, type_node, val_node):
-        self.type_node = type_node
-        self.val_node = val_node
-        self.value = object()
+    def __init__(self, type_expr, val_expr, value):
+        self.type_expr = type_expr
+        self.val_expr = val_expr
+        self.value = value
+
+    @staticmethod
+    def dispatch(type_expr):
+        assert_type(type_expr, dict)
+        prim = type_expr.get('prim')
+        assert prim in StackItem.__cls__, f'Unknown primitive {prim}: {pformat(type_expr)}'
+        item_class, args_len = StackItem.__cls__[type_expr['prim']]
+        assert_args_len(type_expr, args_len)
+        return item_class
+
+    @classmethod
+    def from_expr(cls, type_expr, val_expr):
+        item_class = StackItem.dispatch(type_expr)
+        return item_class.from_expr(type_expr, val_expr)
+
+    @classmethod
+    def from_val(cls, value):
+        raise NotImplementedError
 
     @classmethod
     def __init_subclass__(cls, prim='', args_len=0, **kwargs):
         super().__init_subclass__(**kwargs)
         cls.__cls__[prim] = cls, args_len
-        cls.__prim__[type(cls)] = prim
-
-    def __cmp__(self, other):
-        assert self.is_comparable(), f'Not a comparable type: {type(self)}'
-        assert type(self) == type(other), f'Different types: {type(self)} vs {type(other)}'
-        if self.value < other.value:
-            res = -1
-        elif self.value > other.value:
-            res = 1
-        else:
-            res = 0
-        return Int.new(res)
-
-    def __abs__(self):
-        assert False, 'Not allowed'
-
-    def __add__(self, other):
-        assert False, 'Not allowed'
-
-    @classmethod
-    def parse_type(cls, type_node):
-        assert_dict(type_node)
-        prim = type_node.get('prim')
-        assert prim in StackItem.__cls__, f'Unknown primitive {prim}: {pformat(type_node)}'
-        item_class, args_len = StackItem.__cls__[type_node['prim']]
-        assert_args_len(type_node, args_len)
-        return item_class
-
-    @classmethod
-    def parse(cls, type_node, val_node):
-        item_class = cls.parse_type(type_node)
-        return item_class(type_node=type_node, val_node=val_node)
-
-    @classmethod
-    def new(cls, value):
-        prim = cls.__prim__[type(cls)]
-        if isinstance(value, str):
-            core_type = 'string'
-        elif isinstance(value, int):
-            core_type = 'int'
-            value = str(value)
-        elif isinstance(value, bytes):
-            core_type = 'bytes'
-            value = value.hex()
-        else:
-            assert False, f'Unexpected core type: {type(value)}'
-        return cls(type_node={'prim': prim}, val_node={core_type: value})
+        cls.prim = prim
 
     def is_comparable(self) -> bool:
         return self.flags & COMPARABLE != 0
 
-    def contains_big_map(self) -> bool:
-        child_cls = [StackItem.parse_type(arg) for arg in self.type_node['args']]
-        return any(map(lambda x: type(x) == BigMap or x.contains_big_map(), child_cls))
+    def is_pushable(self) -> bool:
+        return self.flags & PUSHABLE != 0
+
+    def has_big_map(self) -> bool:
+        return any(map(
+            lambda x: x == BigMap or x.has_big_map(),
+            map(StackItem.dispatch, self.type_expr['args'])))
 
 
 class String(StackItem, prim='string'):
     flags = COMPARABLE | PASSABLE | STORABLE | PUSHABLE | PACKABLE
 
-    def __init__(self, type_node, val_node):
-        super(String, self).__init__(type_node, val_node)
-        assert_type(val_node, core_type='string')
-        self.value = val_node['string']
+    @classmethod
+    def from_expr(cls, type_expr, val_expr):
+        assert_core(val_expr, 'string')
+        return cls(type_expr, val_expr, val_expr['string'])
+
+    @classmethod
+    def from_val(cls, value):
+        assert_type(value, str)
+        return cls({'prim': cls.prim}, {'string': value}, value)
 
 
 class Int(StackItem, prim='int'):
     flags = COMPARABLE | PASSABLE | STORABLE | PUSHABLE | PACKABLE
 
-    def __init__(self, type_node, val_node):
-        super(Int, self).__init__(type_node, val_node)
-        assert_type(val_node, core_type='int')
-        self.value = int(val_node['int'])
+    @classmethod
+    def from_expr(cls, type_expr, val_expr):
+        assert_core(val_expr, 'int')
+        return cls(type_expr, val_expr, int(val_expr['int']))
 
-    def __abs__(self):
-        return Nat.new(abs(self.value))
-
-    def __add__(self, other):
-        if type(other) in [Int, Nat]:
-            return Int.new(self.value + other.value)
-        elif type(other) == Timestamp:
-            return Timestamp.new(self.value + other.value)
-        else:
-            assert False, f'Unexpected operand type: {type(other)}'
-
-    def __divmod__(self, other):
-        if type(other) in [Int, Nat]:
-            if other.value == 0:
-                return Option.none(Pair.make(Int.new(0), Int.new(0)))
-            else:
-                q, r = divmod(self.value, other.value)
-                if r < 0:
-                    r += abs(other.value)
-                    q += 1
-                return Option.some(Pair.make(Int.new(q), Int.new(r)))
+    @classmethod
+    def from_val(cls, value):
+        assert_type(value, int)
+        return cls({'prim': cls.prim}, {'int': str(value)}, value)
 
 
 class Bytes(StackItem, prim='bytes'):
     flags = COMPARABLE | PASSABLE | STORABLE | PUSHABLE | PACKABLE
 
-    def __init__(self, type_node, val_node):
-        super(Bytes, self).__init__(type_node, val_node)
-        assert_type(val_node, core_type='bytes')
-        self.value = bytes.fromhex(val_node['bytes'])
+    @classmethod
+    def from_expr(cls, type_expr, val_expr):
+        assert_core(val_expr, 'bytes')
+        return cls(type_expr, val_expr, bytes.fromhex(val_expr['bytes']))
+
+    @classmethod
+    def from_val(cls, value):
+        assert_type(value, bytes)
+        return cls({'prim': cls.prim}, {'bytes': value.hex()}, value)
 
 
 class Nat(Int, prim='nat'):
-
-    def __init__(self, type_node, val_node):
-        super(Nat, self).__init__(type_node, val_node)
-        assert self.value >= 0, f'Cannot be negative: {self.value}'
-
-    def __abs__(self):
-        assert False, 'Not allowed'
-
-    def __add__(self, other):
-        if type(other) == Int:
-            return Int.new(self.value + other.value)
-        elif type(other) == Nat:
-            return Nat.new(self.value + other.value)
-        else:
-            assert False, f'Unexpected operand type: {type(other)}'
+    pass
 
 
 class Bool(StackItem, prim='bool'):
 
-    def __init__(self, type_node, val_node):
-        super(Bool, self).__init__(type_node, val_node)
-        if check_prim(val_node, prim='False', args_len=0):
-            self.value = False
-        elif check_prim(val_node, prim='True', args_len=0):
-            self.value = True
+    @classmethod
+    def from_expr(cls, type_expr, val_expr):
+        if check_prim(val_expr, prim='False', args_len=0):
+            value = False
+        elif check_prim(val_expr, prim='True', args_len=0):
+            value = True
         else:
-            assert False, f'Expected {pformat(type_node)}: {pformat(val_node)}'
+            assert False, f'Expected {pformat(type_expr)}: {pformat(val_expr)}'
+        return cls(type_expr, val_expr, value)
+
+    @classmethod
+    def from_val(cls, value):
+        assert_type(value, bool)
+        return cls({'prim': cls.prim}, {'prim': str(value)}, value)
 
 
 class Unit(StackItem, prim='unit'):
 
-    def __init__(self, type_node, val_node):
-        super(Unit, self).__init__(type_node, val_node)
-        assert_prim(val_node, prim='Unit', args_len=0)
+    @classmethod
+    def from_expr(cls, type_expr, val_expr):
+        assert_prim(val_expr, prim='Unit', args_len=0)
+        return cls(type_expr, val_expr, None)
+
+    @classmethod
+    def from_val(cls, value):
+        return cls({'prim': cls.prim}, {'prim': 'Unit'}, None)
 
 
 class List(StackItem, prim='list', args_len=1):
 
-    def __init__(self, type_node, val_node):
-        super(List, self).__init__(type_node, val_node)
-        assert_list(val_node)
-        elt_cls = StackItem.parse_type(type_node['args'][0])
-        self.value = [elt_cls(type_node['args'][0], item) for item in val_node]
+    @classmethod
+    def from_expr(cls, type_expr, val_expr):
+        assert_type(val_expr, list)
+        elt_cls = StackItem.dispatch(type_expr['args'][0])
+        value = [elt_cls.from_expr(type_expr['args'][0], item) for item in val_expr]
+        return cls(type_expr, val_expr, value)
+
+    @classmethod
+    def from_val(cls, value):
+        assert_type(value, list)
+        assert len(value) > 0, f'Cannot instantiate from an empty list (no type info)'
+        type_expr = value[0].type_expr
+        assert all(map(lambda x: x.type_expr == type_expr, value)), f'List must be homogeneous'
+        return cls(type_expr={'prim': cls.prim, 'args': [type_expr]},
+                   val_expr=list(map(lambda x: x.val_expr, value)),
+                   value=value)
+
+    @classmethod
+    def empty(cls, default: StackItem):
+        return cls(type_expr={'prim': cls.prim, 'args': [default.type_expr]}, val_expr=[], value=[])
 
 
 class Pair(StackItem, prim='pair', args_len=1):
 
-    def __init__(self, type_node, val_node):
-        super(Pair, self).__init__(type_node, val_node)
-        assert_prim(val_node, prim='Pair', args_len=2)
-        self.value = tuple(StackItem.parse(type_node['args'][i], val_node['args'][i]) for i in [0, 1])
+    @classmethod
+    def from_expr(cls, type_expr, val_expr):
+        assert_prim(val_expr, prim='Pair', args_len=2)
+        value = tuple(StackItem.from_expr(type_expr['args'][i], val_expr['args'][i]) for i in [0, 1])
+        return cls(type_expr, val_expr, value)
+
+    @classmethod
+    def from_val(cls, value):
+        assert_type(value, tuple)
+        left, right = value
+        return cls(type_expr={'prim': cls.prim, 'args': [left.type_expr, right.type_expr]},
+                   val_expr={'prim': 'Pair', 'args': [left.val_expr, right.val_expr]},
+                   value=value)
 
     def is_comparable(self):
-        left_cls, right_cls = [StackItem.parse_type(arg) for arg in self.type_node['args']]
+        left_cls, right_cls = list(map(StackItem.dispatch, self.type_expr['args']))
         return type(left_cls) != Pair and right_cls.is_comparable()
 
+
+class Option(StackItem, prim='option', args_len=1):
+
     @classmethod
-    def make(cls, left: StackItem, right: StackItem):
-        return Pair(type_node={'prim': 'pair', 'args': [left.type_node, right.type_node]},
-                    val_node={'prim': 'Pair', 'args': [left.val_node, right.val_node]})
-
-
-class Option(StackItem, prim='pair', args_len=1):
-
-    def __init__(self, type_node, val_node):
-        super(Option, self).__init__(type_node, val_node)
-        if check_prim(val_node, prim='None', args_len=0):
-            self.value = None
-        elif check_prim(val_node, prim='Some', args_len=1):
-            self.value = StackItem.parse(type_node['args'][0], val_node['args'][0])
+    def from_expr(cls, type_expr, val_expr):
+        if check_prim(val_expr, prim='None', args_len=0):
+            value = None
+        elif check_prim(val_expr, prim='Some', args_len=1):
+            value = StackItem.from_expr(type_expr['args'][0], val_expr['args'][0])
         else:
-            assert False, f'Expected {pformat(type_node)}: {pformat(val_node)}'
+            assert False, f'Expected {pformat(type_expr)}: {pformat(val_expr)}'
+        return cls(type_expr, val_expr, value)
 
     @classmethod
-    def none(cls, item: StackItem):
-        return Option(type_node={'prim': 'option', 'args': [item.type_node]},
-                      val_node={'prim': 'None'})
+    def from_val(cls, value):
+        assert isinstance(value, StackItem), f'Expected stack item, got {type(value)}'
+        return cls(type_expr={'prim': cls.prim, 'args': [value.type_expr]},
+                   val_expr={'prim': 'Some', 'args': [value.val_expr]},
+                   value=value)
 
     @classmethod
-    def some(cls, item: StackItem):
-        return Option(type_node={'prim': 'option', 'args': [item.type_node]},
-                      val_node={'prim': 'Some', 'args': [item.val_node]})
+    def none(cls, default: StackItem):
+        return cls(type_expr={'prim': cls.prim, 'args': [default.type_expr]},
+                   val_expr={'prim': 'None'},
+                   value=None)
 
 
 class Or(StackItem, prim='or', args_len=2):
 
-    def __init__(self, type_node, val_node):
-        super(Or, self).__init__(type_node, val_node)
-        if check_prim(val_node, prim='Left', args_len=1):
+    @classmethod
+    def from_expr(cls, type_expr, val_expr):
+        if check_prim(val_expr, prim='Left', args_len=1):
             idx = 0
-        elif check_prim(val_node, prim='Right', args_len=1):
+        elif check_prim(val_expr, prim='Right', args_len=1):
             idx = 1
         else:
-            assert False, f'Expected {pformat(type_node)}: {pformat(val_node)}'
-
-        self.value = StackItem.parse(type_node['args'][idx], val_node['args'][0])
+            assert False, f'Expected {pformat(type_expr)}: {pformat(val_expr)}'
+        value = StackItem.from_expr(type_expr['args'][idx], val_expr['args'][0])
+        return cls(type_expr, val_expr, value)
 
 
 class Set(StackItem, prim='set', args_len=1):
 
-    def __init__(self, type_node, val_node):
-        super(Set, self).__init__(type_node, val_node)
-        assert_list(val_node)
-        elt_cls = StackItem.parse_type(type_node['args'][0])
-        assert elt_cls.is_comparable(), f'Expected comparable item type: {pformat(type_node)}'
+    @classmethod
+    def from_expr(cls, type_expr, val_expr):
+        assert_type(val_expr, list)
+        elt_cls = StackItem.dispatch(type_expr['args'][0])
+        assert elt_cls.is_comparable(), f'Expected comparable item type: {pformat(type_expr)}'
+        value = {elt_cls.from_expr(type_expr['args'][0], item) for item in val_expr}
+        assert len(value) == len(val_expr), f'Duplicate elements found: {pformat(val_expr)}'
+        return cls(type_expr, val_expr, value)
 
-        self.value = {elt_cls(type_node['args'][0], item) for item in val_node}
-        assert len(self.value) == len(val_node), f'Duplicate elements found: {pformat(val_node)}'
+    @classmethod
+    def from_val(cls, value):
+        assert_type(value, set)
+        assert len(value) > 0, f'Cannot instantiate from an empty set (no type info)'
+        type_expr = value[0].type_expr
+        assert all(map(lambda x: x.type_expr == type_expr, value)), f'Set must be homogeneous'
+        return cls(type_expr={'prim': cls.prim, 'args': [type_expr]},
+                   val_expr=list(map(lambda x: x.val_expr, value)),
+                   value=value)
+
+    @classmethod
+    def empty(cls, default: StackItem):
+        return cls(type_expr={'prim': cls.prim, 'args': [default.type_expr]}, val_expr=[], value={})
 
 
 class Map(StackItem, prim='map', args_len=1):
 
-    def __init__(self, type_node, val_node):
-        super(Map, self).__init__(type_node, val_node)
-        assert_list(val_node)
-        key_cls, val_cls = [StackItem.parse_type(arg) for arg in type_node['args']]
-        assert key_cls.is_comparable(), f'Expected comparable key type: {pformat(type_node)}'
+    @classmethod
+    def from_expr(cls, type_expr, val_expr):
+        assert_type(val_expr, list)
+        k_cls, v_cls = list(map(StackItem.dispatch, type_expr['args']))
+        assert k_cls.is_comparable(), f'Expected comparable key type: {pformat(type_expr)}'
 
         def parse_elt(elt):
             assert_prim(elt, prim='Elt', args_len=2)
-            return key_cls(type_node['args'][0], elt['args'][0]), \
-                   val_cls(type_node['args'][1], elt['args'][1])
+            return k_cls(type_expr['args'][0], elt['args'][0]), \
+                   v_cls(type_expr['args'][1], elt['args'][1])
 
-        self.value = dict(map(parse_elt, val_node))
-        assert len(self.value) == len(val_node), f'Duplicate keys found: {pformat(val_node)}'
+        value = dict(map(parse_elt, val_expr))
+        assert len(value) == len(val_expr), f'Duplicate keys found: {pformat(val_expr)}'
+        return cls(type_expr, val_expr, value)
+
+    @classmethod
+    def from_val(cls, value):
+        assert_type(value, dict)
+        assert len(value) > 0, f'Cannot instantiate from an empty dict (no type info)'
+
+        items = list(value.items())  # TODO: sort keys
+        k_type_expr, v_type_expr = list(map(lambda x: x.type_expr, items[0]))
+        assert all(k.type_expr == k_type_expr and v.type_expr == v_type_expr for k, v in items), \
+            f'Map must be homogeneous'
+
+        def make_elt(item):
+            return {'prim': 'Elt', 'args': list(map(lambda x: x.val_expr, item))}
+
+        return cls(type_expr={'prim': cls.prim, 'args': [k_type_expr, v_type_expr]},
+                   val_expr=list(map(make_elt, items)),
+                   value=value)
 
 
 class BigMap(Map, prim='big_map', args_len=1):
-
-    def __init__(self, type_node, val_node):
-        super(BigMap, self).__init__(type_node, val_node)
-        assert not self.contains_big_map(), f'Big map cannot contain big maps: {pformat(type_node)}'
+    pass
 
 
 class Timestamp(StackItem, prim='timestamp'):
 
-    def __init__(self, type_node, val_node):
-        super(Timestamp, self).__init__(type_node, val_node)
-        if check_type(val_node, 'int'):
-            self.value = int(val_node['int'])
-        elif check_type(val_node, 'string'):
-            dt = datetime.strptime(val_node['string'], '%Y-%m-%dT%H:%M:%SZ')
-            self.value = calendar.timegm(dt.utctimetuple())
-        else:
-            assert False, f'Expected {pformat(type_node)}: {pformat(val_node)}'
+    @staticmethod
+    def parse_utc(value) -> int:
+        dt = datetime.strptime(value, '%Y-%m-%dT%H:%M:%SZ')
+        return calendar.timegm(dt.utctimetuple())
 
-    def __add__(self, other):
-        assert type(other) == Int, f'Unexpected operand type: {type(other)}'
-        return Timestamp.new(self.value + other.value)
+    @classmethod
+    def from_expr(cls, type_expr, val_expr):
+        if check_core(val_expr, 'int'):
+            value = int(val_expr['int'])
+        elif check_core(val_expr, 'string'):
+            value = Timestamp.parse_utc(val_expr['string'])
+        else:
+            assert False, f'Expected {pformat(type_expr)}: {pformat(val_expr)}'
+        return cls(type_expr, val_expr, value)
+
+    @classmethod
+    def from_val(cls, value):
+        if isinstance(value, int):
+            return cls({'prim': cls.prim}, {'int': str(value)}, value)
+        elif isinstance(value, str):
+            return cls({'prim': cls.prim}, {'string': value}, Timestamp.parse_utc(value))
+        else:
+            assert False, f'Unexpected type {type(value)}'
 
 
 class Mutez(Nat, prim='mutez'):
-
-    def __add__(self, other):
-        assert type(other) == Mutez, f'Unexpected operand type: {type(other)}'
-        return Mutez.new(self.value + other.value)
+    pass
 
 
 class Address(StackItem, prim='address'):
 
-    def __init__(self, type_node, val_node):
-        super(Address, self).__init__(type_node, val_node)
-        if check_type(val_node, core_type='string'):
-            self.value = val_node['string']
-        elif check_type(val_node, core_type='bytes'):
-            data = bytes.fromhex(val_node['bytes'])
-            self.value = encoding.parse_address(data)
+    @classmethod
+    def from_expr(cls, type_expr, val_expr):
+        if check_core(val_expr, core_type='string'):
+            value = val_expr['string']
+        elif check_core(val_expr, core_type='bytes'):
+            value = encoding.parse_address(bytes.fromhex(val_expr['bytes']))
         else:
-            assert False, f'Expected {pformat(type_node)}: {pformat(val_node)}'
+            assert False, f'Expected {pformat(type_expr)}: {pformat(val_expr)}'
+        return cls(type_expr, val_expr, value)
+
+    @classmethod
+    def from_val(cls, value):
+        if isinstance(value, bytes):
+            return cls({'prim': cls.prim}, {'bytes': value.hex()}, encoding.parse_address(value))
+        elif isinstance(value, str):
+            return cls({'prim': cls.prim}, {'string': value}, value)
+        else:
+            assert False, f'Unexpected type {type(value)}'
 
 
 class Contract(Address, prim='contract'):
@@ -341,31 +375,43 @@ class Contract(Address, prim='contract'):
 
 
 class Operation(StackItem, prim='operation'):
-    pass
+
+    @classmethod
+    def from_expr(cls, type_expr, val_expr):
+        raise NotImplementedError
 
 
 class Key(StackItem, prim='key'):
 
-    def __init__(self, type_node, val_node):
-        super(Key, self).__init__(type_node, val_node)
-        if check_type(val_node, core_type='string'):
-            self.value = val_node['string']
-        elif check_type(val_node, core_type='bytes'):
-            data = bytes.fromhex(val_node['bytes'])
-            self.value = encoding.parse_public_key(data)
+    @classmethod
+    def from_expr(cls, type_expr, val_expr):
+        if check_core(val_expr, core_type='string'):
+            value = val_expr['string']
+        elif check_core(val_expr, core_type='bytes'):
+            value = encoding.parse_public_key(bytes.fromhex(val_expr['bytes']))
         else:
-            assert False, f'Expected {pformat(type_node)}: {pformat(val_node)}'
+            assert False, f'Expected {pformat(type_expr)}: {pformat(val_expr)}'
+        return cls(type_expr, val_expr, value)
+
+    @classmethod
+    def from_val(cls, value):
+        if isinstance(value, bytes):
+            return cls({'prim': cls.prim}, {'bytes': value.hex()}, encoding.parse_public_key(value))
+        elif isinstance(value, str):
+            return cls({'prim': cls.prim}, {'string': value}, value)
+        else:
+            assert False, f'Unexpected type {type(value)}'
 
 
 class KeyHash(Address, prim='key_hash'):
     pass
 
 
-class Signature(StackItem, prim='signature'):
+class Signature(String, prim='signature'):
     pass
 
 
-class ChainID(StackItem, prim='chain_id'):
+class ChainID(String, prim='chain_id'):
     pass
 
 

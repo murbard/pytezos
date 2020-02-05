@@ -10,10 +10,10 @@ class Stack:
         assert len(self.items) >= index, f'Got {len(self.items)} items, wanted to insert before {index}th'
         self.items[index:index] = items
 
-    def ins(self, item: object, index: int = 0):
-        self.ins_many([item], index=index)
+    def ins(self, item, index: int = 0):
+        self.ins_many([item], index=index)  # TODO: use insert
 
-    def peek(self) -> object:
+    def peek(self):
         assert len(self.items) > 0, 'Stack is empty'
         return self.items[0]
 
@@ -21,7 +21,7 @@ class Stack:
         assert len(self.items) - index >= count, f'Got {len(self.items)} items, requested {count} from {index}th'
         return [self.items.pop(index=index) for _ in range(count)]
 
-    def pop(self, index: int = 0) -> object:
+    def pop(self, index: int = 0):
         return self.pop_many(count=1, index=index)[0]
 
     def pop2(self) -> list:
