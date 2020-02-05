@@ -2,7 +2,7 @@ import functools
 from copy import deepcopy
 
 from pytezos.repl.stack import Stack
-from pytezos.repl.types import StackItem, assert_core
+from pytezos.repl.types import StackItem, assert_core_type
 
 instructions = {}
 
@@ -19,7 +19,7 @@ def primitive(prim, args_len=0):
 
 
 def parse_int(val_node):
-    assert_core(val_node, 'int')
+    assert_core_type(val_node, 'int')
     return int(val_node['int'])
 
 
