@@ -88,6 +88,16 @@ class StackItem:
             lambda x: x == BigMap or x.has_big_map(),
             map(StackItem.dispatch, self.type_expr['args'])))
 
+    def _assert_arg_type(self, item: 'StackItem', arg_idx: int):
+        ty = self.type_expr['args'][arg_idx]
+        assert item.type_expr == ty, f'Expected {pformat(ty)}, got {pformat(item.type_expr)}'
+
+    def _arg_type(self, arg_idx: int):
+        return StackItem.dispatch(self.type_expr['args'][arg_idx])
+
+    def _arg_type_expr(self, arg_idx):
+        return self.type_expr['args'][arg_idx]
+
 
 class String(StackItem, prim='string'):
     flags = COMPARABLE | PASSABLE | STORABLE | PUSHABLE | PACKABLE
@@ -179,8 +189,7 @@ class List(StackItem, prim='list', args_len=1):
         return StackItem.dispatch(self.type_expr['args'][0])
 
     def assert_val_type(self, item: StackItem):
-        cty = self.type_expr['args'][0]
-        assert item.type_expr == cty, f'Expected {pformat(cty)}, got {pformat(item.type_expr)}'
+        self._assert_arg_type(item, 0)
 
 
 class Pair(StackItem, prim='pair', args_len=1):
@@ -199,6 +208,9 @@ class Pair(StackItem, prim='pair', args_len=1):
     def is_comparable(self):
         left_cls, right_cls = list(map(StackItem.dispatch, self.type_expr['args']))
         return type(left_cls) != Pair and right_cls.is_comparable()
+
+    def left(self) -> StackItem:
+        return self.value[0]
 
 
 class Option(StackItem, prim='option', args_len=1):
@@ -255,6 +267,9 @@ class Or(StackItem, prim='or', args_len=2):
                    val_expr={'prim': 'Right', 'args': [item.val_expr]},
                    value=item)
 
+    def is_left(self):
+        return check_prim(self.val_expr, prim='Left', args_len=1)
+
 
 class Set(StackItem, prim='set', args_len=1):
 
@@ -273,8 +288,7 @@ class Set(StackItem, prim='set', args_len=1):
         return cls(type_expr={'prim': cls.prim, 'args': [e_type_expr]}, val_expr=[], value=set())
 
     def assert_key_type(self, item: StackItem):
-        cty = self.type_expr['args'][0]
-        assert item.type_expr == cty, f'Expected {pformat(cty)}, got {pformat(item.type_expr)}'
+        self._assert_arg_type(item, 0)
 
 
 class Map(StackItem, prim='map', args_len=1):
@@ -300,15 +314,13 @@ class Map(StackItem, prim='map', args_len=1):
         return cls(type_expr={'prim': cls.prim, 'args': [k_type_expr, v_type_expr]}, val_expr=[], value=dict())
 
     def val_type_expr(self):
-        return self.type_expr['args'][1]
+        return self._arg_type_expr(1)
 
     def assert_key_type(self, item: StackItem):
-        kty = self.type_expr['args'][0]
-        assert item.type_expr == kty, f'Expected {pformat(kty)}, got {pformat(item.type_expr)}'
+        self._assert_arg_type(item, 0)
 
     def assert_val_type(self, item: StackItem):
-        vty = self.type_expr['args'][1]
-        assert item.type_expr == vty, f'Expected {pformat(vty)}, got {pformat(item.type_expr)}'
+        self._assert_arg_type(item, 1)
 
 
 class BigMap(Map, prim='big_map', args_len=1):
@@ -398,5 +410,27 @@ class ChainID(String, prim='chain_id'):
     pass
 
 
-class Lambda(StackItem, prim='lambda'):  # TODO:
-    pass
+class Lambda(StackItem, prim='lambda'):
+
+    @classmethod
+    def from_expr(cls, type_expr, val_expr):
+        assert_prim(val_expr, prim='Lambda', args_len=1)
+        return cls(val_expr['args'][0], type_expr, val_expr)
+
+    @classmethod
+    def init(cls, p_type_expr, r_type_expr, code):
+        return cls.from_expr(type_expr={'prim': 'lambda', 'args': [p_type_expr, r_type_expr]},
+                             val_expr={'prim': 'Lambda', 'args': [code]})
+
+    def assert_param_type(self, item: StackItem):
+        self._assert_arg_type(item, 0)
+
+    def assert_ret_type(self, item: StackItem):
+        self._assert_arg_type(item, 1)
+
+    # def apply(self, item: StackItem):
+    #     p_type_expr = self.type_expr['args'][0]
+    #     assert_prim(p_type_expr, prim='pair', args_len=2)
+    #     left_type_expr = p_type_expr['args'][0]
+    #     assert left_type_expr == item.type_expr, f'Expected {pformat(left_type_expr)}, got {pformat(item.type_expr)}'
+    #     push = {'prim': 'PUSH', 'args': [item.type_expr, item.val_expr]}
