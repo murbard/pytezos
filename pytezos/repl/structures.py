@@ -24,13 +24,13 @@ def do_concat(stack: Stack, prim, args):
     if type(top) in [String, Bytes]:
         second = stack.pop()
         assert_type(second, type(top))
-        res_cls = type(top)
-        res = res_cls(top.value + second.value)
+        res_type = type(top)
+        res = res_type(top.value + second.value)
     elif type(top) == List:
-        val_cls = top.val_type()
-        sep = val_cls()
-        assert_type(sep, [String, Bytes])
-        res = val_cls(sep.join(top.value))
+        val_type = top.val_type()
+        delimiter = val_type()
+        assert_type(delimiter, [String, Bytes])
+        res = val_type(delimiter.join(top.value))
     else:
         assert False
     stack.ins(res)
@@ -41,8 +41,8 @@ def do_cons(stack: Stack, prim, args):
     elt, lst = stack.pop2()
     assert_type(lst, List)
     lst.assert_val_type(elt)
-    lst.value.insert(0, elt)
-    stack.ins(lst)
+    res = elt + lst
+    stack.ins(res)
 
 
 @instruction('EMPTY_BIG_MAP', args_len=2)
@@ -67,11 +67,7 @@ def do_empty_set(stack: Stack, prim, args):
 def do_get(stack: Stack, prim, args):
     key, bmp = stack.pop2()
     assert_type(bmp, [Map, BigMap])
-    bmp.assert_key_type(key)
-    if key in bmp.value:
-        res = Option.some(bmp.value[key])
-    else:
-        res = Option.none(bmp.val_type_expr())
+    res = bmp[key]
     stack.ins(res)
 
 
@@ -87,10 +83,10 @@ def do_left(stack: Stack, prim, args):
 
 @instruction('MEM')
 def do_mem(stack: Stack, prim, args):
-    key, coll = stack.pop2()
-    assert_type(coll, [Set, Map, BigMap])
-    coll.assert_key_type(key)
-    res = Bool(key in coll.value)
+    key, container = stack.pop2()
+    assert_type(container, [Set, Map, BigMap])
+    container.assert_key_type(key)
+    res = Bool(key.value in container.value)
     stack.ins(res)
 
 
@@ -116,7 +112,7 @@ def do_pack(stack: Stack, prim, args):
 @instruction('PAIR')
 def do_pair(stack: Stack, prim, args):
     left, right = stack.pop2()
-    res = Pair(left, right)
+    res = Pair.new(left, right)
     stack.ins(res)
 
 
@@ -132,12 +128,12 @@ def do_size(stack: Stack, prim, args):
 def do_slice(stack: Stack, prim, args):
     offset, length, s = stack.pop3()
     assert_type(s, [String, Bytes])
-    res_cls = type(s)
+    res_type = type(s)
     if offset + length < len(s.value):
         sls = s.value[offset:offset + length]
-        res = Option.some(res_cls(sls))
+        res = Option.some(res_type(sls))
     else:
-        res = Option.none(res_cls().type_expr)
+        res = Option.none(res_type().type_expr)
     stack.ins(res)
 
 
@@ -158,29 +154,29 @@ def do_unpack(stack: Stack, prim, args):
     top = stack.pop()
     assert_type(top, Bytes)
     # TODO: parse micheline
-    res = StackItem.from_expr(type_expr=args[0], val_expr=None)
+    res = StackItem.parse(type_expr=args[0], val_expr=None)
     stack.ins(res)
 
 
 @instruction('UPDATE')
 def do_update(stack: Stack, prim, args):
-    key, val, coll = stack.pop3()
-    assert_type(coll, [Set, Map, BigMap])
-    coll.assert_key_type(key)
+    key, val, container = stack.pop3()
+    assert_type(container, [Set, Map, BigMap])
+    container.assert_key_type(key)
 
-    if type(coll) == Set:
+    if type(container) == Set:
         assert_type(val, Bool)
         if val:
-            coll.value.add(key)
+            container.value.add(key)  # TODO
         else:
-            coll.value.remove(key)
+            container.value.remove(key)  # TODO
     else:
         assert_type(val, Option)
         if val.value is None:
-            if key in coll.value:
-                del coll.value[key]
+            if key in container.value:
+                del container.value[key]  # TODO
         else:
-            coll.assert_val_type(val.value)
-            coll.value[key] = val.value
+            container.assert_val_type(val.value)
+            container.value[key] = val.value  # TODO
 
-    stack.ins(coll)
+    stack.ins(container)
