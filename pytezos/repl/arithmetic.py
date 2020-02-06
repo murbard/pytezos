@@ -5,25 +5,23 @@ from pytezos.repl.control import instruction
 from pytezos.repl.stack import Stack
 from pytezos.repl.types import assert_type, Int, Nat, Timestamp, Mutez, Option, Pair, Bool, Bytes, Key, Signature, \
     KeyHash
+from pytezos.repl.parser import assert_comparable, assert_expr_equal
 
 
-def assert_supported_types(a, b, mapping):
+def dispatch_type_map(a, b, mapping):
     assert (type(a), type(b)) in mapping, \
         f'unsupported argument types {type(a).__name__} and {type(b).__name__}'
+    return mapping[(type(a), type(b))]
 
 
 def assert_equal_types(a, b):
     assert type(a) == type(b), f'different types {type(a).__name__} and {type(b).__name__}'
 
 
-def assert_comparable(a, prim):
-    assert a.is_comparable(), f'{type(a).__name__} is not a comparable type'
-
-
 @instruction('ABS')
 def do_abs(stack: Stack, prim, args):
     top = stack.pop()
-    assert_type(top, Int, prim)
+    assert_type(top, Int)
     res = Nat(abs(top.value))
     stack.ins(res)
 
@@ -31,7 +29,7 @@ def do_abs(stack: Stack, prim, args):
 @instruction('ADD')
 def do_add(stack: Stack, prim, args):
     a, b = stack.pop2()
-    mapping = {
+    res_type = dispatch_type_map(a, b, {
         (Nat, Nat): Nat,
         (Nat, Int): Int,
         (Int, Nat): Int,
@@ -39,18 +37,16 @@ def do_add(stack: Stack, prim, args):
         (Timestamp, Int): Timestamp,
         (Int, Timestamp): Timestamp,
         (Mutez, Mutez): Mutez
-    }
-    assert_supported_types(a, b, mapping)
-    res_cls = mapping[(type(a), type(b))]
-    res = res_cls(a.value + b.value)
+    })
+    res = res_type(a.value + b.value)
     stack.ins(res)
 
 
 @instruction('COMPARE')
 def do_compare(stack: Stack, prim, args):
     a, b = stack.pop2()
-    assert_equal_types(a, b)
-    assert_comparable(a, prim)
+    assert_expr_equal(a.type_expr, b.type_expr)
+    assert_comparable(a.type_expr)
     if a.value > b.value:
         res = Int(1)
     elif a.value < b.value:
@@ -63,24 +59,22 @@ def do_compare(stack: Stack, prim, args):
 @instruction('EDIV')
 def do_ediv(stack: Stack, prim, args):
     a, b = stack.pop2()
-    mapping = {
+    q_type, r_type = dispatch_type_map(a, b, {
         (Nat, Nat): (Nat, Nat),
         (Nat, Int): (Int, Nat),
         (Int, Nat): (Int, Nat),
         (Int, Int): (Int, Nat),
         (Mutez, Nat): (Mutez, Mutez),
         (Mutez, Mutez): (Nat, Mutez)
-    }
-    assert_supported_types(a, b, mapping)
-    q_cls, r_cls = mapping[(type(a), type(b))]
+    })
     if b.value == 0:
-        res = Option.none(Pair(q_cls(), r_cls()).type_expr)
+        res = Option.none(Pair.new(q_type(), r_type()).type_expr)
     else:
         q, r = divmod(a.value, b.value)
         if r < 0:
             r += abs(b.value)
             q += 1
-        res = Option.some(Pair(q_cls(q), r_cls(r)))
+        res = Option.some(Pair.new(q_type(q), r_type(r)))
     stack.ins(res)
 
 
@@ -135,17 +129,15 @@ def do_lsl(stack: Stack, prim, args):
 @instruction('MUL')
 def do_mul(stack: Stack, prim, args):
     a, b = stack.pop2()
-    mapping = {
+    res_type = dispatch_type_map(a, b, {
         (Nat, Nat): Nat,
         (Nat, Int): Int,
         (Int, Nat): Int,
         (Int, Int): Int,
         (Mutez, Nat): Mutez,
         (Nat, Mutez): Mutez
-    }
-    assert_supported_types(a, b, mapping)
-    res_cls = mapping[(type(a), type(b))]
-    res = res_cls(a.value * b.value)
+    })
+    res = res_type(a.value * b.value)
     stack.ins(res)
 
 
@@ -160,7 +152,7 @@ def do_neg(stack: Stack, prim, args):
 @instruction('SUB')
 def do_sub(stack: Stack, prim, args):
     a, b = stack.pop2()
-    mapping = {
+    res_type = dispatch_type_map(a, b, {
         (Nat, Nat): Int,
         (Nat, Int): Int,
         (Int, Nat): Int,
@@ -168,10 +160,8 @@ def do_sub(stack: Stack, prim, args):
         (Timestamp, Int): Timestamp,
         (Timestamp, Timestamp): Int,
         (Mutez, Mutez): Mutez
-    }
-    assert_supported_types(a, b, mapping)
-    res_cls = mapping[(type(a), type(b))]
-    res = res_cls(a.value - b.value)
+    })
+    res = res_type(a.value - b.value)
     stack.ins(res)
 
 
@@ -180,13 +170,13 @@ def do_and(stack: Stack, prim, args):
     a, b = stack.pop2()
     assert_type(a, [Bool, Nat])
     assert_equal_types(a, b)
-    res_cls = type(a)
     handlers = {
         'AND': lambda x: x[0] & x[1],
         'OR': lambda x: x[0] | x[1],
         'XOR': lambda x: x[0] ^ x[1]
     }
-    res = res_cls(handlers[prim](a.value, b.value))
+    res_type = type(a)
+    res = res_type(handlers[prim]((a.value, b.value)))
     stack.ins(res)
 
 
