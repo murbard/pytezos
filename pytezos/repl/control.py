@@ -3,7 +3,7 @@ from copy import deepcopy
 
 from pytezos.repl.stack import Stack
 from pytezos.repl.types import StackItem, assert_type, Option, Lambda, Bool, List, Or, Pair, Map
-from pytezos.repl.typechecker import get_int, assert_pushable
+from pytezos.repl.parser import get_int, assert_pushable
 
 instructions = {}
 
@@ -41,13 +41,13 @@ def do_interpret(stack: Stack, code_expr):
 @instruction('PUSH', args_len=2)
 def do_push(stack: Stack, prim, args):
     assert_pushable(args[0])
-    item = StackItem.from_expr(type_expr=args[0], val_expr=args[1])
+    item = StackItem.parse(val_expr=args[1], type_expr=args[0])
     stack.ins(item)
 
 
 @instruction('DROP', args_len=1)
 def do_drop(stack: Stack, prim, args):
-    count = parse_int(args[0])
+    count = get_int(args[0])
     _ = stack.pop_many(count=count, index=0)
 
 
@@ -65,21 +65,21 @@ def do_swap(stack: Stack, prim, args):
 
 @instruction('DIG', args_len=1)
 def do_dig(stack: Stack, prim, args):
-    index = parse_int(args[0])
+    index = get_int(args[0])
     value = stack.pop(index=index)
     stack.ins(value)
 
 
 @instruction('DUG', args_len=1)
 def do_dug(stack: Stack, prim, args):
-    index = parse_int(args[0])
+    index = get_int(args[0])
     value = stack.pop()
     stack.ins(value, index=index - 1)
 
 
 @instruction('DIP', args_len=2)
 def do_dip(stack: Stack, prim, args):
-    count = parse_int(args[0])
+    count = get_int(args[0])
     protected = stack.pop_many(count=count, index=0)
     do_interpret(stack, args[1])
     stack.ins_many(protected)
@@ -87,7 +87,7 @@ def do_dip(stack: Stack, prim, args):
 
 @instruction('LAMBDA', args_len=3)
 def do_lambda(stack: Stack, prim, args):
-    res = Lambda(p_type_expr=args[0], r_type_expr=args[1], code=args[2])
+    res = Lambda.new(p_type_expr=args[0], r_type_expr=args[1], code=args[2])
     stack.ins(res)
 
 
@@ -161,42 +161,42 @@ def do_loop(stack: Stack, prim, args):
 
 @instruction('MAP', args_len=1)
 def do_map(stack: Stack, prim, args):
-    coll = stack.pop()
+    container = stack.pop()
+    assert_type(container, [List, Map])
 
-    if type(coll) == List:
-        res = list()
-        for item in coll.value:
+    if type(container) == List:
+        items = list()
+        for item in container:
             stack.ins(item)
             do_interpret(stack, args[0])
-            val = stack.pop()
-            coll.assert_val_type(val)
-            res.append(val)
-
-    elif type(coll) == Map:
-        res = dict()
-        for key, value in coll.value.items():
-            stack.ins(Pair(key, value))
+            ret = stack.pop()
+            container.assert_val_type(ret)
+            items.append(ret)
+    elif type(container) == Map:
+        items = list()
+        for key, val in container:
+            stack.ins(Pair.new(key, val))
             do_interpret(stack, args[0])
-            val = stack.pop()
-            coll.assert_val_type(val)
-            res[key] = res
+            ret = stack.pop()
+            container.assert_val_type(ret)
+            items.append((key, ret))
     else:
-        assert False, f'Unexpected type: {type(coll)}'
+        assert False
 
-    coll.value = res
-    stack.ins(coll)
+    res = type(container).new(items)
+    stack.ins(res)
 
 
 @instruction('ITER', args_len=1)
 def do_map(stack: Stack, prim, args):
-    coll = stack.pop()
-    if type(coll) == List:
-        for item in coll.value:
+    container = stack.pop()
+    if type(container) == List:
+        for item in container:
             stack.ins(item)
             do_interpret(stack, args[0])
-    elif type(coll) == Map:
-        for key, value in coll.value.items():
-            stack.ins(Pair(key, value))
+    elif type(container) == Map:
+        for key, val in container:
+            stack.ins(Pair.new(key, val))
             do_interpret(stack, args[0])
     else:
-        assert False, f'Unexpected type: {type(coll)}'
+        assert False, f'Unexpected type: {type(container)}'
