@@ -1,20 +1,37 @@
-from pytezos.repl.instructions import primitive
+from hashlib import sha256, sha512
+
+from pytezos.crypto import blake2b_32, Key
+from pytezos.repl.control import instruction
 from pytezos.repl.stack import Stack
-from pytezos.repl.types import assert_item_type, Int, Nat, Timestamp, Mutez, Option, Pair, Bool
+from pytezos.repl.types import assert_type, Int, Nat, Timestamp, Mutez, Option, Pair, Bool, Bytes, Key, Signature, \
+    KeyHash
 
 
-@primitive('ABS')
+def assert_supported_types(a, b, mapping):
+    assert (type(a), type(b)) in mapping, \
+        f'unsupported argument types {type(a).__name__} and {type(b).__name__}'
+
+
+def assert_equal_types(a, b):
+    assert type(a) == type(b), f'different types {type(a).__name__} and {type(b).__name__}'
+
+
+def assert_comparable(a, prim):
+    assert a.is_comparable(), f'{type(a).__name__} is not a comparable type'
+
+
+@instruction('ABS')
 def do_abs(stack: Stack, prim, args):
     top = stack.pop()
-    assert_item_type(top, Int)
+    assert_type(top, Int, prim)
     res = Nat(abs(top.value))
     stack.ins(res)
 
 
-@primitive('ADD')
+@instruction('ADD')
 def do_add(stack: Stack, prim, args):
-    left, right = stack.pop2()
-    cls_mapping = {
+    a, b = stack.pop2()
+    mapping = {
         (Nat, Nat): Nat,
         (Nat, Int): Int,
         (Int, Nat): Int,
@@ -23,29 +40,30 @@ def do_add(stack: Stack, prim, args):
         (Int, Timestamp): Timestamp,
         (Mutez, Mutez): Mutez
     }
-    res_cls = cls_mapping[(type(left), type(right))]
-    res = res_cls(left.value + right.value)
+    assert_supported_types(a, b, mapping)
+    res_cls = mapping[(type(a), type(b))]
+    res = res_cls(a.value + b.value)
     stack.ins(res)
 
 
-@primitive('COMPARE')
+@instruction('COMPARE')
 def do_compare(stack: Stack, prim, args):
-    left, right = stack.pop2()
-    assert type(left) == type(right), f'Cannot compare different types'
-    assert left.is_comparable(), f'Not a comparable type: {type(left)}'
-    if left.value > right.value:
+    a, b = stack.pop2()
+    assert_equal_types(a, b)
+    assert_comparable(a, prim)
+    if a.value > b.value:
         res = Int(1)
-    elif left.value < right.value:
+    elif a.value < b.value:
         res = Int(-1)
     else:
         res = Int(0)
     stack.ins(res)
 
 
-@primitive('EDIV')
+@instruction('EDIV')
 def do_ediv(stack: Stack, prim, args):
-    left, right = stack.pop2()
-    cls_mapping = {
+    a, b = stack.pop2()
+    mapping = {
         (Nat, Nat): (Nat, Nat),
         (Nat, Int): (Int, Nat),
         (Int, Nat): (Int, Nat),
@@ -53,23 +71,24 @@ def do_ediv(stack: Stack, prim, args):
         (Mutez, Nat): (Mutez, Mutez),
         (Mutez, Mutez): (Nat, Mutez)
     }
-    q_cls, r_cls = cls_mapping[(type(left), type(right))]
-    if right.value == 0:
+    assert_supported_types(a, b, mapping)
+    q_cls, r_cls = mapping[(type(a), type(b))]
+    if b.value == 0:
         res = Option.none(Pair(q_cls(), r_cls()).type_expr)
     else:
-        q, r = divmod(left.value, right.value)
+        q, r = divmod(a.value, b.value)
         if r < 0:
-            r += abs(right.value)
+            r += abs(b.value)
             q += 1
         res = Option.some(Pair(q_cls(q), r_cls(r)))
     stack.ins(res)
 
 
-@primitive('(EQ|GE|GT|LE|LT|NEQ')
+@instruction(['EQ', 'GE', 'GT', 'LE', 'LT', 'NEQ'])
 def do_eq(stack: Stack, prim, args):
     top = stack.pop()
-    assert_item_type(top, Int)
-    res_mapping = {
+    assert_type(top, Int)
+    handlers = {
         'EQ': lambda x: x == 0,
         'GE': lambda x: x >= 0,
         'GT': lambda x: x > 0,
@@ -77,22 +96,22 @@ def do_eq(stack: Stack, prim, args):
         'LT': lambda x: x < 0,
         'NEQ': lambda x: x != 0
     }
-    res = Bool(res_mapping[prim](top.value))
+    res = Bool(handlers[prim](top.value))
     stack.ins(res)
 
 
-@primitive('INT')
+@instruction('INT')
 def do_int(stack: Stack, prim, args):
     top = stack.pop()
-    assert_item_type(top, Nat)
+    assert_type(top, Nat)
     res = Int(top.value)
     stack.ins(res)
 
 
-@primitive('ISNAT')
+@instruction('ISNAT')
 def do_is_nat(stack: Stack, prim, args):
     top = stack.pop()
-    assert_item_type(top, Int)
+    assert_type(top, Int)
     if top.value >= 0:
         res = Option.some(Nat(top.value))
     else:
@@ -100,23 +119,23 @@ def do_is_nat(stack: Stack, prim, args):
     stack.ins(res)
 
 
-@primitive('(LSL|LSR)')
+@instruction(['LSL', 'LSR'])
 def do_lsl(stack: Stack, prim, args):
-    left, right = stack.pop2()
-    assert_item_type(left, Nat)
-    assert_item_type(right, Nat)
-    res_mapping = {
+    a, b = stack.pop2()
+    assert_type(a, Nat)
+    assert_type(b, Nat)
+    handlers = {
         'LSL': lambda x: x[0] << x[1],
         'LSR': lambda x: x[0] >> x[1]
     }
-    res = Nat(res_mapping[prim]((left.value, right.value)))
+    res = Nat(handlers[prim]((a.value, b.value)))
     stack.ins(res)
 
 
-@primitive('MUL')
+@instruction('MUL')
 def do_mul(stack: Stack, prim, args):
-    left, right = stack.pop2()
-    cls_mapping = {
+    a, b = stack.pop2()
+    mapping = {
         (Nat, Nat): Nat,
         (Nat, Int): Int,
         (Int, Nat): Int,
@@ -124,23 +143,24 @@ def do_mul(stack: Stack, prim, args):
         (Mutez, Nat): Mutez,
         (Nat, Mutez): Mutez
     }
-    res_cls = cls_mapping[(type(left), type(right))]
-    res = res_cls(left.value * right.value)
+    assert_supported_types(a, b, mapping)
+    res_cls = mapping[(type(a), type(b))]
+    res = res_cls(a.value * b.value)
     stack.ins(res)
 
 
-@primitive('NEG')
+@instruction('NEG')
 def do_neg(stack: Stack, prim, args):
     top = stack.pop()
-    assert_item_type(top, [Int, Nat])
+    assert_type(top, [Int, Nat])
     res = Int(-top.value)
     stack.ins(res)
 
 
-@primitive('SUB')
+@instruction('SUB')
 def do_sub(stack: Stack, prim, args):
-    left, right = stack.pop2()
-    cls_mapping = {
+    a, b = stack.pop2()
+    mapping = {
         (Nat, Nat): Int,
         (Nat, Int): Int,
         (Int, Nat): Int,
@@ -149,33 +169,80 @@ def do_sub(stack: Stack, prim, args):
         (Timestamp, Timestamp): Int,
         (Mutez, Mutez): Mutez
     }
-    res_cls = cls_mapping[(type(left), type(right))]
-    res = res_cls(left.value - right.value)
+    assert_supported_types(a, b, mapping)
+    res_cls = mapping[(type(a), type(b))]
+    res = res_cls(a.value - b.value)
     stack.ins(res)
 
 
-@primitive('(AND|OR|XOR')
+@instruction(['AND', 'OR', 'XOR'])
 def do_and(stack: Stack, prim, args):
-    left, right = stack.pop2()
-    assert_item_type(left, [Bool, Nat])
-    assert type(left) == type(right), f'Cannot operate on different types'
-    res_cls = type(left)
-    res_mapping = {
+    a, b = stack.pop2()
+    assert_type(a, [Bool, Nat])
+    assert_equal_types(a, b)
+    res_cls = type(a)
+    handlers = {
         'AND': lambda x: x[0] & x[1],
         'OR': lambda x: x[0] | x[1],
         'XOR': lambda x: x[0] ^ x[1]
     }
-    res = res_cls(res_mapping[prim](left.value, right.value))
+    res = res_cls(handlers[prim](a.value, b.value))
     stack.ins(res)
 
 
-@primitive('NOT')
+@instruction('NOT')
 def do_not(stack: Stack, prim, args):
     top = stack.pop()
+    assert_type(top, [Nat, Int, Bool])
     if type(top) in [Nat, Int]:
         res = Int(~top.value)
     elif type(top) == Bool:
         res = Bool(not top.value)
     else:
-        assert False, f'Unexpected type {type(top)}'
+        assert False
+    stack.ins(res)
+
+
+@instruction('BLAKE2B')
+def do_blake2b(stack: Stack, prim, args):
+    top = stack.pop()
+    assert_type(top, Bytes)
+    res = Bytes(blake2b_32(top.value).digest())
+    stack.ins(res)
+
+
+@instruction('CHECK_SIGNATURE')
+def do_check_sig(stack: Stack, prim, args):
+    pk, sig, msg = stack.pop3()
+    assert_type(pk, Key)
+    assert_type(sig, Signature)
+    assert_type(msg, Bytes)
+    key = Key.from_encoded_key(pk.value)
+    try:
+        key.verify(signature=sig.value, message=msg.value)
+    except:
+        res = Bool(False)
+    else:
+        res = Bool(True)
+    stack.ins(res)
+
+
+@instruction('HASH_KEY')
+def do_hash_key(stack: Stack, prim, args):
+    top = stack.pop()
+    assert_type(top, Key)
+    key = Key.from_encoded_key(top.value)
+    res = KeyHash(key.public_key_hash())
+    stack.ins(res)
+
+
+@instruction(['SHA256', 'SHA512'])
+def do_sha(stack: Stack, prim, args):
+    top = stack.pop()
+    assert_type(top, Bytes)
+    handlers = {
+        'SHA256': lambda x: sha256(x).digest(),
+        'SHA512': lambda x: sha512(x).digest(),
+    }
+    res = Bytes(handlers[prim](top.value))
     stack.ins(res)

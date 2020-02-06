@@ -1,4 +1,5 @@
 from copy import deepcopy
+from pprint import pformat
 
 
 class Stack:
@@ -19,7 +20,7 @@ class Stack:
 
     def pop_many(self, count: int, index: int = 0) -> list:
         assert len(self.items) - index >= count, f'Got {len(self.items)} items, requested {count} from {index}th'
-        return [self.items.pop(index=index) for _ in range(count)]
+        return [self.items.pop(index) for _ in range(count)]
 
     def pop(self, index: int = 0):
         return self.pop_many(count=1, index=index)[0]
@@ -35,3 +36,6 @@ class Stack:
 
     def __len__(self):
         return len(self.items)
+
+    def __repr__(self):
+        return pformat(self.items)
