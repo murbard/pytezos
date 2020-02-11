@@ -2,10 +2,15 @@ import functools
 from copy import deepcopy
 
 from pytezos.repl.stack import Stack
-from pytezos.repl.types import StackItem, assert_type, Option, Lambda, Bool, List, Or, Pair, Map
-from pytezos.repl.parser import get_int, assert_pushable
+from pytezos.repl.types import StackItem, assert_stack_type, assert_expr_equal, Option, Lambda, Bool, List, Or, Pair, \
+    Map
+from pytezos.repl.parser import get_int, MichelsonRuntimeError
 
 instructions = {}
+
+
+def assert_no_annots(prim, annots):
+    assert not annots, f'{prim}: unexpected annotations {annots}'
 
 
 def instruction(prim, args_len=0):
@@ -21,6 +26,18 @@ def instruction(prim, args_len=0):
             return func(*args, **kwargs)
         return wrapper
     return register_instruction
+
+
+def parse_instruction(code_expr):
+    prim = code_expr.get('prim')
+    if prim not  in instructions:
+        raise MichelsonRuntimeError.init('unknown instruction', prim) from None
+    args_len, handler = instructions[prim]
+    args = code_expr.get('args', [])
+    if len(args) != args_len:
+        raise MichelsonRuntimeError.init(f'expected {args_len} arg(s), got {len(args)}', prim) from None
+    annots = code_expr.get('annots', [])
+    return prim, args, annots, handler
     
 
 def do_interpret(stack: Stack, code_expr):
@@ -28,107 +45,117 @@ def do_interpret(stack: Stack, code_expr):
         for item in code_expr:
             do_interpret(stack, item)
     elif isinstance(code_expr, dict):
-        prim = code_expr.get('prim')
-        assert prim in instructions, f'{prim}: unknown instruction'
-        args_len, handler = instructions[prim]
-        args = code_expr.get('args', [])
-        assert len(args) == args_len, f'{prim}: expected {args_len} arg(s), got {len(args)}'
-        return handler(stack, prim, args)
+        prim, args, annots, handler = parse_instruction(code_expr)
+        try:
+            res = handler(stack, prim, args, annots)
+        except AssertionError as e:
+            raise MichelsonRuntimeError.init(e.args, prim) from None
+        except MichelsonRuntimeError as e:
+            raise MichelsonRuntimeError.wrap(e, prim) from None
+        else:
+            return res
     else:
         assert False, f'unexpected code expression: {code_expr}'
 
 
 @instruction('PUSH', args_len=2)
-def do_push(stack: Stack, prim, args):
-    assert_pushable(args[0])
+def do_push(stack: Stack, prim, args, annots):
     item = StackItem.parse(val_expr=args[1], type_expr=args[0])
-    stack.ins(item)
+    return stack.ins(item, annots=annots)
 
 
 @instruction('DROP', args_len=1)
-def do_drop(stack: Stack, prim, args):
+def do_drop(stack: Stack, prim, args, annots):
+    assert_no_annots(prim, annots)
     count = get_int(args[0])
     _ = stack.pop_many(count=count, index=0)
 
 
 @instruction('DUP')
-def do_dup(stack: Stack, prim, args):
+def do_dup(stack: Stack, prim, args, annots):
     top = stack.peek()
-    stack.ins(deepcopy(top))
+    return stack.ins(deepcopy(top), annots=annots)
 
 
 @instruction('SWAP')
-def do_swap(stack: Stack, prim, args):
+def do_swap(stack: Stack, prim, args, annots):
+    assert_no_annots(prim, annots)
     second = stack.pop(index=1)
-    stack.ins(second)
+    return stack.ins(second)
 
 
 @instruction('DIG', args_len=1)
-def do_dig(stack: Stack, prim, args):
+def do_dig(stack: Stack, prim, args, annots):
+    assert_no_annots(prim, annots)
     index = get_int(args[0])
-    value = stack.pop(index=index)
-    stack.ins(value)
+    res = stack.pop(index=index)
+    return stack.ins(res)
 
 
 @instruction('DUG', args_len=1)
-def do_dug(stack: Stack, prim, args):
+def do_dug(stack: Stack, prim, args, annots):
+    assert_no_annots(prim, annots)
     index = get_int(args[0])
-    value = stack.pop()
-    stack.ins(value, index=index - 1)
+    res = stack.pop()
+    return stack.ins(res, index=index-1)
 
 
 @instruction('DIP', args_len=2)
-def do_dip(stack: Stack, prim, args):
+def do_dip(stack: Stack, prim, args, annots):
+    assert_no_annots(prim, annots)
     count = get_int(args[0])
-    protected = stack.pop_many(count=count, index=0)
+    protected = stack.pop_many(count=count)
     do_interpret(stack, args[1])
     stack.ins_many(protected)
 
 
 @instruction('LAMBDA', args_len=3)
-def do_lambda(stack: Stack, prim, args):
+def do_lambda(stack: Stack, prim, args, annots):
     res = Lambda.new(p_type_expr=args[0], r_type_expr=args[1], code=args[2])
-    stack.ins(res)
+    return stack.ins(res, annots=annots)
 
 
 @instruction('EXEC')
-def do_exec(stack: Stack, prim, args):
-    param, lmbd = stack.pop2()
-    assert_type(lmbd, Lambda)
-    lmbd.assert_param_type(param)
-    lmbd_stack = Stack([param])
-    do_interpret(lmbd_stack, lmbd.value)
-    ret = lmbd_stack.pop()
-    lmbd.assert_ret_type(ret)
-    assert len(lmbd_stack) == 0, 'Lambda stack is not empty'
-    stack.ins(ret)
+def do_exec(stack: Stack, prim, args, annots):
+    param, lmbda = stack.pop2()
+    assert_stack_type(lmbda, Lambda)
+    lmbda.assert_param_type(param)
+    lmbda_stack = Stack([param])
+    do_interpret(lmbda_stack, lmbda.code)
+    ret = lmbda_stack.pop()
+    lmbda.assert_ret_type(ret)
+    assert len(lmbda_stack) == 0, f'lambda stack is not empty: {lmbda_stack}'
+    return stack.ins(ret, annots=annots)
 
 
 @instruction('APPLY')
-def do_apply(stack: Stack, prim, args):
+def do_apply(stack: Stack, prim, args, annots):
     param, lmbd = stack.pop2()
-    assert_type(lmbd, Lambda)
+    assert_stack_type(lmbd, Lambda)
     # TODO:
 
 
 @instruction('FAILWITH')
-def do_failwith(stack: Stack, prim, args):
+def do_failwith(stack: Stack, prim, args, annots):
+    assert_no_annots(prim, annots)
     top = stack.pop()
     raise ValueError(top)
 
 
 @instruction('IF', args_len=2)
-def do_if(stack: Stack, prim, args):
+def do_if(stack: Stack, prim, args, annots):
+    assert_no_annots(prim, annots)
     cond = stack.pop()
-    assert_type(cond, Bool)
-    do_interpret(stack, args[0 if cond.value else 1])
+    assert_stack_type(cond, Bool)
+    do_interpret(stack, args[0 if bool(cond) else 1])
 
 
 @instruction('IF_CONS', args_len=2)
-def do_if_cons(stack: Stack, prim, args):
+def do_if_cons(stack: Stack, prim, args, annots):
+    assert_no_annots(prim, annots)
     top = stack.pop()
-    assert_type(top, List)
-    if len(top.value) > 0:
+    assert_stack_type(top, List)
+    if len(top) > 0:
         stack.ins(top)
         do_interpret(stack, args[0])
     else:
@@ -136,33 +163,55 @@ def do_if_cons(stack: Stack, prim, args):
 
 
 @instruction('IF_LEFT', args_len=2)
-def do_if_left(stack: Stack, prim, args):
-    top = stack.pop()
-    assert_type(top, Or)
-    stack.ins(top.value)
+def do_if_left(stack: Stack, prim, args, annots):
+    assert_no_annots(prim, annots)
+    top = stack.pop()  # type: Or
+    assert_stack_type(top, Or)
+    stack.ins(next(iter(top)))
     do_interpret(stack, args[0 if top.is_left() else 1])
 
 
 @instruction('IF_NONE', args_len=2)
-def do_if_left(stack: Stack, prim, args):
+def do_if_left(stack: Stack, prim, args, annots):
+    assert_no_annots(prim, annots)
     top = stack.pop()
-    assert_type(top, Option)
-    if top.value is None:
+    assert_stack_type(top, Option)
+    if top.is_none():
         do_interpret(stack, args[0])
     else:
-        stack.ins(top.value)
+        stack.ins(next(iter(top)))
         do_interpret(stack, args[1])
 
 
 @instruction('LOOP', args_len=1)
-def do_loop(stack: Stack, prim, args):
-    pass  # TODO
+def do_loop(stack: Stack, prim, args, annots):
+    assert_no_annots(prim, annots)
+    while True:
+        top = stack.pop()
+        assert_stack_type(top, Bool)
+        if bool(top):
+            do_interpret(stack, args[0])
+        else:
+            break
+
+
+@instruction('LOOP_LEFT', args_len=1)
+def do_loop_left(stack: Stack, prim, args, annots):
+    assert_no_annots(prim, annots)
+    while True:
+        top = stack.pop()
+        assert_stack_type(top, Or)
+        stack.ins(next(iter(top)))
+        if top.is_left():
+            do_interpret(stack, args[0])
+        else:
+            break
 
 
 @instruction('MAP', args_len=1)
-def do_map(stack: Stack, prim, args):
+def do_map(stack: Stack, prim, args, annots):
     container = stack.pop()
-    assert_type(container, [List, Map])
+    assert_stack_type(container, [List, Map])
 
     if type(container) == List:
         items = list()
@@ -184,11 +233,12 @@ def do_map(stack: Stack, prim, args):
         assert False
 
     res = type(container).new(items)
-    stack.ins(res)
+    return stack.ins(res, annots=annots)
 
 
 @instruction('ITER', args_len=1)
-def do_map(stack: Stack, prim, args):
+def do_map(stack: Stack, prim, args, annots):
+    assert_no_annots(prim, annots)
     container = stack.pop()
     if type(container) == List:
         for item in container:
@@ -200,3 +250,17 @@ def do_map(stack: Stack, prim, args):
             do_interpret(stack, args[0])
     else:
         assert False, f'Unexpected type: {type(container)}'
+
+
+@instruction('CAST', args_len=1)
+def do_cast(stack: Stack, prim, args, annots):
+    top = stack.pop()
+    assert_expr_equal(args[0], top.type_expr)
+    top.type_expr = args[0]
+    return stack.ins(top, annots=annots)
+
+
+@instruction('RENAME')
+def do_rename(stack: Stack, prim, args, annots):
+    top = stack.pop()
+    return stack.ins(top, annots=annots)

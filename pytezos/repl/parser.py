@@ -9,6 +9,22 @@ import pytezos.encoding as encoding
 parsers = {}
 
 
+class MichelsonRuntimeError(ValueError):
+
+    def __init__(self, message, trace):
+        super(MichelsonRuntimeError, self).__init__(message)
+        self.message = message
+        self.trace = trace
+
+    @staticmethod
+    def init(message, prim) -> 'MichelsonRuntimeError':
+        return MichelsonRuntimeError(message, trace=[prim])
+
+    @staticmethod
+    def wrap(error: 'MichelsonRuntimeError', prim) -> 'MichelsonRuntimeError':
+        return MichelsonRuntimeError(error.message, trace=[prim] + error.trace)
+
+
 def primitive(prim, args_len=0):
     def register_primitive(func):
         parsers[prim] = (args_len, func)
@@ -20,13 +36,13 @@ def primitive(prim, args_len=0):
     return register_primitive
 
 
-def assert_list(val_expr):
-    assert isinstance(val_expr, list), f'expected list, got {type(val_expr)}'
+def assert_type(value, exp_type):
+    assert isinstance(value, exp_type), f'expected {exp_type}, got {type(value)}'
 
 
 def parse_prim_expr(expr) -> tuple:
     assert isinstance(expr, dict), f'expected dict, got {type(expr)}'
-    assert 'prim' in expr, f'primitive is absent'
+    assert 'prim' in expr, f'prim field is absent'
     return expr['prim'], expr.get('args', [])
 
 
@@ -129,7 +145,9 @@ def assert_comparable(type_expr):
 
 
 def assert_pushable(type_expr):
-    pass
+    prim, _ = parse_prim_expr(type_expr)
+    assert prim not in ['big_map', 'contract', 'operation'], \
+        f'type is not pushable: {micheline_to_michelson(type_expr)}'
 
 
 def is_big_map_val(type_expr):
@@ -145,15 +163,24 @@ def assert_big_map_val(type_expr):
 
 def parse_type(type_expr) -> Tuple[str, list, Callable]:
     prim, args = parse_prim_expr(type_expr)
-    assert prim in parsers, f'{prim}: unknown primitive '
+    if prim not in parsers:
+        raise MichelsonRuntimeError.init('unknown primitive', prim) from None
     args_len, func = parsers[prim]
-    assert len(args) == args_len, f'{prim}: expected {args_len} arg(s), got {len(args)}'
+    if len(args) != args_len:
+        raise MichelsonRuntimeError.init('expected {args_len} arg(s), got {len(args)}', prim) from None
     return prim, args, func
 
 
 def parse_value(val_expr, type_expr):
-    _, args, func = parse_type(type_expr)
-    return func(val_expr, args)
+    prim, args, func = parse_type(type_expr)
+    try:
+        res = func(val_expr, args)
+    except AssertionError as e:
+        raise MichelsonRuntimeError(e.args, prim) from None
+    except MichelsonRuntimeError as e:
+        raise MichelsonRuntimeError.wrap(e, prim) from None
+    else:
+        return res
 
 
 @primitive('string')
@@ -193,7 +220,7 @@ def parse_unit(val_expr, type_args):
 
 @primitive('list', args_len=1)
 def parse_list(val_expr, type_args):
-    assert_list(val_expr)
+    assert_type(val_expr, list)
     return [parse_value(item, type_args[0]) for item in val_expr]
 
 
@@ -221,7 +248,7 @@ def parse_or(val_expr, type_args):
 
 @primitive('set', args_len=1)
 def parse_set(val_expr, type_args):
-    assert_list(val_expr)
+    assert_type(val_expr, list)
     assert_comparable(type_args[0])
     value = {parse_value(item, type_args[0]) for item in val_expr}
     assert len(value) == len(val_expr), f'found duplicate elements'
@@ -235,7 +262,7 @@ def parse_elt(val_expr, type_args) -> tuple:
 
 @primitive('map', args_len=2)
 def parse_map(val_expr, type_args):
-    assert_list(val_expr)
+    assert_type(val_expr, list)
     assert_comparable(type_args[0])
     return dict(parse_elt(item, type_args) for item in val_expr)
 

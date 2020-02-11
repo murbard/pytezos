@@ -1,5 +1,9 @@
 from copy import deepcopy
 from pprint import pformat
+from typing import List
+
+from pytezos.repl.types import StackItem, assert_stack_item
+from pytezos.repl.parser import assert_pushable
 
 
 class Stack:
@@ -8,33 +12,44 @@ class Stack:
         self.items = items
 
     def ins_many(self, items: list, index: int = 0):
-        assert len(self.items) >= index, f'Got {len(self.items)} items, wanted to insert before {index}th'
+        assert len(self.items) >= index, f'got {len(self.items)} items, wanted to insert before {index}th'
+        for item in items:
+            assert_stack_item(item)
+            assert_pushable(item.type_expr)
         self.items[index:index] = items
 
-    def ins(self, item, index: int = 0):
-        self.ins_many([item], index=index)  # TODO: use insert
+    def ins(self, item: StackItem, index: int = 0, annots=None):
+        assert_stack_item(item)
+        assert_pushable(item.type_expr)
+        item.val_expr['annots'] = annots or []
+        self.items.insert(index, item)
+        if index == 0:
+            return self.items[0]
 
     def peek(self):
-        assert len(self.items) > 0, 'Stack is empty'
+        assert len(self.items) > 0, 'stack is empty'
         return self.items[0]
 
-    def pop_many(self, count: int, index: int = 0) -> list:
-        assert len(self.items) - index >= count, f'Got {len(self.items)} items, requested {count} from {index}th'
+    def pop_many(self, count: int, index: int = 0) -> List[StackItem]:
+        assert len(self.items) - index >= count, f'got {len(self.items)} items, requested {count} from {index}th'
         return [self.items.pop(index) for _ in range(count)]
 
     def pop(self, index: int = 0):
-        return self.pop_many(count=1, index=index)[0]
+        res = self.pop_many(count=1, index=index)
+        return res[0]
 
-    def pop2(self) -> list:
-        return self.pop_many(count=2)
+    def pop2(self):
+        res = self.pop_many(count=2)
+        return tuple(*res)
 
-    def pop3(self) -> list:
-        return self.pop_many(count=3)
+    def pop3(self):
+        res = self.pop_many(count=3)
+        return tuple(*res)
 
     def copy(self) -> 'Stack':
         return Stack(deepcopy(self.items))
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.items)
 
     def __repr__(self):
