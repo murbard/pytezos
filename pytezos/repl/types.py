@@ -1,20 +1,29 @@
 from pprint import pformat
 
 from pytezos.encoding import is_pkh
-from pytezos.michelson.converter import micheline_to_michelson
 from pytezos.repl.parser import parse_value, parse_prim_expr, assert_expr_equal, assert_comparable, \
-    assert_big_map_val, expr_equal
+    assert_big_map_val, expr_equal, assert_type
 
 
 def assert_stack_item(item: 'StackItem'):
     assert isinstance(item, StackItem), f'expected StackItem, got {type(item).__name__}'
 
 
-def assert_type(item: 'StackItem', item_type):
+def assert_stack_type(item: 'StackItem', item_type):
     if not isinstance(item_type, list):
         item_type = [item_type]
     expected = ' or '.join(map(lambda x: x.__name__, item_type))
     assert type(item) in item_type, f'expected {expected}, got {type(item).__name__}: {item}'
+
+
+def dispatch_type_map(a, b, mapping):
+    assert (type(a), type(b)) in mapping, \
+        f'unsupported argument types {type(a).__name__} and {type(b).__name__}'
+    return mapping[(type(a), type(b))]
+
+
+def assert_equal_types(a, b):
+    assert type(a) == type(b), f'different types {type(a).__name__} and {type(b).__name__}'
 
 
 class StackItem:
@@ -24,7 +33,7 @@ class StackItem:
     def __init__(self, *args, val_expr, type_expr):
         self.val_expr = val_expr
         self.type_expr = type_expr
-        self.value = parse_value(val_expr, type_expr)
+        self._val = parse_value(val_expr, type_expr)
 
     @staticmethod
     def _get_type(type_expr):
@@ -44,23 +53,45 @@ class StackItem:
         cls.__cls__[prim] = cls, args_len
         cls.prim = prim
 
+    def __cmp__(self, other: 'StackItem') -> int:
+        assert_stack_item(other)
+        assert_expr_equal(self.type_expr, other.type_expr)
+        if self._val > other._val:
+            return 1
+        elif self._val < other._val:
+            return -1
+        else:
+            return 0
+
+    def __eq__(self, other: 'StackItem'):
+        assert_stack_item(other)
+        assert_expr_equal(self.type_expr, other.type_expr)
+        return expr_equal(self.val_expr, other.val_expr)
+
+    def __int__(self):
+        assert_type(self._val, int)
+        return self._val
+
+    def __str__(self):
+        assert_type(self._val, str)
+        return self._val
+
+    def __bytes__(self):
+        assert_type(self._val, bytes)
+        return self.__bytes__()
+
+    def __bool__(self):
+        assert_type(self._val, bool)
+        return self._val
+
+    def __len__(self):
+        return len(self._val)
+
     def __repr__(self):
-        return pformat(self.value)
+        return pformat(self._val)
 
-    @property
-    def val(self):
-        return micheline_to_michelson(self.val_expr)
-
-    @property
-    def type(self):
-        return micheline_to_michelson(self.type_expr)
-
-    #
-    # def _arg_type(self, arg_idx: int):
-    #     return StackItem.dispatch(self.type_expr['args'][arg_idx])
-    #
-    # def _arg_type_expr(self, arg_idx):
-    #     return self.type_expr['args'][arg_idx]
+    def arg_types(self):
+        return [self._get_type(x) for x in self.type_expr['args']]
 
 
 class String(StackItem, prim='string'):
@@ -75,6 +106,7 @@ class String(StackItem, prim='string'):
 class Int(StackItem, prim='int'):
 
     def __init__(self, value=0, val_expr=None, type_expr=None):
+        assert_type(value, int)
         assert isinstance(value, int)
         super(Int, self).__init__(
             val_expr=val_expr or {'int': str(value)},
@@ -84,7 +116,7 @@ class Int(StackItem, prim='int'):
 class Bytes(StackItem, prim='bytes'):
 
     def __init__(self, value=b'', type_expr=None, val_expr=None):
-        assert isinstance(value, bytes)
+        assert_type(value, bytes)
         super(Bytes, self).__init__(
             val_expr=val_expr or {'bytes': value.hex()},
             type_expr=type_expr or {'prim': self.prim})
@@ -93,15 +125,15 @@ class Bytes(StackItem, prim='bytes'):
 class Nat(Int, prim='nat'):
 
     def __init__(self, value=0, val_expr=None, type_expr=None):
-        assert isinstance(value, int)
-        assert value >= 0
+        assert_type(value, int)
+        assert value >= 0, 'expected non-negative value'
         super(Nat, self).__init__(value, val_expr=val_expr, type_expr=type_expr)
 
 
 class Bool(StackItem, prim='bool'):
 
     def __init__(self, value=False, val_expr=None, type_expr=None):
-        assert isinstance(value, bool)
+        assert_type(value, bool)
         super(Bool, self).__init__(
             val_expr=val_expr or {'int': str(value)},
             type_expr=type_expr or {'prim': self.prim})
@@ -118,11 +150,11 @@ class Unit(StackItem, prim='unit'):
 class List(StackItem, prim='list', args_len=1):
 
     def __iter__(self):
-        val_type = self.val_type()
+        val_type, = self.arg_types()
         for item in self.val_expr:
             yield val_type(val_expr=item, type_expr=self.type_expr['args'][0])
 
-    def __radd__(self, item: StackItem) -> 'List':
+    def prepend(self, item: StackItem) -> 'List':
         self.assert_val_type(item)
         return self.parse(val_expr=[item.val_expr] + self.val_expr, type_expr=self.type_expr)
 
@@ -135,9 +167,6 @@ class List(StackItem, prim='list', args_len=1):
         assert isinstance(items, list) and len(items) > 0, f'expected non-empty list'
         val_expr = [assert_stack_item(x) or x.val_expr for x in items]
         return cls(val_expr=val_expr, type_expr={'prim': cls.prim, 'args': [items[0].type_expr]})
-
-    def val_type(self):
-        return self._get_type(self.type_expr['args'][0])
 
     def assert_val_type(self, item: StackItem):
         assert_stack_item(item)
@@ -153,6 +182,10 @@ class Pair(StackItem, prim='pair', args_len=2):
         return cls(
             type_expr={'prim': cls.prim, 'args': [left.type_expr, right.type_expr]},
             val_expr={'prim': 'Pair', 'args': [left.val_expr, right.val_expr]})
+
+    def __iter__(self):
+        for i in [0, 1]:
+            yield self.parse(val_expr=self.val_expr['args'][i], type_expr=self.type_expr['args'][i])
 
 
 class Option(StackItem, prim='option', args_len=1):
@@ -170,24 +203,35 @@ class Option(StackItem, prim='option', args_len=1):
             type_expr={'prim': cls.prim, 'args': [type_expr]},
             val_expr={'prim': 'None'})
 
+    def __iter__(self):
+        if not self.is_none():
+            yield self.parse(val_expr=self.val_expr['args'][0], type_expr=self.type_expr['args'][0])
+
+    def is_none(self):
+        return self._val is None
+
 
 class Or(StackItem, prim='or', args_len=2):
 
     @classmethod
-    def left(cls, type_expr, item: StackItem):
+    def left(cls, r_type_expr, item: StackItem):
         assert_stack_item(item)
-        assert_expr_equal(type_expr['args'][0], item.type_expr)
-        return cls(type_expr=type_expr, val_expr={'prim': 'Left', 'args': [item.val_expr]})
+        return cls(type_expr={'prim': cls.prim, 'args': [item.type_expr, r_type_expr]},
+                   val_expr={'prim': 'Left', 'args': [item.val_expr]})
 
     @classmethod
-    def right(cls, type_expr, item: StackItem):
+    def right(cls, l_type_expr, item: StackItem):
         assert_stack_item(item)
-        assert_expr_equal(type_expr['args'][1], item.type_expr)
-        return cls(type_expr=type_expr, val_expr={'prim': 'Right', 'args': [item.val_expr]})
+        return cls(type_expr={'prim': cls.prim, 'args': [l_type_expr, item.type_expr]},
+                   val_expr={'prim': 'Right', 'args': [item.val_expr]})
 
-    # def is_left(self):
-    #     prim, _ = parse_prim_expr(self.val_expr)
-    #     return prim == 'Left'
+    def __iter__(self):
+        idx = 0 if self.is_left() else 1
+        yield self.parse(val_expr=self.val_expr['args'][0], type_expr=self.type_expr['args'][idx])
+
+    def is_left(self):
+        prim, _ = parse_prim_expr(self.val_expr)
+        return prim == 'Left'
 
 
 class Set(StackItem, prim='set', args_len=1):
@@ -197,12 +241,31 @@ class Set(StackItem, prim='set', args_len=1):
         assert_comparable(k_type_expr)
         return cls(type_expr={'prim': cls.prim, 'args': [k_type_expr]}, val_expr=[])
 
+    @classmethod
+    def new(cls, items: list):
+        assert isinstance(items, list) and len(items) > 0, f'expected non-empty list'
+        assert len(set(items)) == len(items), f'duplicate keys found'
+        val_expr = [assert_stack_item(x) or x.val_expr for x in items]
+        return cls(val_expr=val_expr, type_expr={'prim': cls.prim, 'args': [items[0].type_expr]})
+
+    def __contains__(self, item: StackItem):
+        self.assert_key_type(item)
+        return item._val in self._val
+
+    def add(self, item: StackItem) -> 'Set':
+        self.assert_key_type(item)
+        if item._val in self._val:
+            return self
+        else:
+            return self.parse(val_expr=[item.val_expr] + self.val_expr, type_expr=self.type_expr)  # TODO: sort
+
     def __iter__(self):
-        key_type = self._get_type(self.type_expr['args'][0])
+        key_type, = self.arg_types()
         for item in self.val_expr:
             yield key_type(val_expr=item, type_expr=self.type_expr['args'][0])
 
     def assert_key_type(self, item: StackItem):
+        assert_stack_item(item)
         assert_expr_equal(self.type_expr['args'][0], item.type_expr)
 
 
@@ -217,29 +280,26 @@ class Map(StackItem, prim='map', args_len=2):
     def new(cls, items: list):
         assert isinstance(items, list) and len(items) > 0, f'expected non-empty list'
         _ = [assert_stack_item(x) for kv in items for x in kv]
-        val_expr = [(k.val_expr, v.val_expr) for k, v in items]
+        val_expr = [{'prim': 'Elt', 'args': [k.val_expr, v.val_expr]} for k, v in items]
         k0, v0 = items[0]
         return cls(val_expr=val_expr, type_expr={'prim': cls.prim, 'args': [k0.type_expr, v0.type_expr]})
 
     def __iter__(self):
-        kv_types = [self._get_type(self.type_expr['args'][i]) for i in [0, 1]]
+        arg_types = self.arg_types()
         for elt in self.val_expr:
-            yield tuple(
-                kv_types[i](val_expr=elt['args'][i], type_expr=self.type_expr['args'][i])
-                for i in [0, 1])
+            yield tuple(arg_types[i](val_expr=elt['args'][i], type_expr=self.type_expr['args'][i]) for i in [0, 1])
 
-    def __getitem__(self, item: StackItem):
+    def __contains__(self, item: StackItem):
         self.assert_key_type(item)
-        if item.value in self.value:
-            val_expr = next(
-                elt['args'][1]
-                for elt in self.val_expr
-                if expr_equal(elt['args'][0], item.val_expr))
-            type_expr = self.type_expr['args'][1]
-            val_type = self._get_type(type_expr)
-            return Option.some(val_type(type_expr=type_expr, val_expr=val_expr))
+        return item._val in self._val
+
+    def add(self, key: StackItem, val: StackItem):
+        self.assert_key_type(key)
+        self.assert_val_type(val)
+        if key._val in self._val:
+            return self
         else:
-            return Option.none(self.type_expr['args'][1])
+            return self.parse(val_expr=self.val_expr + [val.val_expr], type_expr=self.type_expr)  # TODO: sort
 
     def assert_key_type(self, item: StackItem):
         assert_stack_item(item)
@@ -248,6 +308,9 @@ class Map(StackItem, prim='map', args_len=2):
     def assert_val_type(self, item: StackItem):
         assert_stack_item(item)
         assert_expr_equal(self.type_expr['args'][1], item.type_expr)
+
+    def val_type_expr(self):
+        return self.type_expr['args'][1]
 
 
 class BigMap(Map, prim='big_map', args_len=1):
@@ -315,6 +378,10 @@ class Lambda(StackItem, prim='lambda', args_len=2):
     def assert_ret_type(self, item: StackItem):
         assert_stack_item(item)
         assert_expr_equal(self.type_expr['args'][1], item.type_expr)
+
+    @property
+    def code(self):
+        return self._val
 
     # def apply(self, item: StackItem):
     #     p_type_expr = self.type_expr['args'][0]
