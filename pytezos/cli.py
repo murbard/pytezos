@@ -1,12 +1,27 @@
 import fire
-from os.path import abspath
+import json
+import os
+import shutil
+from os.path import abspath, dirname, join
 from glob import glob
 from pprint import pprint
+from ipykernel.kernelapp import IPKernelApp
+from jupyter_client.kernelspec import KernelSpecManager
+from tempfile import TemporaryDirectory
 
 from pytezos import pytezos, Contract, RpcError
 from pytezos.operation.result import OperationResult
 from pytezos.michelson.docstring import generate_docstring
 from pytezos.tools.github import create_deployment, create_deployment_status
+from pytezos.repl.kernel import MichelsonKernel
+
+kernel_js_path = join(dirname(dirname(__file__)), 'assets', 'kernel.js')
+kernel_json = {
+    "argv": ['pytezos', 'kernel', 'run', "-file", "{connection_file}"],
+    "display_name": "Michelson",
+    "language": "michelson",
+    "codemirror_mode": "michelson"
+}
 
 
 def make_bcd_link(network, address):
@@ -38,6 +53,29 @@ def get_contract(path):
 
 
 class PyTezosCli:
+
+    def kernel(self, action, file=None):
+        """
+        Manage Jupyter kernel for the Michelson language
+        :param action: One of `install`, `remove`, `run`
+        :param file: connection settings (for running a kernel)
+        """
+        if action == 'install':
+            kernel_spec = KernelSpecManager()
+            with TemporaryDirectory() as td:
+                os.chmod(td, 0o755)
+                shutil.copy(kernel_js_path, join(td, 'kernel.js'))
+                with open(join(td, 'kernel.json'), 'w') as f:
+                    json.dump(kernel_json, f, sort_keys=True)
+                kernel_spec.install_kernel_spec(td, 'michelson', user=os.environ['USER'])
+        elif action == 'remove':
+            kernel_spec = KernelSpecManager()
+            kernel_spec.remove_kernel_spec('michelson')
+        elif action == 'run':
+            argv = ['-f', file] if file else None
+            return IPKernelApp.launch_instance(kernel_class=MichelsonKernel, argv=argv)
+        else:
+            assert False, action
 
     def storage(self, action, path=None):
         """

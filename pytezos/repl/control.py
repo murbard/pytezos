@@ -1,5 +1,6 @@
 import functools
 from copy import deepcopy
+from pprint import pformat
 
 from pytezos.repl.stack import Stack
 from pytezos.repl.types import StackItem, assert_stack_type, assert_expr_equal, Option, Lambda, Bool, List, Or, Pair, \
@@ -10,7 +11,7 @@ instructions = {}
 
 
 def assert_no_annots(prim, annots):
-    assert not annots, f'{prim}: unexpected annotations {annots}'
+    assert not annots, f'unexpected annotations {annots}'
 
 
 def instruction(prim, args_len=0):
@@ -30,12 +31,12 @@ def instruction(prim, args_len=0):
 
 def parse_instruction(code_expr):
     prim = code_expr.get('prim')
-    if prim not  in instructions:
-        raise MichelsonRuntimeError.init('unknown instruction', prim) from None
+    if prim not in instructions:
+        raise MichelsonRuntimeError.init('unknown instruction', prim)
     args_len, handler = instructions[prim]
     args = code_expr.get('args', [])
     if len(args) != args_len:
-        raise MichelsonRuntimeError.init(f'expected {args_len} arg(s), got {len(args)}', prim) from None
+        raise MichelsonRuntimeError.init(f'expected {args_len} arg(s), got {len(args)}', prim)
     annots = code_expr.get('annots', [])
     return prim, args, annots, handler
     
@@ -49,13 +50,13 @@ def do_interpret(stack: Stack, code_expr):
         try:
             res = handler(stack, prim, args, annots)
         except AssertionError as e:
-            raise MichelsonRuntimeError.init(e.args, prim) from None
+            raise MichelsonRuntimeError.init(str(e), prim)
         except MichelsonRuntimeError as e:
-            raise MichelsonRuntimeError.wrap(e, prim) from None
+            raise MichelsonRuntimeError.wrap(e, prim)
         else:
             return res
     else:
-        assert False, f'unexpected code expression: {code_expr}'
+        assert False, f'unexpected code expression {pformat(code_expr, compact=True)}'
 
 
 @instruction('PUSH', args_len=2)
@@ -124,7 +125,7 @@ def do_exec(stack: Stack, prim, args, annots):
     do_interpret(lmbda_stack, lmbda.code)
     ret = lmbda_stack.pop()
     lmbda.assert_ret_type(ret)
-    assert len(lmbda_stack) == 0, f'lambda stack is not empty: {lmbda_stack}'
+    assert len(lmbda_stack) == 0, f'lambda stack is not empty {lmbda_stack}'
     return stack.ins(ret, annots=annots)
 
 
@@ -139,7 +140,7 @@ def do_apply(stack: Stack, prim, args, annots):
 def do_failwith(stack: Stack, prim, args, annots):
     assert_no_annots(prim, annots)
     top = stack.pop()
-    raise ValueError(top)
+    assert False, repr(top)
 
 
 @instruction('IF', args_len=2)
@@ -249,15 +250,16 @@ def do_map(stack: Stack, prim, args, annots):
             stack.ins(Pair.new(key, val))
             do_interpret(stack, args[0])
     else:
-        assert False, f'Unexpected type: {type(container)}'
+        assert False, f'unexpected type {type(container)}'
 
 
 @instruction('CAST', args_len=1)
 def do_cast(stack: Stack, prim, args, annots):
+    assert_no_annots(prim, annots)
     top = stack.pop()
     assert_expr_equal(args[0], top.type_expr)
     top.type_expr = args[0]
-    return stack.ins(top, annots=annots)
+    return stack.ins(top)
 
 
 @instruction('RENAME')

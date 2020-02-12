@@ -1,4 +1,5 @@
 from pprint import pformat
+from copy import deepcopy
 
 from pytezos.encoding import is_pkh
 from pytezos.repl.parser import parse_value, parse_prim_expr, assert_expr_equal, assert_comparable, \
@@ -30,10 +31,11 @@ class StackItem:
     prim = ''
     __cls__ = {}
 
-    def __init__(self, *args, val_expr, type_expr):
+    def __init__(self, *args, val_expr, type_expr, **kwargs):
         self.val_expr = val_expr
         self.type_expr = type_expr
-        self._val = parse_value(val_expr, type_expr)
+        self.val_annot = kwargs.get('val_annot')
+        self._val = kwargs.get('val', parse_value(val_expr, type_expr))
 
     @staticmethod
     def _get_type(type_expr):
@@ -90,61 +92,74 @@ class StackItem:
     def __repr__(self):
         return pformat(self._val)
 
+    def __deepcopy__(self, memodict={}):
+        return type(self)(val=deepcopy(self._val),
+                          val_expr=deepcopy(self.val_expr),
+                          type_expr=deepcopy(self.type_expr),
+                          val_annot=self.val_annot)
+
     def arg_types(self):
         return [self._get_type(x) for x in self.type_expr['args']]
+
+    def rename(self, annots: list):
+        val_annot = next(filter(lambda x: x.startswith('@'), annots or []), None)
+        return type(self)(val=deepcopy(self._val),
+                          val_expr=deepcopy(self.val_expr),
+                          type_expr=deepcopy(self.type_expr),
+                          val_annot=val_annot)
 
 
 class String(StackItem, prim='string'):
 
-    def __init__(self, value='', val_expr=None, type_expr=None):
+    def __init__(self, value='', val_expr=None, type_expr=None, **kwargs):
         assert isinstance(value, str)
         super(String, self).__init__(
             val_expr=val_expr or {'string': value},
-            type_expr=type_expr or {'prim': self.prim})
+            type_expr=type_expr or {'prim': self.prim}, **kwargs)
 
 
 class Int(StackItem, prim='int'):
 
-    def __init__(self, value=0, val_expr=None, type_expr=None):
+    def __init__(self, value=0, val_expr=None, type_expr=None, **kwargs):
         assert_type(value, int)
         assert isinstance(value, int)
         super(Int, self).__init__(
             val_expr=val_expr or {'int': str(value)},
-            type_expr=type_expr or {'prim': self.prim})
+            type_expr=type_expr or {'prim': self.prim}, **kwargs)
 
 
 class Bytes(StackItem, prim='bytes'):
 
-    def __init__(self, value=b'', type_expr=None, val_expr=None):
+    def __init__(self, value=b'', type_expr=None, val_expr=None, **kwargs):
         assert_type(value, bytes)
         super(Bytes, self).__init__(
             val_expr=val_expr or {'bytes': value.hex()},
-            type_expr=type_expr or {'prim': self.prim})
+            type_expr=type_expr or {'prim': self.prim}, **kwargs)
 
 
 class Nat(Int, prim='nat'):
 
-    def __init__(self, value=0, val_expr=None, type_expr=None):
+    def __init__(self, value=0, val_expr=None, type_expr=None, **kwargs):
         assert_type(value, int)
         assert value >= 0, 'expected non-negative value'
-        super(Nat, self).__init__(value, val_expr=val_expr, type_expr=type_expr)
+        super(Nat, self).__init__(value, val_expr=val_expr, type_expr=type_expr, **kwargs)
 
 
 class Bool(StackItem, prim='bool'):
 
-    def __init__(self, value=False, val_expr=None, type_expr=None):
+    def __init__(self, value=False, val_expr=None, type_expr=None, **kwargs):
         assert_type(value, bool)
         super(Bool, self).__init__(
-            val_expr=val_expr or {'int': str(value)},
-            type_expr=type_expr or {'prim': self.prim})
+            val_expr=val_expr or {'prim': str(value)},
+            type_expr=type_expr or {'prim': self.prim}, **kwargs)
 
 
 class Unit(StackItem, prim='unit'):
 
-    def __init__(self, val_expr=None, type_expr=None):
+    def __init__(self, val_expr=None, type_expr=None, **kwargs):
         super(Unit, self).__init__(
             val_expr=val_expr or {'prim': 'Unit'},
-            type_expr=type_expr or {'prim': self.prim})
+            type_expr=type_expr or {'prim': self.prim}, **kwargs)
 
 
 class List(StackItem, prim='list', args_len=1):
@@ -350,9 +365,9 @@ class Key(StackItem, prim='key'):
 
 class KeyHash(String, prim='key_hash'):
 
-    def __init__(self, value, val_expr=None, type_expr=None):
+    def __init__(self, value, val_expr=None, type_expr=None, **kwargs):
         assert is_pkh(value), f'expected key hash, got {value}'
-        super(KeyHash, self).__init__(value, val_expr=val_expr, type_expr=type_expr)
+        super(KeyHash, self).__init__(value, val_expr=val_expr, type_expr=type_expr, **kwargs)
 
 
 class Signature(StackItem, prim='signature'):
