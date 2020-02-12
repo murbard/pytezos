@@ -44,7 +44,7 @@ def parse_instruction(code_expr):
 def do_interpret(stack: Stack, code_expr):
     if isinstance(code_expr, list):
         for item in code_expr:
-            do_interpret(stack, item)
+            res = do_interpret(stack, item)
     elif isinstance(code_expr, dict):
         prim, args, annots, handler = parse_instruction(code_expr)
         try:
@@ -53,10 +53,9 @@ def do_interpret(stack: Stack, code_expr):
             raise MichelsonRuntimeError.init(str(e), prim)
         except MichelsonRuntimeError as e:
             raise MichelsonRuntimeError.wrap(e, prim)
-        else:
-            return res
     else:
         assert False, f'unexpected code expression {pformat(code_expr, compact=True)}'
+    return res
 
 
 @instruction('PUSH', args_len=2)

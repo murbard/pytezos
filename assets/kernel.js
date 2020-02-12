@@ -10,9 +10,9 @@ define([
                 // string
                 { regex: /"(?:[^\\]|\\.)*?(?:"|$)/, token: "string" },
                 // bytes
-                { regex: /(?<=\s|^)(?:0x[0-9a-f]+)(?=\s|;|\}|$)/i, token: "string" },
+                { regex: /(?<=\s|^)(?:0x[0-9a-f]+)(?=\s|;|\}|\)|$)/i, token: "string" },
                 // int
-                { regex: /(?<=\s|^)(?:[+-]?[0-9]+\.?[0-9]*)(?=\s|;|\}|$)/, token: "string" },
+                { regex: /(?<=\s|^)(?:[+-]?[0-9]+\.?[0-9]*)(?=\s|;|\}|\)|$)/, token: "string" },
                 // comment
                 { regex: /#.*/, token: "comment" },
                 { regex: /\/\*/, token: "comment", next: "comment" },
@@ -35,7 +35,7 @@ define([
                 { regex: /(?<=\s|^)(?:@[A-z_0-9%]+)(?=\s|$)/, token: "atom" },
                 { regex: /(?<=\s|^)(?::[A-z_0-9]+)(?=\s|$)/, token: "atom" },
                 // helpers
-                { regex: /(?<=\s|;|\{|^)(?:PUT|TOP)/, token: "def" },
+                { regex: /(?<=\s|;|\{|^)(?:TOP|EXPAND)(?=\s|;|\}|$)/, token: "def" },
                 // fallback
                 { regex: /[^\s]+/, token: "variable"}
             ],

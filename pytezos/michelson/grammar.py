@@ -1,6 +1,5 @@
 # Inspired by https://github.com/jansorg/tezos-intellij/blob/master/grammar/michelson.bnf
-from pprint import pformat
-from ply.lex import Lexer, lex
+from ply.lex import Lexer, lex, LexToken
 from ply.yacc import yacc
 import re
 import json
@@ -10,12 +9,12 @@ from pytezos.michelson.macros import expand_macro
 
 class MichelsonParserError(ValueError):
 
-    def __init__(self, err_node, message=None):
-        message = message or f'failed to parse expression {pformat(err_node, compact=True)}'
+    def __init__(self, token: LexToken, message=None):
+        message = message or f'failed to parse expression {token}'
         super(MichelsonParserError, self).__init__(message)
         self.message = message
-        self.line = err_node.lineno(0)
-        self.pos = err_node.lexpos(0)
+        self.line = token.lineno
+        self.pos = token.lexpos
 
 
 class Sequence(list):
@@ -84,10 +83,11 @@ class MichelsonParser(object):
             expr = expand_macro(
                 prim=p[1],
                 annots=p[2] or [],
-                args=p[3] or []
+                args=p[3] or [],
+                extra=self.extra
             )
         except AssertionError as e:
-            raise MichelsonParserError(p, str(e))
+            raise MichelsonParserError(p.slice[1], str(e))
         p[0] = Sequence(expr) if isinstance(expr, list) else expr
 
     def p_annots(self, p):
@@ -160,13 +160,14 @@ class MichelsonParser(object):
     def p_error(self, p):
         raise MichelsonParserError(p)
 
-    def __init__(self, debug=False, write_tables=False):
+    def __init__(self, debug=False, write_tables=False, extra_primitives=None):
         self.lexer = SimpleMichelsonLexer()
         self.parser = yacc(
             module=self,
             debug=debug,
             write_tables=write_tables,
         )
+        self.extra = extra_primitives
 
     def parse(self, code):
         return self.parser.parse(code)
