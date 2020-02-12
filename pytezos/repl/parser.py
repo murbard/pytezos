@@ -12,17 +12,21 @@ parsers = {}
 class MichelsonRuntimeError(ValueError):
 
     def __init__(self, message, trace):
-        super(MichelsonRuntimeError, self).__init__(message)
+        super(MichelsonRuntimeError, self).__init__(f'{message}: {" -> ".join(trace)}')
         self.message = message
         self.trace = trace
 
-    @staticmethod
-    def init(message, prim) -> 'MichelsonRuntimeError':
-        return MichelsonRuntimeError(message, trace=[prim])
+    @classmethod
+    def init(cls, message, prim):
+        return cls(message, trace=[prim])
 
-    @staticmethod
-    def wrap(error: 'MichelsonRuntimeError', prim) -> 'MichelsonRuntimeError':
-        return MichelsonRuntimeError(error.message, trace=[prim] + error.trace)
+    @classmethod
+    def wrap(cls, error: 'MichelsonRuntimeError', prim):
+        return cls(error.message, trace=[prim] + error.trace)
+
+
+class MichelsonTypeCheckError(MichelsonRuntimeError):
+    pass
 
 
 def primitive(prim, args_len=0):
@@ -37,11 +41,11 @@ def primitive(prim, args_len=0):
 
 
 def assert_type(value, exp_type):
-    assert isinstance(value, exp_type), f'expected {exp_type}, got {type(value)}'
+    assert isinstance(value, exp_type), f'expected {exp_type.__name__}, got {type(value).__name__}'
 
 
 def parse_prim_expr(expr) -> tuple:
-    assert isinstance(expr, dict), f'expected dict, got {type(expr)}'
+    assert isinstance(expr, dict), f'expected dict, got {type(expr).__name__}'
     assert 'prim' in expr, f'prim field is absent'
     return expr['prim'], expr.get('args', [])
 
@@ -89,7 +93,7 @@ def get_core_val(val_expr, core_type):
 
 
 def get_string(val_expr):
-    return int(get_core_val(val_expr, core_type='string'))
+    return get_core_val(val_expr, core_type='string')
 
 
 def get_int(val_expr):
@@ -164,10 +168,10 @@ def assert_big_map_val(type_expr):
 def parse_type(type_expr) -> Tuple[str, list, Callable]:
     prim, args = parse_prim_expr(type_expr)
     if prim not in parsers:
-        raise MichelsonRuntimeError.init('unknown primitive', prim) from None
+        raise MichelsonRuntimeError.init('unknown primitive', prim)
     args_len, func = parsers[prim]
     if len(args) != args_len:
-        raise MichelsonRuntimeError.init('expected {args_len} arg(s), got {len(args)}', prim) from None
+        raise MichelsonRuntimeError.init(f'expected {args_len} arg(s), got {len(args)}', prim)
     return prim, args, func
 
 
@@ -176,9 +180,9 @@ def parse_value(val_expr, type_expr):
     try:
         res = func(val_expr, args)
     except AssertionError as e:
-        raise MichelsonRuntimeError(e.args, prim) from None
+        raise MichelsonTypeCheckError.init(str(e), prim)
     except MichelsonRuntimeError as e:
-        raise MichelsonRuntimeError.wrap(e, prim) from None
+        raise MichelsonTypeCheckError.wrap(e, prim)
     else:
         return res
 

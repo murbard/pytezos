@@ -1,4 +1,3 @@
-from copy import deepcopy
 from pprint import pformat
 from typing import List
 
@@ -21,10 +20,9 @@ class Stack:
     def ins(self, item: StackItem, index: int = 0, annots=None):
         assert_stack_item(item)
         assert_pushable(item.type_expr)
-        item.val_expr['annots'] = annots or []
-        self.items.insert(index, item)
+        self.items.insert(index, item.rename(annots))
         if index == 0:
-            return self.items[0]
+            return self.items[index]
 
     def peek(self):
         assert len(self.items) > 0, 'stack is empty'
@@ -39,15 +37,10 @@ class Stack:
         return res[0]
 
     def pop2(self):
-        res = self.pop_many(count=2)
-        return tuple(*res)
+        return tuple(self.pop_many(count=2))
 
     def pop3(self):
-        res = self.pop_many(count=3)
-        return tuple(*res)
-
-    def copy(self) -> 'Stack':
-        return Stack(deepcopy(self.items))
+        return tuple(self.pop_many(count=3))
 
     def __len__(self) -> int:
         return len(self.items)

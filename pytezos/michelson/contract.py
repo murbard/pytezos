@@ -60,10 +60,15 @@ class ContractParameter(metaclass=InlineDocstring):
         """
         if isinstance(data, dict) and len(data) == 1:
             entrypoint = next(iter(data))
-            value = encode_micheline(data[entrypoint], self.schema, root=self._get_entry_root(entrypoint))
+            if not any(map(lambda x: x.get('fieldname') == entrypoint, self.schema.metadata.values())):
+                entrypoint = 'default'  # prevent auto-generated entrypoint names, like `rrrllll`
         else:
             entrypoint = 'default'
+
+        if entrypoint == 'default':
             value = encode_micheline(data, self.schema)
+        else:
+            value = encode_micheline(data[entrypoint], self.schema, root=self._get_entry_root(entrypoint))
 
         return dict(entrypoint=entrypoint, value=value)
 
