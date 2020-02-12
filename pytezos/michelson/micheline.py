@@ -484,10 +484,13 @@ def make_default(bin_types: dict, root='0'):
     return encode_node(root)
 
 
-def michelson_to_micheline(data):
+def michelson_to_micheline(data, parser=None):
     """
     Converts michelson source text into Micheline expression
     :param data: Michelson string
+    :param parser: custom Michelson parser
     :return: Micheline expression
     """
-    return michelson_parser().parse(data)
+    if parser is None:
+        parser = michelson_parser()
+    return parser.parse(data)

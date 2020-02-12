@@ -56,10 +56,10 @@ def seq(instr=None) -> list:
         return [instr]
 
 
-def expand_macro(prim, annots, args, internal=False):
+def expand_macro(prim, annots, args, internal=False, extra=None):
     assert isinstance(annots, list)
     assert isinstance(args, list)
-    if prim in primitives:
+    if prim in primitives or (isinstance(extra, list) and prim in extra):
         return expr(prim=prim, annots=annots, args=args)
 
     for regexp, handler in macros:
