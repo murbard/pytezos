@@ -17,16 +17,18 @@ class Stack:
             assert_pushable(item.type_expr)
         self.items[index:index] = items
 
-    def ins(self, item: StackItem, index: int = 0, annots=None):
+    def ins(self, item: StackItem, index: int = 0, annots=None, check_pushable=True):
         assert_stack_item(item)
-        assert_pushable(item.type_expr)
+        if check_pushable:
+            assert_pushable(item.type_expr)
         self.items.insert(index, item.rename(annots))
         if index == 0:
             return self.items[index]
 
-    def peek(self):
+    def peek(self, index=0):
         assert len(self.items) > 0, 'stack is empty'
-        return self.items[0]
+        assert index < len(self.items), f'requested {index}th element, got only {len(self.items)} items'
+        return self.items[index]
 
     def pop_many(self, count: int, index: int = 0) -> List[StackItem]:
         assert len(self.items) - index >= count, f'got {len(self.items)} items, requested {count} from {index}th'
