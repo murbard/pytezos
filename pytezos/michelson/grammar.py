@@ -1,5 +1,5 @@
 # Inspired by https://github.com/jansorg/tezos-intellij/blob/master/grammar/michelson.bnf
-
+from pprint import pformat
 from ply.lex import Lexer, lex
 from ply.yacc import yacc
 import re
@@ -9,7 +9,13 @@ from pytezos.michelson.macros import expand_macro
 
 
 class MichelsonParserError(ValueError):
-    pass
+
+    def __init__(self, err_node, message=None):
+        message = message or f'failed to parse expression {pformat(err_node, compact=True)}'
+        super(MichelsonParserError, self).__init__(message)
+        self.message = message
+        self.line = err_node.lineno(0)
+        self.pos = err_node.lexpos(0)
 
 
 class Sequence(list):
@@ -74,11 +80,14 @@ class MichelsonParser(object):
 
     def p_expr(self, p):
         '''expr : PRIM annots args'''
-        expr = expand_macro(
-            prim=p[1],
-            annots=p[2] or [],
-            args=p[3] or []
-        )
+        try:
+            expr = expand_macro(
+                prim=p[1],
+                annots=p[2] or [],
+                args=p[3] or []
+            )
+        except AssertionError as e:
+            raise MichelsonParserError(p, str(e))
         p[0] = Sequence(expr) if isinstance(expr, list) else expr
 
     def p_annots(self, p):

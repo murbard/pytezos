@@ -1,5 +1,6 @@
 import json
 from datetime import datetime
+from pprint import pformat
 
 line_size = 100
 
@@ -113,4 +114,4 @@ def micheline_to_michelson(data, inline=False):
     try:
         return format_node(data, inline=inline, is_root=True)
     except (KeyError, IndexError, TypeError):
-        raise MichelsonFormatterError('Failed to format Micheline expression')
+        raise MichelsonFormatterError(f'Failed to format expression: {pformat(data, compact=True)}')
