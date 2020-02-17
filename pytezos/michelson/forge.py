@@ -221,3 +221,7 @@ def forge_script(script):
     code = forge_micheline(script['code'])
     storage = forge_micheline(script['storage'])
     return forge_array(code) + forge_array(storage)
+
+
+def pack(data):
+    return b'\x05' + forge_micheline(data)
