@@ -44,14 +44,14 @@ but if you feel lucky you can try to install natively:
 ### Installation
 
 ```
-$ pip install pytezos[crypto]
+$ pip install pytezos
 ```
 
 #### Google Colab
 
 `````python
 >>> !apt install libsodium-dev libsecp256k1-dev libgmp-dev
->>> !pip install pytezos[crypto]
+>>> !pip install pytezos
 `````
 
 ### Usage

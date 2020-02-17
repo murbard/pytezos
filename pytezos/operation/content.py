@@ -200,13 +200,14 @@ class ContentMixin:
         return self.operation(content)
 
     @inline_doc
-    def origination(self, script, balance=0,
+    def origination(self, script, balance=0, delegate='',
                     source='', counter=0, fee=0, gas_limit=0, storage_limit=0):
         """
         Deploy smart contract (scriptless KT accounts are not used for delegation since Babylon)
         :param script: {"code": $Micheline, "storage": $Micheline}
         :param balance: Amount transferred on the balance, WARNING: there is no default way to withdraw funds.
         More info: https://tezos.stackexchange.com/questions/1315/can-i-withdraw-funds-from-an-empty-smart-contract
+        :param delegate: Set contract delegate
         :param source: Address from which funds will be sent, leave None to use signatory address
         :param counter: Current account counter, leave None for autocomplete
         :param fee: Leave None for autocomplete
@@ -222,6 +223,7 @@ class ContentMixin:
             'gas_limit': str(gas_limit),
             'storage_limit': str(storage_limit),
             'balance': format_mutez(balance),
+            'delegate': delegate,
             'script': script
         }
 

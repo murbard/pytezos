@@ -170,6 +170,14 @@ def is_key(v) -> bool:
     return True
 
 
+def is_chain_id(v) -> bool:
+    try:
+        _validate(v, prefixes=[b'Net'])
+    except (ValueError, TypeError):
+        return False
+    return True
+
+
 def forge_nat(value) -> bytes:
     """
     Encode a number using LEB128 encoding (Zarith)

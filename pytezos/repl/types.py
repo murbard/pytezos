@@ -1,9 +1,9 @@
 from pprint import pformat
 from copy import deepcopy
 
-from pytezos.encoding import is_pkh
+from pytezos.encoding import is_pkh, is_kt, is_chain_id
 from pytezos.repl.parser import parse_value, parse_prim_expr, assert_expr_equal, assert_comparable, \
-    assert_big_map_val, expr_equal, assert_type
+    assert_big_map_val, expr_equal, assert_type, get_prim_args
 
 
 def assert_stack_item(item: 'StackItem'):
@@ -347,12 +347,20 @@ class Mutez(Nat, prim='mutez'):
     pass
 
 
-class Address(StackItem, prim='address'):
-    pass
+class Address(String, prim='address'):
+
+    def __init__(self, value, val_expr=None, type_expr=None, **kwargs):
+        assert is_pkh(value) or is_kt(value), f'expected address, got {value}'
+        super(Address, self).__init__(value, val_expr=val_expr, type_expr=type_expr, **kwargs)
 
 
 class Contract(StackItem, prim='contract'):
-    pass
+
+    @classmethod
+    def new(cls, address, type_expr):
+        return cls(val=address,
+                   val_expr={'string': address},
+                   type_expr={'prim': cls.prim, 'args': [type_expr]})
 
 
 class Operation(StackItem, prim='operation'):
@@ -374,8 +382,11 @@ class Signature(StackItem, prim='signature'):
     pass
 
 
-class ChainID(StackItem, prim='chain_id'):
-    pass
+class ChainID(String, prim='chain_id'):
+
+    def __init__(self, value, val_expr=None, type_expr=None, **kwargs):
+        assert is_chain_id(value), f'expected chain_id, got {value}'
+        super(ChainID, self).__init__(value, val_expr=val_expr, type_expr=type_expr, **kwargs)
 
 
 class Lambda(StackItem, prim='lambda', args_len=2):
@@ -398,9 +409,13 @@ class Lambda(StackItem, prim='lambda', args_len=2):
     def code(self):
         return self._val
 
-    # def apply(self, item: StackItem):
-    #     p_type_expr = self.type_expr['args'][0]
-    #     assert_prim(p_type_expr, prim='pair', args_len=2)
-    #     left_type_expr = p_type_expr['args'][0]
-    #     assert left_type_expr == item.type_expr, f'Expected {pformat(left_type_expr)}, got {pformat(item.type_expr)}'
-    #     push = {'prim': 'PUSH', 'args': [item.type_expr, item.val_expr]}
+    def partial_apply(self, item: StackItem):
+        l_type_expr, r_type_expr = get_prim_args(self.type_expr['args'][0], prim='pair', args_len=2)
+        assert_equal_types(l_type_expr, item.type_expr)
+        push = {'prim': 'PUSH', 'args': [item.type_expr, item.val_expr]}
+        code = self.val_expr['args'][0]
+        assert_type(code, list), f'expected instruction sequence'
+        return type(self)(
+            val_expr={'prim': 'Lambda', 'args': [[push] + code]},
+            type_expr={'prim': 'lambda', 'args': [r_type_expr, self.type_expr['args'][1]]}
+        )
