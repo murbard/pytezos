@@ -148,10 +148,17 @@ def assert_comparable(type_expr):
     assert is_comparable(type_expr), f'type is not comparable: {micheline_to_michelson(type_expr)}'
 
 
+def is_pushable(type_expr):
+    prim, args, _ = parse_type(type_expr)
+    if prim in ['big_map', 'contract', 'operation']:
+        return False
+    if args:
+        return all(map(is_pushable, args))
+    return True
+
+
 def assert_pushable(type_expr):
-    prim, _ = parse_prim_expr(type_expr)
-    assert prim not in ['big_map', 'contract', 'operation'], \
-        f'type is not pushable: {micheline_to_michelson(type_expr)}'
+    assert is_pushable(type_expr), f'type is not pushable: {micheline_to_michelson(type_expr)}'
 
 
 def is_big_map_val(type_expr):

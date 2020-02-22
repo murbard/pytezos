@@ -47,6 +47,9 @@ class Context:
     def set(self, key, value):
         self.meta[key] = value
 
+    def unset(self, key):
+        del self.meta[key]
+
     def drop_all(self):
         self.stack.clear()
 

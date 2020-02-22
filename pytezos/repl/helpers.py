@@ -1,15 +1,21 @@
 from pytezos.repl.control import instruction, do_interpret
 from pytezos.repl.context import Context, StackItem
-from pytezos.repl.parser import get_int
-from pytezos.repl.types import Pair
+from pytezos.repl.parser import get_int, get_string, parse_prim_expr
+from pytezos.repl.types import Pair, Mutez, Address, ChainID, Timestamp
 
-helpers_prim = ['TOP', 'EXPAND', 'RUN']
+helpers_prim = ['TOP', 'DROP_ALL', 'EXPAND', 'RUN', 'PATCH', 'UNSET']
+patch_prim = ['ADDRESS', 'AMOUNT', 'BALANCE', 'CHAIN_ID', 'SENDER', 'SOURCE', 'NOW']
 
 
 @instruction('TOP', args_len=1)
 def do_top(ctx: Context, prim, args, annots):
     count = min(get_int(args[0]), len(ctx.stack))
     return ctx.stack[:count]
+
+
+@instruction('DROP_ALL')
+def do_drop_all(ctx: Context, prim, args, annots):
+    ctx.drop_all()
 
 
 @instruction('EXPAND', args_len=1)
@@ -36,3 +42,27 @@ def do_run(ctx: Context, prim, args, annots):
         res = do_interpret(ctx, code)
 
     return res
+
+
+@instruction('PATCH', args_len=2)
+def do_patch(ctx: Context, prim, args, annots):
+    key, = parse_prim_expr(args[0])
+    assert key in patch_prim, f'expected one of {", ".join(patch_prim)}, got {args[0]}'
+    if key in ['AMOUNT', 'BALANCE']:
+        res = Mutez(get_int(args[1]))
+    elif key == 'NOW':
+        res = Timestamp(get_int(args[1]))
+    elif key in ['SOURCE', 'SENDER', 'ADDRESS']:
+        res = Address(get_string(args[1]))
+    elif key == 'CHAIN_ID':
+        res = ChainID(get_string(args[1]))
+    else:
+        assert False
+    ctx.set(key, res)
+
+
+@instruction('UNSET', args_len=1)
+def do_unset(ctx: Context, prim, args, annots):
+    key, = parse_prim_expr(args[0])
+    assert key in patch_prim, f'expected one of {", ".join(patch_prim)}, got {args[0]}'
+    ctx.unset(key)
