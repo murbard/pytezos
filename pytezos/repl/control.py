@@ -44,16 +44,21 @@ def parse_instruction(code_expr):
 def do_interpret(ctx: Context, code_expr):
     res = None
     if isinstance(code_expr, list):
+        ctx.begin()
         for item in code_expr:
             res = do_interpret(ctx, item)
+        ctx.end()
     elif isinstance(code_expr, dict):
         prim, args, annots, handler = parse_instruction(code_expr)
         try:
+            ctx.begin(prim)
             res = handler(ctx, prim, args, annots)
         except AssertionError as e:
             raise MichelsonRuntimeError.init(str(e), prim)
         except MichelsonRuntimeError as e:
             raise MichelsonRuntimeError.wrap(e, prim)
+        finally:
+            ctx.end()
     else:
         assert False, f'unexpected code expression {pformat(code_expr, compact=True)}'
     return res
@@ -63,7 +68,7 @@ def do_interpret(ctx: Context, code_expr):
 def do_push(ctx: Context, prim, args, annots):
     item = StackItem.parse(val_expr=args[1], type_expr=args[0])
     assert_pushable(item.type_expr)
-    return ctx.ins(item, annots=annots)
+    ctx.ins(item, annots=annots)
 
 
 @instruction('DROP', args_len=1)
@@ -76,14 +81,14 @@ def do_drop(ctx: Context, prim, args, annots):
 @instruction('DUP')
 def do_dup(ctx: Context, prim, args, annots):
     top = ctx.peek()
-    return ctx.ins(deepcopy(top), annots=annots)
+    ctx.ins(deepcopy(top), annots=annots)
 
 
 @instruction('SWAP')
 def do_swap(ctx: Context, prim, args, annots):
     assert_no_annots(prim, annots)
     second = ctx.pop(index=1)
-    return ctx.ins(second)
+    ctx.ins(second)
 
 
 @instruction('DIG', args_len=1)
@@ -91,7 +96,7 @@ def do_dig(ctx: Context, prim, args, annots):
     assert_no_annots(prim, annots)
     index = get_int(args[0])
     res = ctx.pop(index=index)
-    return ctx.ins(res)
+    ctx.ins(res)
 
 
 @instruction('DUG', args_len=1)
@@ -99,7 +104,7 @@ def do_dug(ctx: Context, prim, args, annots):
     assert_no_annots(prim, annots)
     index = get_int(args[0])
     res = ctx.pop()
-    return ctx.ins(res, index=index-1)
+    ctx.ins(res, index=index-1)
 
 
 @instruction('DIP', args_len=2)
@@ -108,13 +113,14 @@ def do_dip(ctx: Context, prim, args, annots):
     count = get_int(args[0])
     protected = ctx.pop_many(count=count)
     do_interpret(ctx, args[1])
+
     ctx.ins_many(protected)
 
 
 @instruction('LAMBDA', args_len=3)
 def do_lambda(ctx: Context, prim, args, annots):
     res = Lambda.new(p_type_expr=args[0], r_type_expr=args[1], code=args[2])
-    return ctx.ins(res, annots=annots)
+    ctx.ins(res, annots=annots)
 
 
 @instruction('EXEC')
@@ -127,7 +133,7 @@ def do_exec(ctx: Context, prim, args, annots):
     ret = lmbda_ctx.pop()
     lmbda.assert_ret_type(ret)
     assert len(lmbda_ctx) == 0, f'lambda ctx is not empty {lmbda_ctx}'
-    return ctx.ins(ret, annots=annots)
+    ctx.ins(ret, annots=annots)
 
 
 @instruction('APPLY')
@@ -236,7 +242,7 @@ def do_map(ctx: Context, prim, args, annots):
         assert False
 
     res = type(container).new(items)
-    return ctx.ins(res, annots=annots)
+    ctx.ins(res, annots=annots)
 
 
 @instruction('ITER', args_len=1)
@@ -261,10 +267,10 @@ def do_cast(ctx: Context, prim, args, annots):
     top = ctx.pop()
     assert_expr_equal(args[0], top.type_expr)
     top.type_expr = args[0]
-    return ctx.ins(top)
+    ctx.ins(top)
 
 
 @instruction('RENAME')
 def do_rename(ctx: Context, prim, args, annots):
     top = ctx.pop()
-    return ctx.ins(top, annots=annots)
+    ctx.ins(top, annots=annots)

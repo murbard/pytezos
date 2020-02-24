@@ -1,3 +1,5 @@
+from pprint import pprint
+
 from pytezos.michelson.micheline import Schema, collapse_micheline, build_maps, parse_micheline, make_json, \
     parse_json, make_micheline, is_micheline, michelson_to_micheline, BigMapSchema
 from pytezos.michelson.formatter import micheline_to_michelson
@@ -21,8 +23,9 @@ def build_schema(code) -> Schema:
     try:
         metadata = collapse_micheline(code)
         return Schema(metadata, *build_maps(metadata))
-    except (KeyError, ValueError, TypeError):
-        raise MichelineSchemaError('Failed to build schema') from None
+    except (KeyError, ValueError, TypeError) as e:
+        pprint(code, compact=True)
+        raise MichelineSchemaError(f'Failed to build schema', e.args)
 
 
 def decode_micheline(data, schema: Schema, root='0'):
@@ -36,9 +39,10 @@ def decode_micheline(data, schema: Schema, root='0'):
     try:
         json_values = parse_micheline(data, schema.bin_to_json, schema.bin_types, root)
         return make_json(json_values)
-    except (KeyError, IndexError, TypeError):
+    except (KeyError, IndexError, TypeError) as e:
         print(generate_docstring(schema, 'schema'))
-        raise MichelineSchemaError('Failed to decode micheline expression', data) from None
+        pprint(data, compact=True)
+        raise MichelineSchemaError(f'Failed to decode micheline expression', e.args)
 
 
 def encode_micheline(data, schema: Schema, root='0', binary=False):
@@ -54,9 +58,10 @@ def encode_micheline(data, schema: Schema, root='0', binary=False):
         json_root = schema.bin_to_json[root]
         bin_values = parse_json(data, schema.json_to_bin, schema.bin_types, json_root)
         return make_micheline(bin_values, schema.bin_types, root, binary)
-    except (KeyError, IndexError, TypeError):
+    except (KeyError, IndexError, TypeError) as e:
         print(generate_docstring(schema, 'schema'))
-        raise MichelineSchemaError('Failed to encode micheline expression', data) from None
+        pprint(data, compact=True)
+        raise MichelineSchemaError(f'Failed to encode micheline expression', e.args)
 
 
 def convert(source, schema: Schema = None, output='micheline', inline=False):

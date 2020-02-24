@@ -28,7 +28,7 @@ class SimpleMichelsonLexer(Lexer):
     t_INT = r'-?[0-9]+'
     t_BYTE = r'0x[A-Fa-f0-9]+'
     t_STR = r'\"(\\.|[^\"])*\"'
-    t_ANNOT = r'[:@%]+([_a-zA-Z][_0-9a-zA-Z\.]*)?'
+    t_ANNOT = r'[:@%]+([_0-9a-zA-Z\.]*)?'  # r'[:@%]+([_a-zA-Z][_0-9a-zA-Z\.]*)?'
     t_PRIM = r'[A-Za-z][A-Za-z0-9_]+'
     t_LEFT_CURLY = r'\{'
     t_RIGHT_CURLY = r'\}'

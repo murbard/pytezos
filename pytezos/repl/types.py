@@ -1,6 +1,7 @@
 from pprint import pformat
 from copy import deepcopy
 
+from pytezos.michelson.converter import micheline_to_michelson
 from pytezos.encoding import is_pkh, is_kt, is_chain_id
 from pytezos.repl.parser import parse_value, parse_prim_expr, assert_expr_equal, assert_comparable, \
     assert_big_map_val, expr_equal, assert_type, get_prim_args
@@ -419,3 +420,6 @@ class Lambda(StackItem, prim='lambda', args_len=2):
             val_expr={'prim': 'Lambda', 'args': [[push] + code]},
             type_expr={'prim': 'lambda', 'args': [r_type_expr, self.type_expr['args'][1]]}
         )
+
+    def __repr__(self):
+        return micheline_to_michelson(self._val, inline=True)

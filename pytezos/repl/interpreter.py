@@ -1,0 +1,87 @@
+from copy import deepcopy
+from pprint import pformat
+
+from pytezos.michelson.grammar import MichelsonParser, MichelsonParserError
+from pytezos.michelson.converter import michelson_to_micheline, micheline_to_michelson
+from pytezos.repl.control import do_interpret, MichelsonRuntimeError
+from pytezos.repl.helpers import *
+from pytezos.repl.arithmetic import *
+from pytezos.repl.structures import *
+from pytezos.repl.blockchain import *
+
+
+def format_stack_item(item: StackItem):
+    row = {
+        'value_expression': micheline_to_michelson(item.val_expr),
+        'type_expression': micheline_to_michelson(item.type_expr)
+    }
+    if item.val_annot is not None:
+        row['value_annotation'] = item.val_annot
+    return row
+
+
+def format_stdout(items):
+    return ''.join(items)
+
+
+def format_result(result):
+    if result is None:
+        return None
+    elif isinstance(result, StackItem):
+        return [format_stack_item(result)]
+    elif isinstance(result, list):
+        if isinstance(result[0], StackItem):
+            return list(map(format_stack_item, result))
+        else:
+            return micheline_to_michelson(result)
+    elif isinstance(result, dict):
+        return micheline_to_michelson(result)
+    else:
+        return result
+
+
+def format_stderr(error):
+    ename = type(error).__name__
+    if isinstance(error, MichelsonRuntimeError):
+        evalue, traceback = error.message, 'at ' + ' -> '.join(error.trace)
+    elif isinstance(error, MichelsonParserError):
+        evalue, traceback = error.message, f'at line {error.line}, pos {error.pos}'
+    else:
+        evalue, traceback = pformat(error.args, compact=True), ''
+    return {'name': ename,
+            'value': evalue,
+            'trace': traceback}
+
+
+class Interpreter:
+
+    def __init__(self):
+        self.ctx = Context()
+        self.parser = MichelsonParser(extra_primitives=helpers_prim)
+
+    def execute(self, code):
+        int_res = {'success': False}
+
+        try:
+            code_expr = michelson_to_micheline(code, parser=self.parser)
+        except MichelsonParserError as e:
+            int_res['stderr'] = format_stderr(e)
+            return int_res
+
+        backup = deepcopy(self.ctx.stack)
+
+        try:
+            res = do_interpret(self.ctx, code_expr)
+            if res is None and len(self.ctx) > 0:
+                res = self.ctx.peek()
+            int_res['result'] = format_result(res)
+            int_res['success'] = True
+        except MichelsonRuntimeError as e:
+            int_res['stderr'] = format_stderr(e)
+            self.ctx.stack = backup
+        finally:
+            int_res['stdout'] = format_stdout(self.ctx.stdout)
+            self.ctx.stdout.clear()
+
+        print(int_res['stdout'])
+        return int_res
