@@ -8,18 +8,16 @@ from pytezos.repl.types import assert_stack_type, Mutez, ChainID, Address, Contr
 from pytezos.repl.parser import MichelsonTypeCheckError
 
 MAINNET_CHAIN_ID = 'NetXdQprcVkpaWU'
-DEFAULT_ADDRESS = ''
-DEFAULT_SENDER = ''
-DEFAULT_SOURCE = ''
 UNIT_TYPE_EXPR = {'prim': 'unit'}
 
 
-def get_network_by_chain_id(chain_id):
+def get_network_by_chain_id(chain_id: ChainID):
     networks = {
         MAINNET_CHAIN_ID: 'mainnet'
     }
-    assert chain_id in networks, f'unknown chain_id {chain_id}'
-    return networks[chain_id]
+    key = str(chain_id)
+    assert key in networks, f'unknown chain_id {key}'
+    return networks[key]
 
 
 @instruction('parameter', args_len=1)
@@ -39,46 +37,51 @@ def do_parameter(ctx: Context, prim, args, annots):
 
 @instruction('ADDRESS')
 def do_address(ctx: Context, prim, args, annots):
-    res = Address(ctx.get('ADDRESS', DEFAULT_ADDRESS))
-    return ctx.ins(res, annots=annots)
+    res = ctx.get('ADDRESS')
+    assert res, f'ADDRESS is not initialized'
+    ctx.ins(res, annots=annots)
 
 
 @instruction('AMOUNT')
 def do_amount(ctx: Context, prim, args, annots):
-    res = Mutez(ctx.get('AMOUNT', 0))
-    return ctx.ins(res, annots=annots)
+    res = ctx.get('AMOUNT', Mutez(0))
+    ctx.ins(res, annots=annots)
 
 
 @instruction('BALANCE')
 def do_balance(ctx: Context, prim, args, annots):
-    res = Mutez(ctx.get('BALANCE', 0))
-    return ctx.ins(res, annots=annots)
+    res = ctx.get('BALANCE', Mutez(0))
+    ctx.ins(res, annots=annots)
 
 
 @instruction('CHAIN_ID')
 def do_chain_id(ctx: Context, prim, args, annots):
-    res = ChainID(ctx.get('CHAIN_ID', MAINNET_CHAIN_ID))
-    return ctx.ins(res, annots=annots)
+    res = ctx.get('CHAIN_ID', ChainID(MAINNET_CHAIN_ID))
+    ctx.ins(res, annots=annots)
 
 
 @instruction('SELF')
 def do_self(ctx: Context, prim, args, annots):
     p_type_expr = ctx.get('parameter')
     assert p_type_expr, f'parameter type is not initialized'
-    res = Contract.new(ctx.get('ADDRESS'), type_expr=p_type_expr)  # TODO: typecheck?
-    return ctx.ins(res, annots=annots)
+    address = ctx.get('ADDRESS')
+    assert address, f'ADDRESS is not initialized'
+    res = Contract.new(str(address), type_expr=p_type_expr)
+    ctx.ins(res, annots=annots)
 
 
 @instruction('SENDER')
 def do_sender(ctx: Context, prim, args, annots):
-    res = Address(ctx.get('SENDER', DEFAULT_SENDER))
-    return ctx.ins(res, annots=annots)
+    res = ctx.get('SENDER')
+    assert res, f'SENDER is not initialized'
+    ctx.ins(res, annots=annots)
 
 
 @instruction('SOURCE')
 def do_source(ctx: Context, prim, args, annots):
-    res = Address(ctx.get('SOURCE', DEFAULT_SOURCE))
-    return ctx.ins(res, annots=annots)
+    res = ctx.get('SOURCE')
+    assert res, f'SOURCE is not initialized'
+    ctx.ins(res, annots=annots)
 
 
 @instruction('NOW')
@@ -90,7 +93,7 @@ def do_now(ctx: Context, prim, args, annots):
         now = int(datetime.utcnow().timestamp())
 
     res = Timestamp(now)
-    return ctx.ins(res, annots=annots)
+    ctx.ins(res, annots=annots)
 
 
 def assert_contract(chain_id, address, type_expr):
@@ -110,7 +113,7 @@ def do_contract(ctx: Context, prim, args, annots):
     if chain_id:
         assert_contract(chain_id, address=str(top), type_expr=args[0])
     res = Contract.new(str(top), type_expr=args[0])
-    return ctx.ins(res, annots=annots)
+    ctx.ins(res, annots=annots)
 
 
 @instruction('IMPLICIT_ACCOUNT')
@@ -121,7 +124,7 @@ def do_implicit_account(ctx: Context, prim, args, annots):
     if chain_id:
         assert_contract(chain_id, address=str(top), type_expr=UNIT_TYPE_EXPR)
     res = Contract.new(str(top), type_expr=UNIT_TYPE_EXPR)
-    return ctx.ins(res, annots=annots)
+    ctx.ins(res, annots=annots)
 
 
 @instruction('CREATE_CONTRACT', args_len=3)
@@ -142,9 +145,9 @@ def do_create_contract(ctx: Context, prim, args, annots):
 
 @instruction('SET_DELEGATE')
 def do_set_delegate(ctx: Context, prim, args, annots):
-    pass
+    pass  # TODO
 
 
 @instruction('TRANSFER_TOKENS')
 def do_transfer_tokens(ctx: Context, prim, args, annots):
-    pass
+    pass  # TODO

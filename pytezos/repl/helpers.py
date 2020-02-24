@@ -1,16 +1,24 @@
+from os.path import isfile
+
+from pytezos import Contract, pytezos
+from pytezos.encoding import is_kt
 from pytezos.repl.control import instruction, do_interpret
 from pytezos.repl.context import Context, StackItem
 from pytezos.repl.parser import get_int, get_string, parse_prim_expr
 from pytezos.repl.types import Pair, Mutez, Address, ChainID, Timestamp
 
-helpers_prim = ['TOP', 'DROP_ALL', 'EXPAND', 'RUN', 'PATCH', 'UNSET']
+helpers_prim = ['DUMP', 'PRINT', 'DROP_ALL', 'EXPAND', 'RUN', 'PATCH', 'UNSET', 'INCLUDE']
 patch_prim = ['ADDRESS', 'AMOUNT', 'BALANCE', 'CHAIN_ID', 'SENDER', 'SOURCE', 'NOW']
 
 
-@instruction('TOP', args_len=1)
-def do_top(ctx: Context, prim, args, annots):
-    count = min(get_int(args[0]), len(ctx.stack))
-    return ctx.stack[:count]
+@instruction('DUMP', args_len=1)
+def do_dump(ctx: Context, prim, args, annots):
+    return ctx.dump(count=get_int(args[0]))
+
+
+@instruction('PRINT', args_len=1)
+def do_print(ctx: Context, prim, args, annots):
+    ctx.print(template=get_string(args[0]))
 
 
 @instruction('DROP_ALL')
@@ -35,13 +43,13 @@ def do_run(ctx: Context, prim, args, annots):
 
     ctx.drop_all()
     pair = Pair.new(parameter, storage)
-    res = ctx.ins(pair, annots=annots)
+    ctx.ins(pair, annots=annots)
 
     code = ctx.get('code')
     if code:
-        res = do_interpret(ctx, code)
+        do_interpret(ctx, code)
 
-    return res
+    return ctx.peek()
 
 
 @instruction('PATCH', args_len=2)
@@ -66,3 +74,18 @@ def do_unset(ctx: Context, prim, args, annots):
     key, = parse_prim_expr(args[0])
     assert key in patch_prim, f'expected one of {", ".join(patch_prim)}, got {args[0]}'
     ctx.unset(key)
+
+
+@instruction('INCLUDE', args_len=1)
+def do_include(ctx: Context, prim, args, annots):
+    path = get_string(args[0])
+
+    if isfile(path):
+        code = Contract.from_file(path).code
+    else:
+        parts = path.split('%')
+        address, network = parts[0], parts[1] if len(parts) > 1 else 'mainnet'
+        assert is_kt(address), f'expected filename or KT address (with network), got {path}'
+        code = pytezos.using(network).contract(address).contract.code
+
+    do_interpret(ctx, code)
