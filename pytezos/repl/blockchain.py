@@ -39,25 +39,25 @@ def do_parameter(ctx: Context, prim, args, annots):
 def do_address(ctx: Context, prim, args, annots):
     res = ctx.get('ADDRESS')
     assert res, f'ADDRESS is not initialized'
-    ctx.ins(res, annots=annots)
+    ctx.push(res, annots=annots)
 
 
 @instruction('AMOUNT')
 def do_amount(ctx: Context, prim, args, annots):
     res = ctx.get('AMOUNT', Mutez(0))
-    ctx.ins(res, annots=annots)
+    ctx.push(res, annots=annots)
 
 
 @instruction('BALANCE')
 def do_balance(ctx: Context, prim, args, annots):
     res = ctx.get('BALANCE', Mutez(0))
-    ctx.ins(res, annots=annots)
+    ctx.push(res, annots=annots)
 
 
 @instruction('CHAIN_ID')
 def do_chain_id(ctx: Context, prim, args, annots):
     res = ctx.get('CHAIN_ID', ChainID(MAINNET_CHAIN_ID))
-    ctx.ins(res, annots=annots)
+    ctx.push(res, annots=annots)
 
 
 @instruction('SELF')
@@ -67,21 +67,21 @@ def do_self(ctx: Context, prim, args, annots):
     address = ctx.get('ADDRESS')
     assert address, f'ADDRESS is not initialized'
     res = Contract.new(str(address), type_expr=p_type_expr)
-    ctx.ins(res, annots=annots)
+    ctx.push(res, annots=annots)
 
 
 @instruction('SENDER')
 def do_sender(ctx: Context, prim, args, annots):
     res = ctx.get('SENDER')
     assert res, f'SENDER is not initialized'
-    ctx.ins(res, annots=annots)
+    ctx.push(res, annots=annots)
 
 
 @instruction('SOURCE')
 def do_source(ctx: Context, prim, args, annots):
     res = ctx.get('SOURCE')
     assert res, f'SOURCE is not initialized'
-    ctx.ins(res, annots=annots)
+    ctx.push(res, annots=annots)
 
 
 @instruction('NOW')
@@ -93,7 +93,7 @@ def do_now(ctx: Context, prim, args, annots):
         now = int(datetime.utcnow().timestamp())
 
     res = Timestamp(now)
-    ctx.ins(res, annots=annots)
+    ctx.push(res, annots=annots)
 
 
 def assert_contract(chain_id, address, type_expr):
@@ -113,7 +113,7 @@ def do_contract(ctx: Context, prim, args, annots):
     if chain_id:
         assert_contract(chain_id, address=str(top), type_expr=args[0])
     res = Contract.new(str(top), type_expr=args[0])
-    ctx.ins(res, annots=annots)
+    ctx.push(res, annots=annots)
 
 
 @instruction('IMPLICIT_ACCOUNT')
@@ -124,7 +124,7 @@ def do_implicit_account(ctx: Context, prim, args, annots):
     if chain_id:
         assert_contract(chain_id, address=str(top), type_expr=UNIT_TYPE_EXPR)
     res = Contract.new(str(top), type_expr=UNIT_TYPE_EXPR)
-    ctx.ins(res, annots=annots)
+    ctx.push(res, annots=annots)
 
 
 @instruction('CREATE_CONTRACT', args_len=3)

@@ -4,8 +4,8 @@ import simplejson as json
 from os.path import dirname, join
 
 # Based on https://gist.github.com/noporpoise/16e731849eb1231e86d78f9dfeca3abc
-_no_eol = "\ No newline at end of file"
-_hdr_pat = re.compile('^@@ -(\d+),?(\d+)? \+(\d+),?(\d+)? @@$')
+_no_eol = r'\ No newline at end of file'
+_hdr_pat = re.compile(r'^@@ -(\d+),?(\d+)? \+(\d+),?(\d+)? @@$')
 proj_dir = dirname(dirname(dirname(__file__)))
 
 
