@@ -81,7 +81,7 @@ class StackItem:
 
     def __bytes__(self):
         assert_type(self._val, bytes)
-        return self.__bytes__()
+        return self._val
 
     def __bool__(self):
         assert_type(self._val, bool)
@@ -118,6 +118,10 @@ class String(StackItem, prim='string'):
             val_expr=val_expr or {'string': value},
             type_expr=type_expr or {'prim': self.prim}, **kwargs)
 
+    def __getitem__(self, item):
+        assert_type(item, slice)
+        return type(self)(self._val[item.start:item.stop])
+
 
 class Int(StackItem, prim='int'):
 
@@ -136,6 +140,10 @@ class Bytes(StackItem, prim='bytes'):
         super(Bytes, self).__init__(
             val_expr=val_expr or {'bytes': value.hex()},
             type_expr=type_expr or {'prim': self.prim}, **kwargs)
+
+    def __getitem__(self, item):
+        assert_type(item, slice)
+        return type(self)(self._val[item.start:item.stop])
 
 
 class Nat(Int, prim='nat'):

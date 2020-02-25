@@ -493,4 +493,6 @@ def michelson_to_micheline(data, parser=None):
     """
     if parser is None:
         parser = michelson_parser()
+    if data[0] == '(' and data[-1] == ')':
+        data = data[1:-1]
     return parser.parse(data)

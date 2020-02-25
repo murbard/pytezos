@@ -4,7 +4,7 @@ from pprint import pformat
 
 from pytezos.repl.context import Context
 from pytezos.repl.types import StackItem, assert_stack_type, assert_expr_equal, Option, Lambda, Bool, List, Or, Pair, \
-    Map, Int
+    Map, Set
 from pytezos.repl.parser import get_int, MichelsonRuntimeError, assert_pushable, parse_prim_expr
 
 instructions = {}
@@ -33,7 +33,7 @@ def parse_instruction(code_expr):
     prim, args = parse_prim_expr(code_expr)
     key = (prim, len(args))
     if key not in instructions:
-        raise MichelsonRuntimeError.init(f'unknown instruction: {key}', prim)
+        raise MichelsonRuntimeError.init(f'unknown instruction or wrong args len: {key}', prim)
     handler = instructions[key]
     annots = code_expr.get('annots', [])
     return prim, args, annots, handler
@@ -71,7 +71,12 @@ def do_push(ctx: Context, prim, args, annots):
 def do_drop(ctx: Context, prim, args, annots):
     assert_no_annots(prim, annots)
     count = get_int(args[0])
-    _ = ctx.pop_many(count=count)
+    _ = ctx.pop(count=count)
+
+
+@instruction('DROP')
+def do_drop_1(ctx: Context, prim, args, annots):
+    return do_drop(ctx, prim, [{'int': '1'}], annots)
 
 
 @instruction('DUP')
@@ -84,7 +89,8 @@ def do_dup(ctx: Context, prim, args, annots):
 def do_swap(ctx: Context, prim, args, annots):
     assert_no_annots(prim, annots)
     a, b = ctx.pop2()
-    ctx.push_many([b, a])
+    ctx.push(a)
+    ctx.push(b)
 
 
 @instruction('DIG', args_len=1)
@@ -92,7 +98,7 @@ def do_dig(ctx: Context, prim, args, annots):
     assert_no_annots(prim, annots)
     index = get_int(args[0])
     ctx.protect(index)
-    res = ctx.pop()
+    res = ctx.pop1()
     ctx.push(res)
     ctx.restore(index)
 
@@ -101,7 +107,7 @@ def do_dig(ctx: Context, prim, args, annots):
 def do_dug(ctx: Context, prim, args, annots):
     assert_no_annots(prim, annots)
     index = get_int(args[0])
-    res = ctx.pop()
+    res = ctx.pop1()
     ctx.protect(index - 1)
     ctx.push(res)
     ctx.restore(index - 1)
@@ -132,11 +138,11 @@ def do_exec(ctx: Context, prim, args, annots):
     param, lmbda = ctx.pop2()
     assert_stack_type(lmbda, Lambda)
     lmbda.assert_param_type(param)
-    lmbda_ctx = Context([param])
+    lmbda_ctx = Context(stack=[param], debug=ctx.debug)
     do_interpret(lmbda_ctx, lmbda.code)
-    ret = lmbda_ctx.pop()
+    ret = lmbda_ctx.pop1()
     lmbda.assert_ret_type(ret)
-    assert len(lmbda_ctx) == 0, f'lambda ctx is not empty {lmbda_ctx}'
+    assert len(lmbda_ctx) == 0, f'lambda stack is not empty {lmbda_ctx}'
     ctx.push(ret, annots=annots)
 
 
@@ -151,14 +157,14 @@ def do_apply(ctx: Context, prim, args, annots):
 @instruction('FAILWITH')
 def do_failwith(ctx: Context, prim, args, annots):
     assert_no_annots(prim, annots)
-    top = ctx.pop()
+    top = ctx.pop1()
     assert False, repr(top)
 
 
 @instruction('IF', args_len=2)
 def do_if(ctx: Context, prim, args, annots):
     assert_no_annots(prim, annots)
-    cond = ctx.pop()
+    cond = ctx.pop1()
     assert_stack_type(cond, Bool)
     do_interpret(ctx, args[0 if bool(cond) else 1])
 
@@ -166,7 +172,7 @@ def do_if(ctx: Context, prim, args, annots):
 @instruction('IF_CONS', args_len=2)
 def do_if_cons(ctx: Context, prim, args, annots):
     assert_no_annots(prim, annots)
-    top = ctx.pop()
+    top = ctx.pop1()
     assert_stack_type(top, List)
     if len(top) > 0:
         ctx.push(top)
@@ -178,7 +184,7 @@ def do_if_cons(ctx: Context, prim, args, annots):
 @instruction('IF_LEFT', args_len=2)
 def do_if_left(ctx: Context, prim, args, annots):
     assert_no_annots(prim, annots)
-    top = ctx.pop()  # type: Or
+    top = ctx.pop1()  # type: Or
     assert_stack_type(top, Or)
     ctx.push(next(iter(top)))
     do_interpret(ctx, args[0 if top.is_left() else 1])
@@ -187,7 +193,7 @@ def do_if_left(ctx: Context, prim, args, annots):
 @instruction('IF_NONE', args_len=2)
 def do_if_left(ctx: Context, prim, args, annots):
     assert_no_annots(prim, annots)
-    top = ctx.pop()
+    top = ctx.pop1()
     assert_stack_type(top, Option)
     if top.is_none():
         do_interpret(ctx, args[0])
@@ -200,7 +206,7 @@ def do_if_left(ctx: Context, prim, args, annots):
 def do_loop(ctx: Context, prim, args, annots):
     assert_no_annots(prim, annots)
     while True:
-        top = ctx.pop()
+        top = ctx.pop1()
         assert_stack_type(top, Bool)
         if bool(top):
             do_interpret(ctx, args[0])
@@ -212,7 +218,7 @@ def do_loop(ctx: Context, prim, args, annots):
 def do_loop_left(ctx: Context, prim, args, annots):
     assert_no_annots(prim, annots)
     while True:
-        top = ctx.pop()
+        top = ctx.pop1()
         assert_stack_type(top, Or)
         ctx.push(next(iter(top)))
         if top.is_left():
@@ -223,7 +229,7 @@ def do_loop_left(ctx: Context, prim, args, annots):
 
 @instruction('MAP', args_len=1)
 def do_map(ctx: Context, prim, args, annots):
-    container = ctx.pop()
+    container = ctx.pop1()
     assert_stack_type(container, [List, Map])
 
     if type(container) == List:
@@ -231,7 +237,7 @@ def do_map(ctx: Context, prim, args, annots):
         for item in container:
             ctx.push(item)
             do_interpret(ctx, args[0])
-            ret = ctx.pop()
+            ret = ctx.pop1()
             container.assert_val_type(ret)
             items.append(ret)
     elif type(container) == Map:
@@ -239,7 +245,7 @@ def do_map(ctx: Context, prim, args, annots):
         for key, val in container:
             ctx.push(Pair.new(key, val))
             do_interpret(ctx, args[0])
-            ret = ctx.pop()
+            ret = ctx.pop1()
             container.assert_val_type(ret)
             items.append((key, ret))
     else:
@@ -252,8 +258,8 @@ def do_map(ctx: Context, prim, args, annots):
 @instruction('ITER', args_len=1)
 def do_map(ctx: Context, prim, args, annots):
     assert_no_annots(prim, annots)
-    container = ctx.pop()
-    if type(container) == List:
+    container = ctx.pop1()
+    if type(container) in [List, Set]:
         for item in container:
             ctx.push(item)
             do_interpret(ctx, args[0])
@@ -268,7 +274,7 @@ def do_map(ctx: Context, prim, args, annots):
 @instruction('CAST', args_len=1)
 def do_cast(ctx: Context, prim, args, annots):
     assert_no_annots(prim, annots)
-    top = ctx.pop()
+    top = ctx.pop1()
     assert_expr_equal(args[0], top.type_expr)
     top.type_expr = args[0]
     ctx.push(top)
@@ -276,5 +282,5 @@ def do_cast(ctx: Context, prim, args, annots):
 
 @instruction('RENAME')
 def do_rename(ctx: Context, prim, args, annots):
-    top = ctx.pop()
+    top = ctx.pop1()
     ctx.push(top, annots=annots)

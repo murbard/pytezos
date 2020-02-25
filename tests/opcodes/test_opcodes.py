@@ -30,15 +30,10 @@ class TestOpcodes(TestCase):
 
     def test_add_delta_timestamp(self):
         self.include('add_delta_timestamp.tz')
-        res = self.i.execute('RUN (Pair 0 0) (Some 0)')
+        res = self.i.execute('RUN (Pair -100 100) (Some "1970-01-01T00:00:00Z")')
         self.assertTrue(res['success'])
 
-    @parameterized.expand([
-        ('RUN (Pair 100 100) (Some "1970-01-01T00:03:20Z")',),
-        ('RUN (Pair 100 -100) (Some "1970-01-01T00:00:00Z")',),
-        ('RUN (Pair "1970-01-01T00:00:00Z" 0) (Some "1970-01-01T00:00:00Z")',)
-    ])
     def test_add_timestamp_delta(self, expr):
         self.include('add_timestamp_delta.tz')
-        res = self.i.execute(expr)
+        res = self.i.execute('RUN (Pair "1970-01-01T00:00:00Z" 0) (Some "1970-01-01T00:00:00Z")')
         self.assertTrue(res['success'])

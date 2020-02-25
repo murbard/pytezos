@@ -107,7 +107,7 @@ def assert_contract(chain_id, address, type_expr):
 
 @instruction('CONTRACT', args_len=1)
 def do_contract(ctx: Context, prim, args, annots):
-    top = ctx.pop()
+    top = ctx.pop1()
     assert_stack_type(top, Address)
     chain_id = ctx.get('CHAIN_ID')
     if chain_id:
@@ -118,7 +118,7 @@ def do_contract(ctx: Context, prim, args, annots):
 
 @instruction('IMPLICIT_ACCOUNT')
 def do_implicit_account(ctx: Context, prim, args, annots):
-    top = ctx.pop()
+    top = ctx.pop1()
     assert_stack_type(top, KeyHash)
     chain_id = ctx.get('CHAIN_ID')
     if chain_id:
