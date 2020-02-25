@@ -7,7 +7,7 @@ from pytezos.repl.types import assert_stack_type, Option, Pair, String, Bytes, L
 
 @instruction(['CAR', 'CDR'])
 def do_car(ctx: Context, prim, args, annots):
-    top = ctx.pop()
+    top = ctx.pop1()
     assert_stack_type(top, Pair)
     handlers = {
         'CAR': lambda x: x[0],
@@ -19,10 +19,10 @@ def do_car(ctx: Context, prim, args, annots):
 
 @instruction('CONCAT')
 def do_concat(ctx: Context, prim, args, annots):
-    top = ctx.pop()
+    top = ctx.pop1()
     assert_stack_type(top, [String, Bytes, List])
     if type(top) in [String, Bytes]:
-        second = ctx.pop()
+        second = ctx.pop1()
         val_type = dispatch_type_map(top, second, {
             (String, String): str,
             (Bytes, Bytes): bytes
@@ -77,7 +77,7 @@ def do_get(ctx: Context, prim, args, annots):
 
 @instruction(['LEFT', 'RIGHT'], args_len=1)
 def do_left(ctx: Context, prim, args, annots):
-    top = ctx.pop()
+    top = ctx.pop1()
     if prim == 'LEFT':
         res = Or.left(r_type_expr=args[0], item=top)
     else:
@@ -107,7 +107,7 @@ def do_none(ctx: Context, prim, args, annots):
 
 @instruction('PACK')
 def do_pack(ctx: Context, prim, args, annots):
-    top = ctx.pop()
+    top = ctx.pop1()
     res = Bytes(pack(top.val_node))
     ctx.push(res, annots=annots)
 
@@ -121,7 +121,7 @@ def do_pair(ctx: Context, prim, args, annots):
 
 @instruction('SIZE')
 def do_size(ctx: Context, prim, args, annots):
-    top = ctx.pop()
+    top = ctx.pop1()
     assert_stack_type(top, [String, Bytes, List, Set, Map])
     res = Nat(len(top))
     ctx.push(res, annots=annots)
@@ -131,9 +131,9 @@ def do_size(ctx: Context, prim, args, annots):
 def do_slice(ctx: Context, prim, args, annots):
     offset, length, s = ctx.pop3()
     assert_stack_type(s, [String, Bytes])
-    if offset + length < len(s):
-        sls = str(s)[offset:offset + length]
-        res = Option.some(type(s)(sls))
+    offset, length = int(offset), int(length)
+    if offset + length <= len(s):
+        res = Option.some(s[offset:offset+length])
     else:
         res = Option.none(type(s)().type_expr)
     ctx.push(res, annots=annots)
@@ -141,7 +141,7 @@ def do_slice(ctx: Context, prim, args, annots):
 
 @instruction('SOME')
 def do_some(ctx: Context, prim, args, annots):
-    top = ctx.pop()
+    top = ctx.pop1()
     res = Option.some(top)
     ctx.push(res, annots=annots)
 
@@ -153,7 +153,7 @@ def do_unit(ctx: Context, prim, args, annots):
 
 @instruction('UNPACK', args_len=1)
 def do_unpack(ctx: Context, prim, args, annots):
-    top = ctx.pop()
+    top = ctx.pop1()
     assert_stack_type(top, Bytes)
     # TODO: unpack micheline
     res = StackItem.parse(type_expr=args[0], val_expr=None)

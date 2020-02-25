@@ -9,7 +9,7 @@ from pytezos.repl.types import assert_stack_type, Int, Nat, Timestamp, Mutez, Op
 
 @instruction('ABS')
 def do_abs(ctx: Context, prim, args, annots):
-    top = ctx.pop()
+    top = ctx.pop1()
     assert_stack_type(top, Int)
     res = Nat(abs(int(top)))
     ctx.push(res, annots=annots)
@@ -62,7 +62,7 @@ def do_ediv(ctx: Context, prim, args, annots):
 
 @instruction(['EQ', 'GE', 'GT', 'LE', 'LT', 'NEQ'])
 def do_eq(ctx: Context, prim, args, annots):
-    top = ctx.pop()
+    top = ctx.pop1()
     assert_stack_type(top, Int)
     handlers = {
         'EQ': lambda x: x == 0,
@@ -78,7 +78,7 @@ def do_eq(ctx: Context, prim, args, annots):
 
 @instruction('INT')
 def do_int(ctx: Context, prim, args, annots):
-    top = ctx.pop()
+    top = ctx.pop1()
     assert_stack_type(top, Nat)
     res = Int(int(top))
     ctx.push(res, annots=annots)
@@ -86,7 +86,7 @@ def do_int(ctx: Context, prim, args, annots):
 
 @instruction('ISNAT')
 def do_is_nat(ctx: Context, prim, args, annots):
-    top = ctx.pop()
+    top = ctx.pop1()
     assert_stack_type(top, Int)
     if int(top) >= 0:
         res = Option.some(Nat(int(top)))
@@ -125,7 +125,7 @@ def do_mul(ctx: Context, prim, args, annots):
 
 @instruction('NEG')
 def do_neg(ctx: Context, prim, args, annots):
-    top = ctx.pop()
+    top = ctx.pop1()
     assert_stack_type(top, [Int, Nat])
     res = Int(-int(top))
     ctx.push(res, annots=annots)
@@ -165,7 +165,7 @@ def do_and(ctx: Context, prim, args, annots):
 
 @instruction('NOT')
 def do_not(ctx: Context, prim, args, annots):
-    top = ctx.pop()
+    top = ctx.pop1()
     assert_stack_type(top, [Nat, Int, Bool])
     if type(top) in [Nat, Int]:
         res = Int(~int(top))
@@ -178,7 +178,7 @@ def do_not(ctx: Context, prim, args, annots):
 
 @instruction('BLAKE2B')
 def do_blake2b(ctx: Context, prim, args, annots):
-    top = ctx.pop()
+    top = ctx.pop1()
     assert_stack_type(top, Bytes)
     res = Bytes(blake2b_32(bytes(top)).digest())
     ctx.push(res, annots=annots)
@@ -202,7 +202,7 @@ def do_check_sig(ctx: Context, prim, args, annots):
 
 @instruction('HASH_KEY')
 def do_hash_key(ctx: Context, prim, args, annots):
-    top = ctx.pop()
+    top = ctx.pop1()
     assert_stack_type(top, Key)
     key = Key.from_encoded_key(str(top))
     res = KeyHash(key.public_key_hash())
@@ -211,7 +211,7 @@ def do_hash_key(ctx: Context, prim, args, annots):
 
 @instruction(['SHA256', 'SHA512'])
 def do_sha(ctx: Context, prim, args, annots):
-    top = ctx.pop()
+    top = ctx.pop1()
     assert_stack_type(top, Bytes)
     handlers = {
         'SHA256': lambda x: sha256(x).digest(),

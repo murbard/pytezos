@@ -26,7 +26,7 @@ class SimpleMichelsonLexer(Lexer):
               'LEFT_CURLY', 'RIGHT_CURLY', 'LEFT_PAREN', 'RIGHT_PAREN', 'SEMI')
 
     t_INT = r'-?[0-9]+'
-    t_BYTE = r'0x[A-Fa-f0-9]+'
+    t_BYTE = r'0x[A-Fa-f0-9]*'
     t_STR = r'\"(\\.|[^\"])*\"'
     t_ANNOT = r'[:@%]+([_0-9a-zA-Z\.]*)?'  # r'[:@%]+([_a-zA-Z][_0-9a-zA-Z\.]*)?'
     t_PRIM = r'[A-Za-z][A-Za-z0-9_]+'
@@ -59,6 +59,18 @@ class MichelsonParser(object):
                  | empty
         '''
         p[0] = p[1]
+
+    def p_instr_int(self, p):
+        '''instr : INT'''
+        p[0] = {'int': p[1]}
+
+    def p_instr_byte(self, p):
+        '''instr : BYTE'''
+        p[0] = {'bytes': p[1][2:]}  # strip 0x prefix
+
+    def p_instr_str(self, p):
+        '''instr : STR'''
+        p[0] = {'string': json.loads(p[1])}
 
     def p_instr_list(self, p):
         '''instr : instr SEMI instr'''
