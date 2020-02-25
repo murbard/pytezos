@@ -10,34 +10,52 @@ class Context:
 
     def __init__(self, stack=None):
         self.stack = stack or []
+        self.protected = 0
         self.meta = dict()
         self.stdout = list()
-        self.depth = 0
+        self.exec_depth = 0
 
-    def ins_many(self, items: list, index: int = 0):
-        assert len(self.stack) >= index, f'got {len(self.stack)} items, wanted to insert before {index}th'
-        for item in items:
-            assert_stack_item(item)
-        self.stack[index:index] = items
-        self.print(f' push {len(items)} items;')
+    def protect(self, count: int):
+        assert len(self.stack) >= count, f'got {len(self.stack)} items, wanted to protect {count}'
+        self.protected += count
+        self.print(f' protect {count} items;')
 
-    def ins(self, item: StackItem, index: int = 0, annots=None):
+    def restore(self, count: int):
+        assert self.protected >= count, f'wanted to restore {count}, only {self.protected} protected'
+        self.print(f' restore {count} items;')
+        self.protected -= count
+
+    def push_many(self, *items):
+        _ = list(map(assert_stack_item, items))
+        self.stack[self.protected:self.protected] = items
+        if len(items) <= 3:
+            body = ', '.join(map(repr, items))
+        else:
+            body = f'{len(items)} items'
+        self.print(f' push {body}')
+
+    def push(self, item: StackItem, annots=None):
         assert_stack_item(item)
-        self.stack.insert(index, item.rename(annots))
+        self.stack.insert(self.protected, item.rename(annots))
         self.print(f' push {repr(item)};')
 
-    def peek(self, index=0):
+    def peek(self):
         assert len(self.stack) > 0, 'stack is empty'
-        assert index < len(self.stack), f'requested {index}th element, got only {len(self.stack)} items'
-        return self.stack[index]
+        return self.stack[0]
 
-    def pop_many(self, count: int, index: int = 0) -> List[StackItem]:
-        assert len(self.stack) - index >= count, f'got {len(self.stack)} items, requested {count} from {index}th'
-        self.print(f' pop {count} item{"s" if count > 1 else ""};')
-        return [self.stack.pop(index) for _ in range(count)]
+    def pop_many(self, count: int) -> List[StackItem]:
+        assert len(self.stack) - self.protected >= count, \
+            f'got {len(self.stack) - self.protected} items, requested {count} '
+        res = [self.stack.pop(self.protected) for _ in range(count)]
+        if count <= 3:
+            body = ', '.join(map(repr, res))
+        else:
+            body = f'{count} items'
+        self.print(f' pop {body};')
+        return res
 
-    def pop(self, index: int = 0):
-        res = self.pop_many(count=1, index=index)
+    def pop(self):
+        res = self.pop_many(count=1)
         return res[0]
 
     def pop2(self):
@@ -80,12 +98,12 @@ class Context:
 
     def begin(self, prim=None):
         if prim:
-            indent = '  ' * self.depth
+            indent = '  ' * self.exec_depth
             self.print(f'\n{indent}{prim}:')
-        self.depth += 1
+        self.exec_depth += 1
 
     def end(self):
-        self.depth -= 1
+        self.exec_depth -= 1
 
     def __len__(self) -> int:
         return len(self.stack)

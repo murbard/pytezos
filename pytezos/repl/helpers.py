@@ -43,7 +43,7 @@ def do_run(ctx: Context, prim, args, annots):
 
     ctx.drop_all()
     pair = Pair.new(parameter, storage)
-    ctx.ins(pair, annots=annots)
+    ctx.push(pair, annots=annots)
 
     code = ctx.get('code')
     if code:
@@ -69,7 +69,7 @@ def do_patch(ctx: Context, prim, args, annots):
     ctx.set(key, res)
 
 
-@instruction('UNSET', args_len=1)
+@instruction('PATCH', args_len=1)
 def do_unset(ctx: Context, prim, args, annots):
     key, = parse_prim_expr(args[0])
     assert key in patch_prim, f'expected one of {", ".join(patch_prim)}, got {args[0]}'

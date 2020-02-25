@@ -1,5 +1,5 @@
 from copy import deepcopy
-from pprint import pformat
+from pprint import pformat, pprint
 
 from pytezos.michelson.grammar import MichelsonParser, MichelsonParserError
 from pytezos.michelson.converter import michelson_to_micheline, micheline_to_michelson
@@ -55,9 +55,10 @@ def format_stderr(error):
 
 class Interpreter:
 
-    def __init__(self):
+    def __init__(self, debug=False):
         self.ctx = Context()
         self.parser = MichelsonParser(extra_primitives=helpers_prim)
+        self.debug = debug
 
     def execute(self, code):
         int_res = {'success': False}
@@ -83,5 +84,14 @@ class Interpreter:
             int_res['stdout'] = format_stdout(self.ctx.stdout)
             self.ctx.stdout.clear()
 
-        print(int_res['stdout'])
+        if self.debug:
+            print(int_res['stdout'])
+            if int_res['success']:
+                if int_res['result']:
+                    print('RETURN: ')
+                    pprint(int_res['result'])
+            else:
+                print('ERROR: ')
+                pprint(int_res['stderr'])
+
         return int_res

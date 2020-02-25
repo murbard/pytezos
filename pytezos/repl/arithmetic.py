@@ -12,7 +12,7 @@ def do_abs(ctx: Context, prim, args, annots):
     top = ctx.pop()
     assert_stack_type(top, Int)
     res = Nat(abs(int(top)))
-    ctx.ins(res, annots=annots)
+    ctx.push(res, annots=annots)
 
 
 @instruction('ADD')
@@ -28,14 +28,14 @@ def do_add(ctx: Context, prim, args, annots):
         (Mutez, Mutez): Mutez
     })
     res = res_type(int(a) + int(b))
-    ctx.ins(res, annots=annots)
+    ctx.push(res, annots=annots)
 
 
 @instruction('COMPARE')
 def do_compare(ctx: Context, prim, args, annots):
     a, b = ctx.pop2()
     res = Int(a.__cmp__(b))
-    ctx.ins(res, annots=annots)
+    ctx.push(res, annots=annots)
 
 
 @instruction('EDIV')
@@ -57,7 +57,7 @@ def do_ediv(ctx: Context, prim, args, annots):
             r += abs(int(b))
             q += 1
         res = Option.some(Pair.new(q_type(q), r_type(r)))
-    ctx.ins(res, annots=annots)
+    ctx.push(res, annots=annots)
 
 
 @instruction(['EQ', 'GE', 'GT', 'LE', 'LT', 'NEQ'])
@@ -73,7 +73,7 @@ def do_eq(ctx: Context, prim, args, annots):
         'NEQ': lambda x: x != 0
     }
     res = Bool(handlers[prim](int(top)))
-    ctx.ins(res, annots=annots)
+    ctx.push(res, annots=annots)
 
 
 @instruction('INT')
@@ -81,7 +81,7 @@ def do_int(ctx: Context, prim, args, annots):
     top = ctx.pop()
     assert_stack_type(top, Nat)
     res = Int(int(top))
-    ctx.ins(res, annots=annots)
+    ctx.push(res, annots=annots)
 
 
 @instruction('ISNAT')
@@ -92,7 +92,7 @@ def do_is_nat(ctx: Context, prim, args, annots):
         res = Option.some(Nat(int(top)))
     else:
         res = Option.none(Nat().type_expr)
-    ctx.ins(res, annots=annots)
+    ctx.push(res, annots=annots)
 
 
 @instruction(['LSL', 'LSR'])
@@ -105,7 +105,7 @@ def do_lsl(ctx: Context, prim, args, annots):
         'LSR': lambda x: x[0] >> x[1]
     }
     res = Nat(handlers[prim]((int(a), int(b))))
-    ctx.ins(res, annots=annots)
+    ctx.push(res, annots=annots)
 
 
 @instruction('MUL')
@@ -120,7 +120,7 @@ def do_mul(ctx: Context, prim, args, annots):
         (Nat, Mutez): Mutez
     })
     res = res_type(int(a) * int(b))
-    ctx.ins(res, annots=annots)
+    ctx.push(res, annots=annots)
 
 
 @instruction('NEG')
@@ -128,7 +128,7 @@ def do_neg(ctx: Context, prim, args, annots):
     top = ctx.pop()
     assert_stack_type(top, [Int, Nat])
     res = Int(-int(top))
-    ctx.ins(res, annots=annots)
+    ctx.push(res, annots=annots)
 
 
 @instruction('SUB')
@@ -144,7 +144,7 @@ def do_sub(ctx: Context, prim, args, annots):
         (Mutez, Mutez): Mutez
     })
     res = res_type(int(a) - int(b))
-    ctx.ins(res, annots=annots)
+    ctx.push(res, annots=annots)
 
 
 @instruction(['AND', 'OR', 'XOR'])
@@ -160,7 +160,7 @@ def do_and(ctx: Context, prim, args, annots):
         'XOR': lambda x: x[0] ^ x[1]
     }
     res = type(a)(handlers[prim]((val_type(a), val_type(b))))
-    ctx.ins(res, annots=annots)
+    ctx.push(res, annots=annots)
 
 
 @instruction('NOT')
@@ -173,7 +173,7 @@ def do_not(ctx: Context, prim, args, annots):
         res = Bool(not bool(top))
     else:
         assert False
-    ctx.ins(res, annots=annots)
+    ctx.push(res, annots=annots)
 
 
 @instruction('BLAKE2B')
@@ -181,7 +181,7 @@ def do_blake2b(ctx: Context, prim, args, annots):
     top = ctx.pop()
     assert_stack_type(top, Bytes)
     res = Bytes(blake2b_32(bytes(top)).digest())
-    ctx.ins(res, annots=annots)
+    ctx.push(res, annots=annots)
 
 
 @instruction('CHECK_SIGNATURE')
@@ -197,7 +197,7 @@ def do_check_sig(ctx: Context, prim, args, annots):
         res = Bool(False)
     else:
         res = Bool(True)
-    ctx.ins(res, annots=annots)
+    ctx.push(res, annots=annots)
 
 
 @instruction('HASH_KEY')
@@ -206,7 +206,7 @@ def do_hash_key(ctx: Context, prim, args, annots):
     assert_stack_type(top, Key)
     key = Key.from_encoded_key(str(top))
     res = KeyHash(key.public_key_hash())
-    ctx.ins(res, annots=annots)
+    ctx.push(res, annots=annots)
 
 
 @instruction(['SHA256', 'SHA512'])
@@ -218,4 +218,4 @@ def do_sha(ctx: Context, prim, args, annots):
         'SHA512': lambda x: sha512(x).digest(),
     }
     res = Bytes(handlers[prim](bytes(top)))
-    ctx.ins(res, annots=annots)
+    ctx.push(res, annots=annots)
