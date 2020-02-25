@@ -66,6 +66,8 @@ class Interpreter:
         try:
             code_expr = michelson_to_micheline(code, parser=self.parser)
         except MichelsonParserError as e:
+            if self.debug:
+                raise e
             int_res['stderr'] = format_stderr(e)
             return int_res
 
@@ -78,20 +80,18 @@ class Interpreter:
             int_res['result'] = format_result(res)
             int_res['success'] = True
         except MichelsonRuntimeError as e:
+            if self.debug:
+                raise e
             int_res['stderr'] = format_stderr(e)
             self.ctx.stack = backup
         finally:
             int_res['stdout'] = format_stdout(self.ctx.stdout)
             self.ctx.stdout.clear()
+            if self.debug:
+                print(int_res['stdout'])
 
-        if self.debug:
-            print(int_res['stdout'])
-            if int_res['success']:
-                if int_res['result']:
-                    print('RETURN: ')
-                    pprint(int_res['result'])
-            else:
-                print('ERROR: ')
-                pprint(int_res['stderr'])
+        if self.debug and int_res['result']:
+            print('RETURN: ')
+            pprint(int_res['result'])
 
         return int_res

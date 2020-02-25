@@ -175,7 +175,9 @@ def do_if_cons(ctx: Context, prim, args, annots):
     top = ctx.pop1()
     assert_stack_type(top, List)
     if len(top) > 0:
-        ctx.push(top)
+        head, tail = top.cut_head()
+        ctx.push(tail)
+        ctx.push(head)
         do_interpret(ctx, args[0])
     else:
         do_interpret(ctx, args[1])
@@ -251,7 +253,10 @@ def do_map(ctx: Context, prim, args, annots):
     else:
         assert False
 
-    res = type(container).new(items)
+    if len(items) == 0:
+        res = container
+    else:
+        res = type(container).new(items)
     ctx.push(res, annots=annots)
 
 

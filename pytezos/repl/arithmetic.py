@@ -147,19 +147,31 @@ def do_sub(ctx: Context, prim, args, annots):
     ctx.push(res, annots=annots)
 
 
-@instruction(['AND', 'OR', 'XOR'])
-def do_and(ctx: Context, prim, args, annots):
+@instruction(['OR', 'XOR'])
+def do_or_xor(ctx: Context, prim, args, annots):
     a, b = ctx.pop2()
-    val_type = dispatch_type_map(a, b, {
-        (Bool, Bool): bool,
-        (Nat, Nat): int
+    val_type, res_type = dispatch_type_map(a, b, {
+        (Bool, Bool): (bool, Bool),
+        (Nat, Nat): (int, Nat),
     })
     handlers = {
-        'AND': lambda x: x[0] & x[1],
         'OR': lambda x: x[0] | x[1],
         'XOR': lambda x: x[0] ^ x[1]
     }
-    res = type(a)(handlers[prim]((val_type(a), val_type(b))))
+    res = res_type(handlers[prim]((val_type(a), val_type(b))))
+    ctx.push(res, annots=annots)
+
+
+@instruction('AND')
+def do_and(ctx: Context, prim, args, annots):
+    a, b = ctx.pop2()
+    val_type, res_type = dispatch_type_map(a, b, {
+        (Bool, Bool): (bool, Bool),
+        (Nat, Nat): (int, Nat),
+        (Int, Nat): (int, Nat),
+        (Nat, Int): (int, Nat)
+    })
+    res = res_type(val_type(a) & val_type(b))
     ctx.push(res, annots=annots)
 
 

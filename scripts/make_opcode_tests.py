@@ -376,7 +376,7 @@ parameterized_data = [
     ('exec_concat.tz', '"?"', '"test"', '"test_abc"'),
 
     # Get the current balance of the contract
-    ('balance.tz', '111', 'Unit', '4000000000000'),
+    ('balance.tz', '111', 'Unit', '0'),
 
     # Test addition and subtraction on tez
     ('tez_add_sub.tz', 'None', '(Pair 2000000 1000000)',

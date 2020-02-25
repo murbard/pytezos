@@ -4,7 +4,7 @@ from pytezos import pytezos
 from pytezos.repl.control import instruction
 from pytezos.repl.context import Context
 from pytezos.repl.types import assert_stack_type, Mutez, ChainID, Address, Contract, Option, assert_equal_types, \
-    KeyHash, Timestamp
+    KeyHash, Timestamp, expr_equal
 from pytezos.repl.parser import MichelsonTypeCheckError
 
 MAINNET_CHAIN_ID = 'NetXdQprcVkpaWU'
@@ -33,13 +33,6 @@ def do_parameter(ctx: Context, prim, args, annots):
 @instruction('code', args_len=1)
 def do_parameter(ctx: Context, prim, args, annots):
     ctx.set('code', args[0])
-
-
-@instruction('ADDRESS')
-def do_address(ctx: Context, prim, args, annots):
-    res = ctx.get('ADDRESS')
-    assert res, f'ADDRESS is not initialized'
-    ctx.push(res, annots=annots)
 
 
 @instruction('AMOUNT')
@@ -96,23 +89,43 @@ def do_now(ctx: Context, prim, args, annots):
     ctx.push(res, annots=annots)
 
 
-def assert_contract(chain_id, address, type_expr):
+def check_contract(ctx: Context, address, type_expr):
+    chain_id = ctx.get('CHAIN_ID')
+    if not chain_id:
+        ctx.print(' skip check;')
+        return True
+
     network = get_network_by_chain_id(chain_id)
+
     try:
         ci = pytezos.using(network).contract(address)
-    except Exception as e:
-        raise MichelsonTypeCheckError(f'contract {address} is not found in the {network}', [])
-    assert_equal_types(type_expr, ci.contract.parameter.code)
+        if expr_equal(type_expr, ci.contract.parameter.code):
+            return True
+        else:
+            ctx.print(' type mismatch;')
+    except Exception:
+        ctx.print(' not found;')
+
+    return False
+
+
+@instruction('ADDRESS')
+def do_address(ctx: Context, prim, args, annots):
+    top = ctx.pop1()
+    assert_stack_type(top, Contract)
+    res = Address.new(str(top))
+    ctx.push(res, annots=annots)
 
 
 @instruction('CONTRACT', args_len=1)
 def do_contract(ctx: Context, prim, args, annots):
     top = ctx.pop1()
     assert_stack_type(top, Address)
-    chain_id = ctx.get('CHAIN_ID')
-    if chain_id:
-        assert_contract(chain_id, address=str(top), type_expr=args[0])
-    res = Contract.new(str(top), type_expr=args[0])
+    contract = Contract.new(str(top), type_expr=args[0])
+    if check_contract(ctx, address=str(top), type_expr=args[0]):
+        res = Option.some(contract)
+    else:
+        res = Option.none(contract.type_expr)
     ctx.push(res, annots=annots)
 
 
@@ -120,9 +133,6 @@ def do_contract(ctx: Context, prim, args, annots):
 def do_implicit_account(ctx: Context, prim, args, annots):
     top = ctx.pop1()
     assert_stack_type(top, KeyHash)
-    chain_id = ctx.get('CHAIN_ID')
-    if chain_id:
-        assert_contract(chain_id, address=str(top), type_expr=UNIT_TYPE_EXPR)
     res = Contract.new(str(top), type_expr=UNIT_TYPE_EXPR)
     ctx.push(res, annots=annots)
 

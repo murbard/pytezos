@@ -29,8 +29,11 @@ def do_concat(ctx: Context, prim, args, annots):
         })
         res = type(top)(val_type(top) + val_type(second))
     elif type(top) == List:
-        res_type = top.val_type()
-        val_type, sep = {String: (str, ''), Bytes: (bytes, b'')}[res_type]
+        res_type, = top.arg_types()
+        val_type, sep = {
+            String: (str, ''),
+            Bytes: (bytes, b'')
+        }[res_type]
         res = res_type(sep.join(map(val_type, top)))
     else:
         assert False
