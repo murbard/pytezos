@@ -112,10 +112,10 @@ class StackItem:
 
 class String(StackItem, prim='string'):
 
-    def __init__(self, value='', val_expr=None, type_expr=None, **kwargs):
-        assert isinstance(value, str)
+    def __init__(self, val='', val_expr=None, type_expr=None, **kwargs):
+        assert isinstance(val, str)
         super(String, self).__init__(
-            val_expr=val_expr or {'string': value},
+            val_expr=val_expr or {'string': val},
             type_expr=type_expr or {'prim': self.prim}, **kwargs)
 
     def __getitem__(self, item):
@@ -125,20 +125,20 @@ class String(StackItem, prim='string'):
 
 class Int(StackItem, prim='int'):
 
-    def __init__(self, value=0, val_expr=None, type_expr=None, **kwargs):
-        assert_type(value, int)
-        assert isinstance(value, int)
+    def __init__(self, val=0, val_expr=None, type_expr=None, **kwargs):
+        assert_type(val, int)
+        assert isinstance(val, int)
         super(Int, self).__init__(
-            val_expr=val_expr or {'int': str(value)},
+            val_expr=val_expr or {'int': str(val)},
             type_expr=type_expr or {'prim': self.prim}, **kwargs)
 
 
 class Bytes(StackItem, prim='bytes'):
 
-    def __init__(self, value=b'', type_expr=None, val_expr=None, **kwargs):
-        assert_type(value, bytes)
+    def __init__(self, val=b'', type_expr=None, val_expr=None, **kwargs):
+        assert_type(val, bytes)
         super(Bytes, self).__init__(
-            val_expr=val_expr or {'bytes': value.hex()},
+            val_expr=val_expr or {'bytes': val.hex()},
             type_expr=type_expr or {'prim': self.prim}, **kwargs)
 
     def __getitem__(self, item):
@@ -148,18 +148,18 @@ class Bytes(StackItem, prim='bytes'):
 
 class Nat(Int, prim='nat'):
 
-    def __init__(self, value=0, val_expr=None, type_expr=None, **kwargs):
-        assert_type(value, int)
-        assert value >= 0, 'expected non-negative value'
-        super(Nat, self).__init__(value, val_expr=val_expr, type_expr=type_expr, **kwargs)
+    def __init__(self, val=0, val_expr=None, type_expr=None, **kwargs):
+        assert_type(val, int)
+        assert val >= 0, 'expected non-negative val'
+        super(Nat, self).__init__(val, val_expr=val_expr, type_expr=type_expr, **kwargs)
 
 
 class Bool(StackItem, prim='bool'):
 
-    def __init__(self, value=False, val_expr=None, type_expr=None, **kwargs):
-        assert_type(value, bool)
+    def __init__(self, val=False, val_expr=None, type_expr=None, **kwargs):
+        assert_type(val, bool)
         super(Bool, self).__init__(
-            val_expr=val_expr or {'prim': str(value)},
+            val_expr=val_expr or {'prim': str(val)},
             type_expr=type_expr or {'prim': self.prim}, **kwargs)
 
 
@@ -181,6 +181,12 @@ class List(StackItem, prim='list', args_len=1):
     def prepend(self, item: StackItem) -> 'List':
         self.assert_val_type(item)
         return self.parse(val_expr=[item.val_expr] + self.val_expr, type_expr=self.type_expr)
+
+    def cut_head(self):
+        assert len(self._val) > 0, f'must be non-empty list'
+        head = self.parse(val_expr=self.val_expr[0], type_expr=self.type_expr['args'][0])
+        tail = type(self)(val_expr=self.val_expr[1:], type_expr=self.type_expr)
+        return head, tail
 
     @classmethod
     def empty(cls, v_type_expr):
@@ -321,9 +327,10 @@ class Map(StackItem, prim='map', args_len=2):
         self.assert_key_type(key)
         self.assert_val_type(val)
         if key._val in self._val:
-            return self
+            return deepcopy(self)
         else:
-            return self.parse(val_expr=self.val_expr + [val.val_expr], type_expr=self.type_expr)  # TODO: sort
+            elt = {'prim': 'Elt', 'args': [key.val_expr, val.val_expr]}
+            return self.parse(val_expr=self.val_expr + [elt], type_expr=self.type_expr)  # TODO: sort
 
     def assert_key_type(self, item: StackItem):
         assert_stack_item(item)
@@ -358,15 +365,19 @@ class Mutez(Nat, prim='mutez'):
 
 class Address(String, prim='address'):
 
-    def __init__(self, value, val_expr=None, type_expr=None, **kwargs):
-        assert is_pkh(value) or is_kt(value), f'expected address, got {value}'
-        super(Address, self).__init__(value, val_expr=val_expr, type_expr=type_expr, **kwargs)
+    @classmethod
+    def new(cls, address):
+        assert is_pkh(address) or is_kt(address), f'expected address, got {address}'
+        return cls(val=address,
+                   val_expr={'string': address},
+                   type_expr={'prim': cls.prim})
 
 
-class Contract(StackItem, prim='contract'):
+class Contract(StackItem, prim='contract', args_len=1):
 
     @classmethod
     def new(cls, address, type_expr):
+        assert is_pkh(address) or is_kt(address), f'expected address, got {address}'
         return cls(val=address,
                    val_expr={'string': address},
                    type_expr={'prim': cls.prim, 'args': [type_expr]})
@@ -382,9 +393,9 @@ class Key(StackItem, prim='key'):
 
 class KeyHash(String, prim='key_hash'):
 
-    def __init__(self, value, val_expr=None, type_expr=None, **kwargs):
-        assert is_pkh(value), f'expected key hash, got {value}'
-        super(KeyHash, self).__init__(value, val_expr=val_expr, type_expr=type_expr, **kwargs)
+    def __init__(self, val, val_expr=None, type_expr=None, **kwargs):
+        assert is_pkh(val), f'expected key hash, got {val}'
+        super(KeyHash, self).__init__(val, val_expr=val_expr, type_expr=type_expr, **kwargs)
 
 
 class Signature(StackItem, prim='signature'):
@@ -393,9 +404,9 @@ class Signature(StackItem, prim='signature'):
 
 class ChainID(String, prim='chain_id'):
 
-    def __init__(self, value, val_expr=None, type_expr=None, **kwargs):
-        assert is_chain_id(value), f'expected chain_id, got {value}'
-        super(ChainID, self).__init__(value, val_expr=val_expr, type_expr=type_expr, **kwargs)
+    def __init__(self, val, val_expr=None, type_expr=None, **kwargs):
+        assert is_chain_id(val), f'expected chain_id, got {val}'
+        super(ChainID, self).__init__(val, val_expr=val_expr, type_expr=type_expr, **kwargs)
 
 
 class Lambda(StackItem, prim='lambda', args_len=2):

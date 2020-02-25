@@ -61,7 +61,7 @@ def do_patch(ctx: Context, prim, args, annots):
     elif key == 'NOW':
         res = Timestamp(get_int(args[1]))
     elif key in ['SOURCE', 'SENDER', 'ADDRESS']:
-        res = Address(get_string(args[1]))
+        res = Address.new(get_string(args[1]))
     elif key == 'CHAIN_ID':
         res = ChainID(get_string(args[1]))
     else:

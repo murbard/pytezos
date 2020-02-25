@@ -9,6 +9,15 @@ import pytezos.encoding as encoding
 parsers = {}
 
 
+class Unit(object):
+
+    def __repr__(self):
+        return 'Unit'
+
+    def __eq__(self, other):
+        return isinstance(other, Unit)
+
+
 class MichelsonRuntimeError(ValueError):
 
     def __init__(self, message, trace):
@@ -227,6 +236,7 @@ def parse_bool(val_expr, type_args):
 @primitive('unit')
 def parse_unit(val_expr, type_args):
     _ = get_prim_args(val_expr, prim='Unit', args_len=0)
+    return Unit()
 
 
 @primitive('list', args_len=1)
@@ -245,7 +255,7 @@ def parse_pair(val_expr, type_args):
 def parse_option(val_expr, type_args):
     return dispatch_prim_map(val_expr, {
         ('None', 0): None,
-        ('Some', 1): lambda x: parse_value(x[0], type_args[0])
+        ('Some', 1): lambda x: (parse_value(x[0], type_args[0]),)
     })
 
 
