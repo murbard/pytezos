@@ -1,6 +1,6 @@
 from hashlib import sha256, sha512
 
-from pytezos.crypto import blake2b_32, Key
+from pytezos import crypto as crypto
 from pytezos.repl.control import instruction
 from pytezos.repl.context import Context
 from pytezos.repl.types import assert_stack_type, Int, Nat, Timestamp, Mutez, Option, Pair, Bool, Bytes, Key, \
@@ -192,7 +192,7 @@ def do_not(ctx: Context, prim, args, annots):
 def do_blake2b(ctx: Context, prim, args, annots):
     top = ctx.pop1()
     assert_stack_type(top, Bytes)
-    res = Bytes(blake2b_32(bytes(top)).digest())
+    res = Bytes(crypto.blake2b_32(bytes(top)).digest())
     ctx.push(res, annots=annots)
 
 
@@ -202,7 +202,7 @@ def do_check_sig(ctx: Context, prim, args, annots):
     assert_stack_type(pk, Key)
     assert_stack_type(sig, Signature)
     assert_stack_type(msg, Bytes)
-    key = Key.from_encoded_key(str(pk))
+    key = crypto.Key.from_encoded_key(str(pk))
     try:
         key.verify(signature=str(sig), message=bytes(msg))
     except:
@@ -216,8 +216,8 @@ def do_check_sig(ctx: Context, prim, args, annots):
 def do_hash_key(ctx: Context, prim, args, annots):
     top = ctx.pop1()
     assert_stack_type(top, Key)
-    key = Key.from_encoded_key(str(top))
-    res = KeyHash(key.public_key_hash())
+    key = crypto.Key.from_encoded_key(str(top))
+    res = KeyHash.new(key.public_key_hash())
     ctx.push(res, annots=annots)
 
 
