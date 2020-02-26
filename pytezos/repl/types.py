@@ -344,7 +344,7 @@ class Map(StackItem, prim='map', args_len=2):
         return self.type_expr['args'][1]
 
 
-class BigMap(Map, prim='big_map', args_len=1):
+class BigMap(Map, prim='big_map', args_len=2):
 
     @classmethod
     def empty(cls, k_type_expr, v_type_expr):
@@ -393,9 +393,12 @@ class Key(StackItem, prim='key'):
 
 class KeyHash(String, prim='key_hash'):
 
-    def __init__(self, val, val_expr=None, type_expr=None, **kwargs):
-        assert is_pkh(val), f'expected key hash, got {val}'
-        super(KeyHash, self).__init__(val, val_expr=val_expr, type_expr=type_expr, **kwargs)
+    @classmethod
+    def new(cls, key_hash):
+        assert is_pkh(key_hash), f'expected key hash, got {key_hash}'
+        return cls(val=key_hash,
+                   val_expr={'string': key_hash},
+                   type_expr={'prim': cls.prim})
 
 
 class Signature(StackItem, prim='signature'):
@@ -433,10 +436,11 @@ class Lambda(StackItem, prim='lambda', args_len=2):
         l_type_expr, r_type_expr = get_prim_args(self.type_expr['args'][0], prim='pair', args_len=2)
         assert_equal_types(l_type_expr, item.type_expr)
         push = {'prim': 'PUSH', 'args': [item.type_expr, item.val_expr]}
+        pair = {'prim': 'PAIR'}
         code = self.val_expr['args'][0]
         assert_type(code, list), f'expected instruction sequence'
         return type(self)(
-            val_expr={'prim': 'Lambda', 'args': [[push] + code]},
+            val_expr={'prim': 'Lambda', 'args': [[push, pair] + code]},
             type_expr={'prim': 'lambda', 'args': [r_type_expr, self.type_expr['args'][1]]}
         )
 

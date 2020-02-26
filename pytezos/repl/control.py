@@ -99,8 +99,8 @@ def do_dig(ctx: Context, prim, args, annots):
     index = get_int(args[0])
     ctx.protect(index)
     res = ctx.pop1()
-    ctx.push(res)
     ctx.restore(index)
+    ctx.push(res)
 
 
 @instruction('DUG', args_len=1)
@@ -108,9 +108,9 @@ def do_dug(ctx: Context, prim, args, annots):
     assert_no_annots(prim, annots)
     index = get_int(args[0])
     res = ctx.pop1()
-    ctx.protect(index - 1)
+    ctx.protect(index)
     ctx.push(res)
-    ctx.restore(index - 1)
+    ctx.restore(index)
 
 
 @instruction('DIP', args_len=2)
@@ -240,7 +240,6 @@ def do_map(ctx: Context, prim, args, annots):
             ctx.push(item)
             do_interpret(ctx, args[0])
             ret = ctx.pop1()
-            container.assert_val_type(ret)
             items.append(ret)
     elif type(container) == Map:
         items = list()
@@ -248,7 +247,6 @@ def do_map(ctx: Context, prim, args, annots):
             ctx.push(Pair.new(key, val))
             do_interpret(ctx, args[0])
             ret = ctx.pop1()
-            container.assert_val_type(ret)
             items.append((key, ret))
     else:
         assert False

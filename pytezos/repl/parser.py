@@ -348,7 +348,7 @@ def parse_signature(val_expr, type_args):
 @primitive('chain_id')
 def parse_chain_id(val_expr, type_args):
     return dispatch_core_map(val_expr, {
-        'bytes': lambda x: encoding.base58_encode(bytes.fromhex(x), b'Net'),
+        'bytes': lambda x: encoding.base58_encode(bytes.fromhex(x), b'Net').decode(),
         'string': lambda x: x
     })
 
