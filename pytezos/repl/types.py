@@ -376,10 +376,12 @@ class Address(String, prim='address'):
 class Contract(StackItem, prim='contract', args_len=1):
 
     @classmethod
-    def new(cls, address, type_expr):
-        assert is_pkh(address) or is_kt(address), f'expected address, got {address}'
-        return cls(val=address,
-                   val_expr={'string': address},
+    def new(cls, contract, type_expr):
+        assert is_pkh(contract[:36]) or is_kt(contract[:36]), f'expected contract, got {contract}'
+        if len(contract) > 36:
+            assert contract[36] == '%', f'expected contract, got {contract}'
+        return cls(val=contract,
+                   val_expr={'string': contract},
                    type_expr={'prim': cls.prim, 'args': [type_expr]})
 
 
@@ -438,7 +440,7 @@ class Lambda(StackItem, prim='lambda', args_len=2):
         push = {'prim': 'PUSH', 'args': [item.type_expr, item.val_expr]}
         pair = {'prim': 'PAIR'}
         code = self.val_expr['args'][0]
-        assert_type(code, list), f'expected instruction sequence'
+        assert_type(code, list), f'expected instruction sequence, got {code}'
         return type(self)(
             val_expr={'prim': 'Lambda', 'args': [[push, pair] + code]},
             type_expr={'prim': 'lambda', 'args': [r_type_expr, self.type_expr['args'][1]]}

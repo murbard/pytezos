@@ -4,7 +4,7 @@ from pytezos import Contract, pytezos
 from pytezos.encoding import is_kt
 from pytezos.repl.control import instruction, do_interpret
 from pytezos.repl.context import Context, StackItem
-from pytezos.repl.parser import get_int, get_string, parse_prim_expr
+from pytezos.repl.parser import get_int, get_string, parse_prim_expr, get_entry_expr
 from pytezos.repl.types import Pair, Mutez, Address, ChainID, Timestamp
 
 helpers_prim = ['DUMP', 'PRINT', 'DROP_ALL', 'EXPAND', 'RUN', 'PATCH', 'UNSET', 'INCLUDE']
@@ -35,6 +35,11 @@ def do_expand(ctx: Context, prim, args, annots):
 def do_run(ctx: Context, prim, args, annots):
     p_type_expr = ctx.get('parameter')
     assert p_type_expr, f'parameter type is not initialized'
+
+    entrypoint = next((a for a in annots if a[0] == '%'), '%default')
+    ctx.print(f' use {entrypoint};')
+
+    p_type_expr = get_entry_expr(p_type_expr, entrypoint)
     parameter = StackItem.parse(args[0], p_type_expr)
 
     s_type_expr = ctx.get('storage')

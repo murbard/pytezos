@@ -1,4 +1,6 @@
 import base58
+import calendar
+from datetime import datetime
 
 
 def tb(l):
@@ -263,6 +265,13 @@ def parse_address(data: bytes):
         return base58_encode(data[1:], tz_prefixes[b'\x00' + data[:1]]).decode()
 
 
+def parse_contract(data: bytes):
+    res = parse_address(data[:22])
+    if len(data) > 22:
+        res += f'%{data[22:].decode()}'
+    return res
+
+
 def forge_bool(value) -> bytes:
     return b'\xff' if value else b'\x00'
 
@@ -273,3 +282,18 @@ def forge_array(data, len_bytes=4) -> bytes:
 
 def forge_base58(value) -> bytes:
     return base58_decode(value.encode())
+
+
+def forge_timestamp(value) -> int:
+    assert isinstance(value, str)
+    dt = datetime.strptime(value, '%Y-%m-%dT%H:%M:%SZ')
+    return calendar.timegm(dt.utctimetuple())
+
+
+def forge_contract(value) -> bytes:
+    parts = value.split('%')
+    address, entrypoint = (parts[0], parts[1]) if len(parts) == 2 else (parts[0], 'default')
+    res = forge_address(address)
+    if entrypoint != 'default':
+        res += entrypoint.encode()
+    return res

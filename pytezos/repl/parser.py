@@ -1,6 +1,4 @@
 import functools
-import calendar
-from datetime import datetime
 from typing import Tuple, Callable
 
 from pytezos.michelson.converter import micheline_to_michelson
@@ -111,6 +109,25 @@ def get_int(val_expr):
 
 def get_bytes(val_expr):
     return bytes.fromhex(get_core_val(val_expr, core_type='bytes'))
+
+
+def get_entry_expr(expr, field_annot):
+    def _get(node):
+        assert_type(node, dict)
+        if field_annot in node.get('annots', []):
+            return node
+
+        for arg in node.get('args', []):
+            res = _get(arg)
+            if res:
+                return res
+
+    entry = _get(expr)
+    if not entry and field_annot == '%default':
+        entry = expr
+
+    assert entry, (expr, field_annot)
+    return entry
 
 
 def expr_equal(a, b):
@@ -294,14 +311,9 @@ def parse_big_map(val_expr, type_args):
     return parse_map(val_expr, type_args)
 
 
-def strptime(s) -> int:
-    dt = datetime.strptime(s, '%Y-%m-%dT%H:%M:%SZ')
-    return calendar.timegm(dt.utctimetuple())
-
-
 @primitive('timestamp')
 def parse_timestamp(val_expr, type_args):
-    return dispatch_core_map(val_expr, {'int': int, 'string': strptime})
+    return dispatch_core_map(val_expr, {'int': int, 'string': encoding.forge_timestamp})
 
 
 @primitive('mutez')
@@ -318,8 +330,11 @@ def parse_address(val_expr, type_args):
 
 
 @primitive('contract', args_len=1)
-def parse_contract(val_expr, type_args):  # TODO: entrypoint?
-    return parse_address(val_expr, type_args)
+def parse_contract(val_expr, type_args):
+    return dispatch_core_map(val_expr, {
+        'bytes': lambda x: encoding.parse_contract(bytes.fromhex(x)),
+        'string': lambda x: x
+    })
 
 
 @primitive('operation')

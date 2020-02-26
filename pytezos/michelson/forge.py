@@ -1,4 +1,5 @@
-from pytezos.encoding import forge_array
+from pytezos.encoding import forge_array, forge_address, forge_public_key, forge_timestamp, forge_contract, \
+    forge_base58
 
 prim_tags = {
     'parameter': b'\x00',
@@ -223,5 +224,60 @@ def forge_script(script):
     return forge_array(code) + forge_array(storage)
 
 
-def pack(data):
+def prepack_micheline(val_expr, type_expr):
+    def convert(val_node, type_node):
+        prim = type_node['prim']
+        is_string = isinstance(val_node, dict) and val_node.get('string')
+
+        if prim in ['set', 'list']:
+            return [
+                prepack_micheline(item_node, type_node['args'][0])
+                for item_node in val_node
+            ]
+        elif prim in ['map', 'big_map']:
+            return [
+                {'prim': 'Elt',
+                 'args': [prepack_micheline(elt_node['args'][i], type_node['args'][i]) for i in [0, 1]]}
+                for elt_node in val_node
+            ]
+        elif prim == 'pair':
+            return [
+                {'prim': 'Pair',
+                 'args': [prepack_micheline(val_node['args'][i], type_node['args'][i]) for i in [0, 1]]}
+            ]
+        elif prim == 'option':
+            if val_node['prim'] == 'Some':
+                return {'prim': 'Some',
+                        'args': [prepack_micheline(val_node['args'][0], type_node['args'][0])]}
+            else:
+                return val_node
+        elif prim == 'or':
+            idx = {'Left': 0, 'Right': 1}[val_node['prim']]
+            return {'prim': val_node['prim'],
+                    'args': [prepack_micheline(val_node['args'][0], type_node['args'][idx])]}
+        elif prim == 'lambda':
+            # TODO: PUSH, SELF, CONTRACT
+            return val_node
+        elif prim == 'chain_id' and is_string:
+            return {'bytes': forge_base58(val_node['string']).hex()}
+        elif prim == 'signature' and is_string:
+            return {'bytes': forge_base58(val_node['string']).hex()}
+        elif prim == 'key_hash' and is_string:
+            return {'bytes': forge_address(val_node['string'], tz_only=True).hex()}
+        elif prim == 'key' and is_string:
+            return {'bytes': forge_public_key(val_node['string']).hex()}
+        elif prim == 'address' and is_string:
+            return {'bytes': forge_address(val_node['string']).hex()}
+        elif prim == 'contract' and is_string:
+            return {'bytes': forge_contract(val_node['string']).hex()}
+        elif prim == 'timestamp' and is_string:
+            return {'int': forge_timestamp(val_node['string'])}
+        else:
+            return val_node
+
+    return convert(val_expr, type_expr)
+
+
+def pack(val_expr, type_expr):
+    data = prepack_micheline(val_expr, type_expr)
     return b'\x05' + forge_micheline(data)
