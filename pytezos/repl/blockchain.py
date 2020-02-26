@@ -5,10 +5,11 @@ from pytezos.repl.control import instruction
 from pytezos.repl.context import Context
 from pytezos.repl.types import assert_stack_type, Mutez, ChainID, Address, Contract, Option, assert_equal_types, \
     KeyHash, Timestamp, expr_equal
-from pytezos.repl.parser import MichelsonTypeCheckError
+from pytezos.repl.parser import get_entry_expr
 
 MAINNET_CHAIN_ID = 'NetXdQprcVkpaWU'
 UNIT_TYPE_EXPR = {'prim': 'unit'}
+SELF_ADDRESS = 'KT1VG2WtYdSWz5E7chTeAdDPZNy2MpP8pTfL'
 
 
 def get_network_by_chain_id(chain_id: ChainID):
@@ -57,10 +58,13 @@ def do_chain_id(ctx: Context, prim, args, annots):
 def do_self(ctx: Context, prim, args, annots):
     p_type_expr = ctx.get('parameter')
     assert p_type_expr, f'parameter type is not initialized'
-    address = ctx.get('ADDRESS')
-    assert address, f'ADDRESS is not initialized'
-    res = Contract.new(str(address), type_expr=p_type_expr)
-    ctx.push(res, annots=annots)
+
+    entrypoint = next((a for a in annots if a[0] == '%'), '%default')
+    ctx.print(f' use {entrypoint};')
+
+    p_type_expr = get_entry_expr(p_type_expr, entrypoint)
+    res = Contract.new(SELF_ADDRESS + entrypoint, type_expr=p_type_expr)
+    ctx.push(res, annots=[a for a in annots if a[0] != '%'])
 
 
 @instruction('SENDER')

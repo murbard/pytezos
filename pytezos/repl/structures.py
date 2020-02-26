@@ -111,7 +111,7 @@ def do_none(ctx: Context, prim, args, annots):
 @instruction('PACK')
 def do_pack(ctx: Context, prim, args, annots):
     top = ctx.pop1()
-    res = Bytes(pack(top.val_expr))
+    res = Bytes(pack(top.val_expr, top.type_expr))
     ctx.push(res, annots=annots)
 
 
