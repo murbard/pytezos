@@ -76,13 +76,13 @@ class Interpreter:
 
         try:
             res = do_interpret(self.ctx, code_expr)
-            if res is None and len(self.ctx) > 0:
-                res = self.ctx.peek()
+            if res is None and self.ctx.pushed:
+                res = self.ctx.dump(count=1)
 
             int_res['result'] = format_result(res)
             int_res['stdout'] = format_stdout(self.ctx.stdout)
             int_res['success'] = True
-            self.ctx.stdout.clear()
+            self.ctx.reset()
         except MichelsonRuntimeError as e:
             if self.debug:
                 raise e

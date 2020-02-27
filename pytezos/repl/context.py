@@ -16,6 +16,11 @@ class Context:
         self.exec_depth = 0
         self.debug = debug
         self.stdout = list()
+        self.pushed = 0
+
+    def reset(self):
+        self.stdout.clear()
+        self.pushed = False
 
     def protect(self, count: int):
         assert len(self.stack) >= count, f'got {len(self.stack)} items, wanted to protect {count}'
@@ -30,6 +35,7 @@ class Context:
     def push(self, item: StackItem, annots=None):
         assert_stack_item(item)
         self.stack.insert(self.protected, item.rename(annots))
+        self.pushed = True
         self._print(f' push {repr(item)};')
 
     def peek(self):
@@ -97,6 +103,7 @@ class Context:
         self.stdout.append(message)
 
     def begin(self, prim=None):
+        self.pushed = False
         if prim:
             indent = '  ' * self.exec_depth
             self._print(f'\n{indent}{prim}:')

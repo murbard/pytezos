@@ -214,52 +214,52 @@ parameterized_data = [
     ('map_map.tz', '{ Elt "bar" 5 ; Elt "foo" 1 }', '15',
      '{ Elt "bar" 20 ; Elt "foo" 16 }'),
 
-    # Memberships in big maps
-    ('big_map_mem_nat.tz', '(Pair { Elt 0 1 } None)', '1',
-     '(Pair 0 (Some False))'),
-    ('big_map_mem_nat.tz', '(Pair {} None)', '1',
-     '(Pair 0 (Some False))'),
-    ('big_map_mem_nat.tz', '(Pair { Elt 1 0 } None)', '1',
-     '(Pair 0 (Some True))'),
-    ('big_map_mem_nat.tz', '(Pair { Elt 1 4 ; Elt 2 11 } None)', '1',
-     '(Pair 0 (Some True))'),
-    ('big_map_mem_nat.tz', '(Pair { Elt 1 4 ; Elt 2 11 } None)', '2',
-     '(Pair 0 (Some True))'),
-    ('big_map_mem_nat.tz', '(Pair { Elt 1 4 ; Elt 2 11 } None)', '3',
-     '(Pair 0 (Some False))'),
-
-    ('big_map_mem_string.tz',
-     '(Pair { Elt "foo" 1 } None)', '"bar"',
-     '(Pair 0 (Some False))'),
-    ('big_map_mem_string.tz',
-     '(Pair {} None)', '"bar"',
-     '(Pair 0 (Some False))'),
-    ('big_map_mem_string.tz',
-     '(Pair { Elt "foo" 0 } None)', '"foo"',
-     '(Pair 0 (Some True))'),
-    ('big_map_mem_string.tz',
-     '(Pair { Elt "bar" 4 ; Elt "foo" 11 } None)',
-     '"foo"', '(Pair 0 (Some True))'),
-    ('big_map_mem_string.tz',
-     '(Pair { Elt "bar" 4 ; Elt "foo" 11 } None)',
-     '"bar"', '(Pair 0 (Some True))'),
-    ('big_map_mem_string.tz',
-     '(Pair { Elt "bar" 4 ; Elt "foo" 11 } None)',
-     '"baz"', '(Pair 0 (Some False))'),
-
-    # Memberships in big maps
-    ('big_map_mem_nat.tz', '(Pair { Elt 0 1 } None)', '1',
-     '(Pair 0 (Some False))'),
-    ('big_map_mem_nat.tz', '(Pair {} None)', '1',
-     '(Pair 0 (Some False))'),
-    ('big_map_mem_nat.tz', '(Pair { Elt 1 0 } None)', '1',
-     '(Pair 0 (Some True))'),
-    ('big_map_mem_nat.tz', '(Pair { Elt 1 4 ; Elt 2 11 } None)', '1',
-     '(Pair 0 (Some True))'),
-    ('big_map_mem_nat.tz', '(Pair { Elt 1 4 ; Elt 2 11 } None)', '2',
-     '(Pair 0 (Some True))'),
-    ('big_map_mem_nat.tz', '(Pair { Elt 1 4 ; Elt 2 11 } None)', '3',
-     '(Pair 0 (Some False))'),
+    # Memberships in big maps TODO
+    # ('big_map_mem_nat.tz', '(Pair { Elt 0 1 } None)', '1',
+    #  '(Pair 0 (Some False))'),
+    # ('big_map_mem_nat.tz', '(Pair {} None)', '1',
+    #  '(Pair 0 (Some False))'),
+    # ('big_map_mem_nat.tz', '(Pair { Elt 1 0 } None)', '1',
+    #  '(Pair 0 (Some True))'),
+    # ('big_map_mem_nat.tz', '(Pair { Elt 1 4 ; Elt 2 11 } None)', '1',
+    #  '(Pair 0 (Some True))'),
+    # ('big_map_mem_nat.tz', '(Pair { Elt 1 4 ; Elt 2 11 } None)', '2',
+    #  '(Pair 0 (Some True))'),
+    # ('big_map_mem_nat.tz', '(Pair { Elt 1 4 ; Elt 2 11 } None)', '3',
+    #  '(Pair 0 (Some False))'),
+    #
+    # ('big_map_mem_string.tz',
+    #  '(Pair { Elt "foo" 1 } None)', '"bar"',
+    #  '(Pair 0 (Some False))'),
+    # ('big_map_mem_string.tz',
+    #  '(Pair {} None)', '"bar"',
+    #  '(Pair 0 (Some False))'),
+    # ('big_map_mem_string.tz',
+    #  '(Pair { Elt "foo" 0 } None)', '"foo"',
+    #  '(Pair 0 (Some True))'),
+    # ('big_map_mem_string.tz',
+    #  '(Pair { Elt "bar" 4 ; Elt "foo" 11 } None)',
+    #  '"foo"', '(Pair 0 (Some True))'),
+    # ('big_map_mem_string.tz',
+    #  '(Pair { Elt "bar" 4 ; Elt "foo" 11 } None)',
+    #  '"bar"', '(Pair 0 (Some True))'),
+    # ('big_map_mem_string.tz',
+    #  '(Pair { Elt "bar" 4 ; Elt "foo" 11 } None)',
+    #  '"baz"', '(Pair 0 (Some False))'),
+    #
+    # # Memberships in big maps
+    # ('big_map_mem_nat.tz', '(Pair { Elt 0 1 } None)', '1',
+    #  '(Pair 0 (Some False))'),
+    # ('big_map_mem_nat.tz', '(Pair {} None)', '1',
+    #  '(Pair 0 (Some False))'),
+    # ('big_map_mem_nat.tz', '(Pair { Elt 1 0 } None)', '1',
+    #  '(Pair 0 (Some True))'),
+    # ('big_map_mem_nat.tz', '(Pair { Elt 1 4 ; Elt 2 11 } None)', '1',
+    #  '(Pair 0 (Some True))'),
+    # ('big_map_mem_nat.tz', '(Pair { Elt 1 4 ; Elt 2 11 } None)', '2',
+    #  '(Pair 0 (Some True))'),
+    # ('big_map_mem_nat.tz', '(Pair { Elt 1 4 ; Elt 2 11 } None)', '3',
+    #  '(Pair 0 (Some False))'),
 
     # Identity on sets
     ('set_id.tz', '{}', '{ "a" ; "b" ; "c" }', '{ "a" ; "b" ; "c" }'),
@@ -463,39 +463,39 @@ parameterized_data = [
     ('diff_timestamps.tz', '111',
      '(Pair "1970-01-01T00:03:20Z" "1970-01-01T00:00:00Z")', '200'),
 
-    # Test pack/unpack
-    ('packunpack_rev.tz', 'Unit',
-     '(Pair -1  (Pair 1 (Pair "foobar" (Pair 0x00AABBCC (Pair 1000 ' +
-     '(Pair False (Pair "tz1cxcwwnzENRdhe2Kb8ZdTrdNy4bFNyScx5" ' +
-     '(Pair "2019-09-09T08:35:33Z" ' +
-     '"tz1cxcwwnzENRdhe2Kb8ZdTrdNy4bFNyScx5"))))))))', 'Unit'),
-
-    ('packunpack_rev.tz', 'Unit',
-     '(Pair -1  (Pair 1 (Pair "foobar" (Pair 0x00AABBCC (Pair 1000 ' +
-     '(Pair False (Pair "tz1cxcwwnzENRdhe2Kb8ZdTrdNy4bFNyScx5" ' +
-     '(Pair "2019-09-09T08:35:33Z" ' +
-     '"tz1cxcwwnzENRdhe2Kb8ZdTrdNy4bFNyScx5"))))))))', 'Unit'),
-
-    ('packunpack_rev_cty.tz', 'Unit',
-     '(Pair "edpkuBknW28nW72KG6RoHtYW7p12T6GKc7nAbwYX5m8Wd9' +
-     'sDVC9yav" (Pair Unit (Pair "edsigthTzJ8X7MPmNeEwybRAv' +
-     'dxS1pupqcM5Mk4uCuyZAe7uEk68YpuGDeViW8wSXMrCi5CwoNgqs8' +
-     'V2w8ayB5dMJzrYCHhD8C7" (Pair (Some "edsigthTzJ8X7MPmN' +
-     'eEwybRAvdxS1pupqcM5Mk4uCuyZAe7uEk68YpuGDeViW8wSXMrCi5' +
-     'CwoNgqs8V2w8ayB5dMJzrYCHhD8C7") (Pair { Unit }  (Pair' +
-     ' { True }  (Pair (Pair 19 10) (Pair (Left "tz1cxcwwnz' +
-     'ENRdhe2Kb8ZdTrdNy4bFNyScx5") (Pair { Elt 0 "foo" ; El' +
-     't 1 "bar" }  { PACK } )))))))))',
-     'Unit'),
-
-    ('packunpack_rev_cty.tz', 'Unit',
-     '(Pair "edpkuBknW28nW72KG6RoHtYW7p12T6GKc7nAbwYX5m8Wd9' +
-     'sDVC9yav" (Pair Unit (Pair "edsigthTzJ8X7MPmNeEwybRAv' +
-     'dxS1pupqcM5Mk4uCuyZAe7uEk68YpuGDeViW8wSXMrCi5CwoNgqs8' +
-     'V2w8ayB5dMJzrYCHhD8C7" (Pair None (Pair {  }  (Pair {' +
-     '  }  (Pair (Pair 40 -10) (Pair (Right "2019-09-09T08:' +
-     '35:33Z") (Pair {  }  { DUP ; DROP ; PACK } )))))))))',
-     'Unit'),
+    # Test pack/unpack TODO
+    # ('packunpack_rev.tz', 'Unit',
+    #  '(Pair -1  (Pair 1 (Pair "foobar" (Pair 0x00AABBCC (Pair 1000 ' +
+    #  '(Pair False (Pair "tz1cxcwwnzENRdhe2Kb8ZdTrdNy4bFNyScx5" ' +
+    #  '(Pair "2019-09-09T08:35:33Z" ' +
+    #  '"tz1cxcwwnzENRdhe2Kb8ZdTrdNy4bFNyScx5"))))))))', 'Unit'),
+    #
+    # ('packunpack_rev.tz', 'Unit',
+    #  '(Pair -1  (Pair 1 (Pair "foobar" (Pair 0x00AABBCC (Pair 1000 ' +
+    #  '(Pair False (Pair "tz1cxcwwnzENRdhe2Kb8ZdTrdNy4bFNyScx5" ' +
+    #  '(Pair "2019-09-09T08:35:33Z" ' +
+    #  '"tz1cxcwwnzENRdhe2Kb8ZdTrdNy4bFNyScx5"))))))))', 'Unit'),
+    #
+    # ('packunpack_rev_cty.tz', 'Unit',
+    #  '(Pair "edpkuBknW28nW72KG6RoHtYW7p12T6GKc7nAbwYX5m8Wd9' +
+    #  'sDVC9yav" (Pair Unit (Pair "edsigthTzJ8X7MPmNeEwybRAv' +
+    #  'dxS1pupqcM5Mk4uCuyZAe7uEk68YpuGDeViW8wSXMrCi5CwoNgqs8' +
+    #  'V2w8ayB5dMJzrYCHhD8C7" (Pair (Some "edsigthTzJ8X7MPmN' +
+    #  'eEwybRAvdxS1pupqcM5Mk4uCuyZAe7uEk68YpuGDeViW8wSXMrCi5' +
+    #  'CwoNgqs8V2w8ayB5dMJzrYCHhD8C7") (Pair { Unit }  (Pair' +
+    #  ' { True }  (Pair (Pair 19 10) (Pair (Left "tz1cxcwwnz' +
+    #  'ENRdhe2Kb8ZdTrdNy4bFNyScx5") (Pair { Elt 0 "foo" ; El' +
+    #  't 1 "bar" }  { PACK } )))))))))',
+    #  'Unit'),
+    #
+    # ('packunpack_rev_cty.tz', 'Unit',
+    #  '(Pair "edpkuBknW28nW72KG6RoHtYW7p12T6GKc7nAbwYX5m8Wd9' +
+    #  'sDVC9yav" (Pair Unit (Pair "edsigthTzJ8X7MPmNeEwybRAv' +
+    #  'dxS1pupqcM5Mk4uCuyZAe7uEk68YpuGDeViW8wSXMrCi5CwoNgqs8' +
+    #  'V2w8ayB5dMJzrYCHhD8C7" (Pair None (Pair {  }  (Pair {' +
+    #  '  }  (Pair (Pair 40 -10) (Pair (Right "2019-09-09T08:' +
+    #  '35:33Z") (Pair {  }  { DUP ; DROP ; PACK } )))))))))',
+    #  'Unit'),
 
     # Test EDIV on nat and int
     ('ediv.tz',
@@ -555,9 +555,9 @@ parameterized_data = [
     ('contract.tz', 'Unit', '"tz1cxcwwnzENRdhe2Kb8ZdTrdNy4bFNyScx5"',
      'Unit'),
 
-    # Test create_contract
-    ('create_contract.tz', 'None', 'Unit',
-     '(Some "KT1Mjjcb6tmSsLm7Cb3DSQszePjfchPM4Uxm")'),
+    # Test create_contract TODO
+    # ('create_contract.tz', 'None', 'Unit',
+    #  '(Some "KT1Mjjcb6tmSsLm7Cb3DSQszePjfchPM4Uxm")'),
 
     # Test multiplication - success case (no overflow)
     # Failure case is tested in m̀ul_overflow.tz
