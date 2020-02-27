@@ -130,7 +130,7 @@ def get_entry_expr(expr, field_annot):
     if not entry and field_annot == '%default':
         entry = expr
 
-    assert entry, (expr, field_annot)
+    assert entry, f'entrypoint `{field_annot[1:]}` was not found'
     return entry
 
 

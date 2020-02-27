@@ -145,6 +145,9 @@ class Bytes(StackItem, prim='bytes'):
         assert_type(item, slice)
         return type(self)(self._val[item.start:item.stop])
 
+    def __repr__(self):
+        return self._val.hex()
+
 
 class Nat(Int, prim='nat'):
 
