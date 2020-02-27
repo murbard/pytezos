@@ -1,5 +1,5 @@
 from copy import deepcopy
-from pprint import pformat, pprint
+from pprint import pformat
 
 from pytezos.michelson.grammar import MichelsonParser, MichelsonParserError
 from pytezos.michelson.converter import michelson_to_micheline, micheline_to_michelson
@@ -21,7 +21,8 @@ def format_stack_item(item: StackItem):
 
 
 def format_stdout(items):
-    return ''.join(items)
+    res = ''.join(items).lstrip('\n')
+    return res if any(map(lambda x: x in res, ['\n', 'PRINT'])) else ''
 
 
 def format_result(result):
@@ -30,7 +31,7 @@ def format_result(result):
     elif isinstance(result, StackItem):
         return [format_stack_item(result)]
     elif isinstance(result, list):
-        if isinstance(result[0], StackItem):
+        if len(result) > 0 and isinstance(result[0], StackItem):
             return list(map(format_stack_item, result))
         else:
             return micheline_to_michelson(result)
@@ -71,27 +72,29 @@ class Interpreter:
             int_res['stderr'] = format_stderr(e)
             return int_res
 
-        backup = deepcopy(self.ctx.stack)
+        backup = deepcopy(self.ctx)
 
         try:
             res = do_interpret(self.ctx, code_expr)
             if res is None and len(self.ctx) > 0:
                 res = self.ctx.peek()
+
             int_res['result'] = format_result(res)
+            int_res['stdout'] = format_stdout(self.ctx.stdout)
             int_res['success'] = True
+            self.ctx.stdout.clear()
         except MichelsonRuntimeError as e:
             if self.debug:
                 raise e
+
             int_res['stderr'] = format_stderr(e)
-            self.ctx.stack = backup
-        finally:
             int_res['stdout'] = format_stdout(self.ctx.stdout)
-            self.ctx.stdout.clear()
+            self.ctx = backup
+        finally:
             if self.debug:
                 print(int_res['stdout'])
 
         if self.debug and int_res['result']:
-            print('RETURN: ')
-            pprint(int_res['result'])
+            print('RETURN: ' + pformat(int_res['result']))
 
         return int_res

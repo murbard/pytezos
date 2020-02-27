@@ -1,4 +1,5 @@
 import re
+from copy import deepcopy
 from pprint import pformat
 from typing import List
 
@@ -8,13 +9,13 @@ from pytezos.michelson.converter import micheline_to_michelson
 
 class Context:
 
-    def __init__(self, stack=None, debug=True):
+    def __init__(self, stack=None, meta=None, debug=True):
         self.stack = stack or []
+        self.meta = meta or {}
         self.protected = 0
-        self.meta = dict()
-        self.stdout = list()
         self.exec_depth = 0
         self.debug = debug
+        self.stdout = list()
 
     def protect(self, count: int):
         assert len(self.stack) >= count, f'got {len(self.stack)} items, wanted to protect {count}'
@@ -40,7 +41,7 @@ class Context:
             f'got {len(self.stack) - self.protected} items, requested {count} '
         res = [self.stack.pop(self.protected) for _ in range(count)]
         if count <= 3:
-            body = ', '.join(map(repr, res))
+            body = ', '.join(map(repr, res))  # TODO: restrict line length
         else:
             body = f'{count} items'
         self._print(f' pop {body};')
@@ -76,14 +77,17 @@ class Context:
         self._print(f' drop all;')
 
     def dump(self, count: int):
-        count = min(count, len(self.stack))
-        return self.stack[:count]
+        if len(self.stack) > 0:
+            count = min(count, len(self.stack))
+            return self.stack[:count]
+        else:
+            return 'stack is empty'
 
     def _print(self, message):
         if self.debug:
             self.stdout.append(message)
 
-    def print(self, template: str):
+    def printf(self, template: str):
         def format_stack_item(match):
             i = int(match.groups()[0])
             assert i < len(self.stack), f'requested {i}th element, got only {len(self.stack)} items'
@@ -106,3 +110,11 @@ class Context:
 
     def __repr__(self):
         return pformat(self.stack)
+
+    def __deepcopy__(self, memodict={}):
+        ctx = Context(stack=deepcopy(self.stack),
+                      meta=deepcopy(self.meta),
+                      debug=self.debug)
+        ctx.protected = self.protected
+        ctx.exec_depth = self.exec_depth
+        return ctx

@@ -4,11 +4,11 @@ from pytezos import Contract, pytezos
 from pytezos.encoding import is_kt
 from pytezos.repl.control import instruction, do_interpret
 from pytezos.repl.context import Context, StackItem
-from pytezos.repl.parser import get_int, get_string, parse_prim_expr, get_entry_expr
+from pytezos.repl.parser import get_int, get_string, get_bool, parse_prim_expr, get_entry_expr
 from pytezos.repl.types import Pair, Mutez, Address, ChainID, Timestamp
 
-helpers_prim = ['DUMP', 'PRINT', 'DROP_ALL', 'EXPAND', 'RUN', 'PATCH', 'UNSET', 'INCLUDE']
-patch_prim = ['ADDRESS', 'AMOUNT', 'BALANCE', 'CHAIN_ID', 'SENDER', 'SOURCE', 'NOW']
+helpers_prim = ['DUMP', 'PRINT', 'DROP_ALL', 'EXPAND', 'RUN', 'PATCH', 'INCLUDE', 'DEBUG']
+patch_prim = ['AMOUNT', 'BALANCE', 'CHAIN_ID', 'SENDER', 'SOURCE', 'NOW']
 
 
 @instruction('DUMP', args_len=1)
@@ -16,9 +16,19 @@ def do_dump(ctx: Context, prim, args, annots):
     return ctx.dump(count=get_int(args[0]))
 
 
+@instruction('DUMP')
+def do_dump(ctx: Context, prim, args, annots):
+    return ctx.dump(count=len(ctx))
+
+
 @instruction('PRINT', args_len=1)
 def do_print(ctx: Context, prim, args, annots):
-    ctx.print(template=get_string(args[0]))
+    ctx.printf(template=f' {get_string(args[0])};')
+
+
+@instruction('DEBUG', args_len=1)
+def do_debug(ctx: Context, prim, args, annots):
+    ctx.debug = get_bool(args[0])
 
 
 @instruction('DROP_ALL')
@@ -37,7 +47,7 @@ def do_run(ctx: Context, prim, args, annots):
     assert p_type_expr, f'parameter type is not initialized'
 
     entrypoint = next((a for a in annots if a[0] == '%'), '%default')
-    ctx.print(f' use {entrypoint};')
+    ctx.printf(f' use {entrypoint};')
 
     p_type_expr = get_entry_expr(p_type_expr, entrypoint)
     parameter = StackItem.parse(args[0], p_type_expr)
@@ -59,7 +69,7 @@ def do_run(ctx: Context, prim, args, annots):
 
 @instruction('PATCH', args_len=2)
 def do_patch(ctx: Context, prim, args, annots):
-    key, = parse_prim_expr(args[0])
+    key, _ = parse_prim_expr(args[0])
     assert key in patch_prim, f'expected one of {", ".join(patch_prim)}, got {args[0]}'
     if key in ['AMOUNT', 'BALANCE']:
         res = Mutez(get_int(args[1]))
@@ -76,7 +86,7 @@ def do_patch(ctx: Context, prim, args, annots):
 
 @instruction('PATCH', args_len=1)
 def do_unset(ctx: Context, prim, args, annots):
-    key, = parse_prim_expr(args[0])
+    key, _ = parse_prim_expr(args[0])
     assert key in patch_prim, f'expected one of {", ".join(patch_prim)}, got {args[0]}'
     ctx.unset(key)
 

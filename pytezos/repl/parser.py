@@ -107,6 +107,10 @@ def get_int(val_expr):
     return int(get_core_val(val_expr, core_type='int'))
 
 
+def get_bool(val_expr):
+    return dispatch_prim_map(val_expr, {'True': True, 'False': False})
+
+
 def get_bytes(val_expr):
     return bytes.fromhex(get_core_val(val_expr, core_type='bytes'))
 
@@ -357,13 +361,16 @@ def parse_key_hash(val_expr, type_args):
 
 @primitive('signature')
 def parse_signature(val_expr, type_args):
-    return get_string(val_expr)
+    return dispatch_core_map(val_expr, {
+        'bytes': lambda x: encoding.parse_signature(bytes.fromhex(x)),
+        'string': lambda x: x
+    })
 
 
 @primitive('chain_id')
 def parse_chain_id(val_expr, type_args):
     return dispatch_core_map(val_expr, {
-        'bytes': lambda x: encoding.base58_encode(bytes.fromhex(x), b'Net').decode(),
+        'bytes': lambda x: encoding.parse_chain_id(bytes.fromhex(x)),
         'string': lambda x: x
     })
 
