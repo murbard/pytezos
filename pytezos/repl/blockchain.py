@@ -60,7 +60,7 @@ def do_self(ctx: Context, prim, args, annots):
     assert p_type_expr, f'parameter type is not initialized'
 
     entrypoint = next((a for a in annots if a[0] == '%'), '%default')
-    ctx.print(f' use {entrypoint};')
+    ctx.printf(f' use {entrypoint};')
 
     p_type_expr = get_entry_expr(p_type_expr, entrypoint)
     res = Contract.new(SELF_ADDRESS + entrypoint, type_expr=p_type_expr)
@@ -83,20 +83,21 @@ def do_source(ctx: Context, prim, args, annots):
 
 @instruction('NOW')
 def do_now(ctx: Context, prim, args, annots):
-    chain_id = ctx.get('CHAIN_ID')
-    if chain_id:
-        now = pytezos.using(get_network_by_chain_id(chain_id)).now()
-    else:
-        now = int(datetime.utcnow().timestamp())
-
-    res = Timestamp(now)
+    res = ctx.get('NOW')
+    if not res:
+        chain_id = ctx.get('CHAIN_ID')
+        if chain_id:
+            now = pytezos.using(get_network_by_chain_id(chain_id)).now()
+        else:
+            now = int(datetime.utcnow().timestamp())
+        res = Timestamp(now)
     ctx.push(res, annots=annots)
 
 
 def check_contract(ctx: Context, address, type_expr):
     chain_id = ctx.get('CHAIN_ID')
     if not chain_id:
-        ctx.print(' skip check;')
+        ctx.printf(' skip check;')
         return True
 
     network = get_network_by_chain_id(chain_id)
@@ -106,9 +107,9 @@ def check_contract(ctx: Context, address, type_expr):
         if expr_equal(type_expr, ci.contract.parameter.code):
             return True
         else:
-            ctx.print(' type mismatch;')
+            ctx.printf(' type mismatch;')
     except Exception:
-        ctx.print(' not found;')
+        ctx.printf(' not found;')
 
     return False
 
@@ -117,7 +118,7 @@ def check_contract(ctx: Context, address, type_expr):
 def do_address(ctx: Context, prim, args, annots):
     top = ctx.pop1()
     assert_stack_type(top, Contract)
-    res = Address.new(str(top))
+    res = Address.new(str(top)[:36])
     ctx.push(res, annots=annots)
 
 

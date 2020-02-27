@@ -230,6 +230,14 @@ def parse_public_key(data: bytes):
     return base58_encode(data[1:], key_prefix[data[:1]]).decode()
 
 
+def parse_chain_id(data: bytes):
+    return base58_encode(data, b'Net').decode()
+
+
+def parse_signature(data: bytes):
+    return base58_encode(data, b'sig').decode()
+
+
 def forge_address(value, tz_only=False) -> bytes:
     prefix = value[:3]
     address = base58.b58decode_check(value)[3:]
