@@ -121,6 +121,8 @@ class BigMapCodingTest{case}(TestCase):
 
 opcode_test_case = """from unittest import TestCase
 
+from tests import abspath
+
 from pytezos.repl.interpreter import Interpreter
 from pytezos.michelson.converter import michelson_to_micheline
 from pytezos.repl.parser import parse_value
@@ -133,7 +135,7 @@ class OpcodeTest{case}(TestCase):
         self.i = Interpreter(debug=True)
         
     def test_opcode_{case}(self):
-        res = self.i.execute('INCLUDE "{filename}"')
+        res = self.i.execute(f'INCLUDE "{{abspath("{filename}")}}"')
         self.assertTrue(res['success'])
         
         res = self.i.execute('RUN {parameter} {storage}')

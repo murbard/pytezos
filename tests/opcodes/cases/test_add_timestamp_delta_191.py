@@ -1,5 +1,7 @@
 from unittest import TestCase
 
+from tests import abspath
+
 from pytezos.repl.interpreter import Interpreter
 from pytezos.michelson.converter import michelson_to_micheline
 from pytezos.repl.parser import parse_value
@@ -12,7 +14,7 @@ class OpcodeTestadd_timestamp_delta_191(TestCase):
         self.i = Interpreter(debug=True)
         
     def test_opcode_add_timestamp_delta_191(self):
-        res = self.i.execute('INCLUDE "/home/mickey/pytezos/tests/opcodes/contracts/add_timestamp_delta.tz"')
+        res = self.i.execute(f'INCLUDE "{abspath("opcodes/contracts/add_timestamp_delta.tz")}"')
         self.assertTrue(res['success'])
         
         res = self.i.execute('RUN (Pair 100 100) None')

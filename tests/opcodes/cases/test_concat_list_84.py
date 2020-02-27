@@ -1,5 +1,7 @@
 from unittest import TestCase
 
+from tests import abspath
+
 from pytezos.repl.interpreter import Interpreter
 from pytezos.michelson.converter import michelson_to_micheline
 from pytezos.repl.parser import parse_value
@@ -12,7 +14,7 @@ class OpcodeTestconcat_list_84(TestCase):
         self.i = Interpreter(debug=True)
         
     def test_opcode_concat_list_84(self):
-        res = self.i.execute('INCLUDE "/home/mickey/pytezos/tests/opcodes/contracts/concat_list.tz"')
+        res = self.i.execute(f'INCLUDE "{abspath("opcodes/contracts/concat_list.tz")}"')
         self.assertTrue(res['success'])
         
         res = self.i.execute('RUN {} ""')

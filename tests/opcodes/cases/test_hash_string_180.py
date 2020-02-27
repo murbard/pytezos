@@ -1,5 +1,7 @@
 from unittest import TestCase
 
+from tests import abspath
+
 from pytezos.repl.interpreter import Interpreter
 from pytezos.michelson.converter import michelson_to_micheline
 from pytezos.repl.parser import parse_value
@@ -12,7 +14,7 @@ class OpcodeTesthash_string_180(TestCase):
         self.i = Interpreter(debug=True)
         
     def test_opcode_hash_string_180(self):
-        res = self.i.execute('INCLUDE "/home/mickey/pytezos/tests/opcodes/contracts/hash_string.tz"')
+        res = self.i.execute(f'INCLUDE "{abspath("opcodes/contracts/hash_string.tz")}"')
         self.assertTrue(res['success'])
         
         res = self.i.execute('RUN "12345" 0x00')

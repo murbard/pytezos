@@ -1,5 +1,7 @@
 from unittest import TestCase
 
+from tests import abspath
+
 from pytezos.repl.interpreter import Interpreter
 from pytezos.michelson.converter import michelson_to_micheline
 from pytezos.repl.parser import parse_value
@@ -12,7 +14,7 @@ class OpcodeTestand_logical_1_44(TestCase):
         self.i = Interpreter(debug=True)
         
     def test_opcode_and_logical_1_44(self):
-        res = self.i.execute('INCLUDE "/home/mickey/pytezos/tests/opcodes/contracts/and_logical_1.tz"')
+        res = self.i.execute(f'INCLUDE "{abspath("opcodes/contracts/and_logical_1.tz")}"')
         self.assertTrue(res['success'])
         
         res = self.i.execute('RUN (Pair False False) False')

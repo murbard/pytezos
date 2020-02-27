@@ -1,5 +1,5 @@
 from tests.templates import opcode_test_case
-from os.path import dirname, join, exists
+from os.path import dirname, join, exists, relpath
 from os import mkdir
 
 # Merci beaucoup a @arvidnl et tout le monde
@@ -617,12 +617,11 @@ def make_opcode_tests():
     if not exists(cases_dir):
         mkdir(cases_dir)
 
-    contracts_dir = join(proj_dir, 'tests', 'opcodes', 'contracts')
     for i, (filename, storage, parameter, expected) in enumerate(parameterized_data):
         case = filename.replace(".tz", f'_{i}')
         body = opcode_test_case.format(
             case=case,
-            filename=join(contracts_dir, filename),
+            filename=join('opcodes', 'contracts', filename),
             parameter=wrap(parameter),
             storage=wrap(storage),
             expected=wrap(expected)

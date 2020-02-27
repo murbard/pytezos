@@ -1,5 +1,7 @@
 from unittest import TestCase
 
+from tests import abspath
+
 from pytezos.repl.interpreter import Interpreter
 from pytezos.michelson.converter import michelson_to_micheline
 from pytezos.repl.parser import parse_value
@@ -12,7 +14,7 @@ class OpcodeTestget_map_value_154(TestCase):
         self.i = Interpreter(debug=True)
         
     def test_opcode_get_map_value_154(self):
-        res = self.i.execute('INCLUDE "/home/mickey/pytezos/tests/opcodes/contracts/get_map_value.tz"')
+        res = self.i.execute(f'INCLUDE "{abspath("opcodes/contracts/get_map_value.tz")}"')
         self.assertTrue(res['success'])
         
         res = self.i.execute('RUN "1" (Pair None { Elt "1" "one" ;     Elt "2" "two" })')

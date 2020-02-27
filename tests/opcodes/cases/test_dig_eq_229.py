@@ -1,5 +1,7 @@
 from unittest import TestCase
 
+from tests import abspath
+
 from pytezos.repl.interpreter import Interpreter
 from pytezos.michelson.converter import michelson_to_micheline
 from pytezos.repl.parser import parse_value
@@ -12,7 +14,7 @@ class OpcodeTestdig_eq_229(TestCase):
         self.i = Interpreter(debug=True)
         
     def test_opcode_dig_eq_229(self):
-        res = self.i.execute('INCLUDE "/home/mickey/pytezos/tests/opcodes/contracts/dig_eq.tz"')
+        res = self.i.execute(f'INCLUDE "{abspath("opcodes/contracts/dig_eq.tz")}"')
         self.assertTrue(res['success'])
         
         res = self.i.execute('RUN (Pair 2 (Pair 3 (Pair 12 (Pair 16 (Pair 10 (Pair 14 (Pair 19 (Pair 9 (Pair 18 (Pair 6 (Pair 8 (Pair 11 (Pair 4 (Pair 13 (Pair 15 (Pair 5 1)))))))))))))))) Unit')

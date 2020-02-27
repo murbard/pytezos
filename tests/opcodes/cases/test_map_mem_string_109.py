@@ -1,5 +1,7 @@
 from unittest import TestCase
 
+from tests import abspath
+
 from pytezos.repl.interpreter import Interpreter
 from pytezos.michelson.converter import michelson_to_micheline
 from pytezos.repl.parser import parse_value
@@ -12,7 +14,7 @@ class OpcodeTestmap_mem_string_109(TestCase):
         self.i = Interpreter(debug=True)
         
     def test_opcode_map_mem_string_109(self):
-        res = self.i.execute('INCLUDE "/home/mickey/pytezos/tests/opcodes/contracts/map_mem_string.tz"')
+        res = self.i.execute(f'INCLUDE "{abspath("opcodes/contracts/map_mem_string.tz")}"')
         self.assertTrue(res['success'])
         
         res = self.i.execute('RUN "baz" (Pair { Elt "bar" 4 ; Elt "foo" 11 } None)')

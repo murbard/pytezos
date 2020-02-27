@@ -1,5 +1,7 @@
 from unittest import TestCase
 
+from tests import abspath
+
 from pytezos.repl.interpreter import Interpreter
 from pytezos.michelson.converter import michelson_to_micheline
 from pytezos.repl.parser import parse_value
@@ -12,7 +14,7 @@ class OpcodeTestediv_mutez_213(TestCase):
         self.i = Interpreter(debug=True)
         
     def test_opcode_ediv_mutez_213(self):
-        res = self.i.execute('INCLUDE "/home/mickey/pytezos/tests/opcodes/contracts/ediv_mutez.tz"')
+        res = self.i.execute(f'INCLUDE "{abspath("opcodes/contracts/ediv_mutez.tz")}"')
         self.assertTrue(res['success'])
         
         res = self.i.execute('RUN (Pair 5 (Right 10)) (Left None)')
