@@ -110,7 +110,7 @@ class Context:
 
     def set(self, key, value):
         self.meta[key] = value
-        if key in ['parameter', 'storage', 'code', 'Current']:
+        if key in ['parameter', 'storage', 'code', 'STORAGE']:
             self.print('\n' + micheline_to_michelson({"prim": key, "args": [value]}))
         else:
             self.print(f' set {key}={repr(value)};')
