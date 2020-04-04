@@ -124,7 +124,7 @@ def do_patch(ctx: Context, prim, args, annots):
         res = Mutez(get_int(args[1]))
     elif key == 'NOW':
         res = Timestamp(get_int(args[1]))
-    elif key in ['SOURCE', 'SENDER', 'ADDRESS']:
+    elif key in ['SOURCE', 'SENDER']:
         res = Address.new(get_string(args[1]))
     elif key == 'CHAIN_ID':
         res = ChainID(get_string(args[1]))
