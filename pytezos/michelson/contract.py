@@ -9,6 +9,7 @@ from pytezos.michelson.docstring import generate_docstring
 from pytezos.michelson.micheline import make_default, michelson_to_micheline
 from pytezos.michelson.formatter import micheline_to_michelson
 from pytezos.michelson.converter import build_schema, decode_micheline, encode_micheline, build_big_map_schema
+from pytezos.michelson.pack import get_key_hash, get_sub_expr
 
 
 class ContractParameter(metaclass=InlineDocstring):
@@ -190,17 +191,16 @@ class ContractStorage(metaclass=InlineDocstring):
         big_map_id = self.big_map_id(join('/', big_map_path)) if big_map_path else None
         key_root, _, _ = self._locate_big_map(big_map_id)
         encoded_key = encode_micheline(data=key, schema=self.schema, root=key_root)
+        key_hash = get_key_hash(encoded_key, self.code, bin_path=key_root)
 
         if big_map_id:
             query = dict(
                 big_map_id=big_map_id,
-                script_expr=base58_encode(blake2b_32(encoded_key.encode()), b'expr')
-            )
+                script_expr=key_hash)
         else:
             query = dict(
                 key=encoded_key,
-                type={'prim': self.schema.metadata[key_root]['prim']}
-            )
+                type={'prim': self.schema.metadata[key_root]['prim']})
 
         return query
 
