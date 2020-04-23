@@ -50,7 +50,20 @@ def pack(val_expr, type_expr):
     return b'\x05' + forge_micheline(data)
 
 
-def get_key_hash(val_expr, type_expr):
+def get_sub_expr(type_expr, bin_path='0'):
+    assert len(bin_path) > 0, f'binary path should be at least `0`'
+    node = type_expr
+    for idx in bin_path[1:]:
+        assert isinstance(node, dict), f'type expression contains dict nodes only'
+        node = node['args'][int(idx)]
+    return node
+
+
+def get_key_hash(val_expr, type_expr, bin_path=''):
+    for idx in bin_path:
+        assert isinstance(type_expr, dict), f'type expression contains dict nodes only'
+        type_expr = type_expr['args'][int(idx)]
+
     data = blake2b_32(pack(val_expr, type_expr)).digest()
     return base58_encode(data, b'expr').decode()
 

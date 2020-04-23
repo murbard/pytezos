@@ -329,6 +329,10 @@ class ContractInterface(Interop):
         :param block_id: Block height / hash / offset to use, default is `head`
         :return: object
         """
+        if not self.contract.storage.big_map_schema:
+            storage = self.shell.blocks[block_id].context.contracts[self.address].storage()
+            self.contract.storage.big_map_init(storage)
+
         query = self.contract.storage.big_map_query(path)
         if query.get('big_map_id'):
             value = self.shell.blocks[block_id].context.big_maps[query['big_map_id']][query['script_expr']]()
