@@ -2,6 +2,7 @@
 
 [![PyPI version](https://badge.fury.io/py/pytezos.svg?)](https://badge.fury.io/py/pytezos)
 [![Build Status](https://travis-ci.org/baking-bad/pytezos.svg?branch=master)](https://travis-ci.org/baking-bad/pytezos)
+[![Docker Build Status](https://img.shields.io/docker/cloud/build/bakingbad/pytezos)](https://hub.docker.com/r/bakingbad/pytezos)
 [![Made With](https://img.shields.io/badge/made%20with-python-blue.svg?)](https://www.python.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -53,6 +54,12 @@ $ pip install pytezos
 >>> !apt install libsodium-dev libsecp256k1-dev libgmp-dev
 >>> !pip install pytezos
 `````
+
+#### Docker container
+Verified & minified images for CI/CD https://hub.docker.com/r/bakingbad/pytezos/tags
+```
+docker pull bakingbad/pytezos
+```
 
 ### Usage
 
