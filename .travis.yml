@@ -8,6 +8,9 @@ cache:
   directories:
     - $HOME/.cache/pypoetry
 
+if:
+  - tag IS blank
+
 before_install:
   - sudo apt-get update -q
   - sudo apt-get install libsodium-dev -y
@@ -22,6 +25,7 @@ script:
   - poetry run pytest examples/
 
 before_deploy:
+  - poetry config http-basic.pypi __token__ $PYPI_TOKEN
   - poetry build
   - export VERSION=$(cat pyproject.toml | awk '$1 ~ /^version/ {print $3}' | sed 's/"//g')
   - export TAG=${VERSION%.*}
@@ -31,8 +35,7 @@ before_deploy:
   - git push https://${GH_TOKEN}@github.com/baking-bad/pytezos.git $TAG -f
 
 deploy:
-  provider: pypi
-  user: "__token__"
-  password: $PYPI_TOKEN
+  provider: script
+  script: poetry publish
   on:
     branch: master
