@@ -6,7 +6,7 @@ RUN apk update \
 	    build-base \
 		libffi-dev \
 		libressl-dev \
-	&& pip3 install poetry==1.0.5
+	&& pip3 install poetry==1.0.5 \
 	&& cd /pytezos && poetry build
 
 

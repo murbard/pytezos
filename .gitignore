@@ -7,3 +7,6 @@ dist/
 *.egg-info
 *.ipynb
 site/
+*.html
+*.json
+*.zip
