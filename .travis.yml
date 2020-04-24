@@ -25,6 +25,8 @@ before_deploy:
   - poetry build
   - export VERSION=$(cat pyproject.toml | awk '$1 ~ /^version/ {print $3}' | sed 's/"//g')
   - export TAG=${VERSION%.*}
+  - git config --global user.email "builds@travis-ci.com"
+  - git config --global user.name "Travis CI"
   - git tag $TAG -f
   - git push origin $TAG -f
 
