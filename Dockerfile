@@ -41,8 +41,8 @@ RUN apk update \
 	&& cd / && rm -rf /tmp/secp256k1 \
 	&& pip3 install --no-cache-dir poetry==1.0.5 \
 	&& pip3 install --no-build-isolation --no-cache-dir pendulum==2.1.0 \
-    && pip3 install --no-cache-dir /tmp/pytezos/*.whl && rm -rf /tmp/pytezos \
-    && pip3 uninstall --yes poetry \
+	&& pip3 install --no-cache-dir /tmp/pytezos/*.whl && rm -rf /tmp/pytezos \
+	&& pip3 uninstall --yes poetry \
 	&& rm -rf ~/.cache/pip && apk del py-pip \
 	&& apk del build-deps \
 	&& rm -f /sbin/apk && rm -rf /etc/apk && rm -rf /lib/apk && rm -rf /usr/share/apk && rm -rf /var/lib/apk
