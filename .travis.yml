@@ -20,3 +20,17 @@ install:
 script:
   - poetry run pytest tests/
   - poetry run pytest examples/
+
+before_deploy:
+  - poetry build
+  - export VERSION=$(cat pyproject.toml | awk '$1 ~ /^version/ {print $3}' | sed 's/"//g')
+  - export TAG=${VERSION%.*}
+  - git tag -d $TAG && git tag -a $TAG git push origin $TAG -f
+
+deploy:
+  provider: pypi
+  user: "__token__"
+  password: $PYPI_TOKEN
+  on:
+    branch: master
+    tags: false
