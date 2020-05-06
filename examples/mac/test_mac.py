@@ -10,7 +10,17 @@ initial_storage = {
     },
     'assets': {
         'hook': {
-            'hook': '{ UNIT ; FAILWITH }',
+            'hook': """
+                { DROP ;
+                  PUSH address "KT1V4jijVy1HfVWde6HBVD1cCygZDtFJK4Xz" ; 
+                  CONTRACT (pair
+                             (pair
+                               (list %batch (pair (pair (nat %amount) (option %from_ address))
+                                                  (pair (option %to_ address) (nat %token_id))))
+                               (address %fa2))
+                             (address %operator)) ;
+                  IF_NONE { FAIL } {} }
+            """,
             'permissions_descriptor': {
                 'custom': {
                     'config_api': None,
@@ -52,3 +62,20 @@ class TestMac(TestCase):
                                    }) \
             .interpret(storage=initial_storage)
         self.assertEqual(1, len(res.operations))
+
+    def test_transfer(self):
+        initial_storage_balance = initial_storage.copy()
+        initial_storage_balance['assets']['ledger'] = {
+            (pytezos.key.public_key_hash(), 0): 42000
+        }
+
+        res = self.mac.transfer([
+            dict(amount=1000,
+                 from_=pytezos.key.public_key_hash(),
+                 to_='tz1abavrqYNzpcDPiQURyCt1THti8J27W6mR',
+                 token_id=0)]) \
+            .interpret(storage=initial_storage_balance)
+        self.assertDictEqual({
+            (pytezos.key.public_key_hash(), 0): 41000,
+            ('tz1abavrqYNzpcDPiQURyCt1THti8J27W6mR', 0): 1000
+        }, res.big_map_diff['assets/ledger'])

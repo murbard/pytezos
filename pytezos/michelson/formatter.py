@@ -103,15 +103,20 @@ def format_node(node, indent='', inline=False, is_root=False, wrapped=False):
         assert False, f'unexpected node {node}'
 
 
-def micheline_to_michelson(data, inline=False):
+def micheline_to_michelson(data, inline=False, wrap=False):
     """
     Converts micheline expression into formatted Michelson source
     :param data: Micheline expression
     :param inline: produce single line, used for tezos-client arguments (False by default)
+    :param wrap: ensure expression is wrapped in brackets
     :return: string
     """
     try:
-        return format_node(data, inline=inline, is_root=True)
+        res = format_node(data, inline=inline, is_root=True)
+        if wrap and any(map(res.startswith, ['Left', 'Right', 'Some', 'Pair'])):
+            return f'({res})'
+        else:
+            return res
     except (KeyError, IndexError, TypeError) as e:
         pprint(data, compact=True)
         raise MichelsonFormatterError(e.args)

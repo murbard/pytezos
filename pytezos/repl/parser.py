@@ -191,9 +191,12 @@ def is_pushable(type_expr):
     prim, args, _ = parse_type(type_expr)
     if prim in ['big_map', 'contract', 'operation']:
         return False
-    if args:
+    elif prim == 'lambda':
+        return True
+    elif args:
         return all(map(is_pushable, args))
-    return True
+    else:
+        return True
 
 
 def assert_pushable(type_expr):
