@@ -53,6 +53,7 @@ class ContractCallResult(OperationResult):
 
     @classmethod
     def from_repl_result(cls, res: dict, parameters, contract: Contract):
+        contract.storage.big_map_init(res['result']['storage'].val_expr)
         return cls(
             parameters=contract.parameter.decode(parameters),
             storage=contract.storage.decode(res['result']['storage'].val_expr),
@@ -151,6 +152,15 @@ class ContractCall(Interop):
         i = Interpreter()
         i.execute(self.contract.text)
 
+        if source is None:
+            source = self.key.public_key_hash()
+        if sender is None:
+            sender = source
+        if amount is None:
+            amount = 0
+        if balance is None:
+            balance = 0
+
         patch_map = {
             'SOURCE': source,
             'SENDER': sender,
@@ -164,9 +174,9 @@ class ContractCall(Interop):
                 value = f'"{value}"' if isinstance(value, str) else value
                 i.execute(f'PATCH {instr} {value}')
 
-        s_expr = micheline_to_michelson(self.contract.storage.encode(storage), inline=True)
-        p_expr = micheline_to_michelson(self.parameters['value'], inline=True)
-        res = i.execute(f'RUN %{self.parameters["entrypoint"]} ({p_expr}) ({s_expr})')
+        s_expr = micheline_to_michelson(self.contract.storage.encode(storage), inline=True, wrap=True)
+        p_expr = micheline_to_michelson(self.parameters['value'], inline=True, wrap=True)
+        res = i.execute(f'RUN %{self.parameters["entrypoint"]} {p_expr} {s_expr}')
 
         return ContractCallResult.from_repl_result(
             res, parameters=self.parameters, contract=self.contract)
