@@ -490,6 +490,18 @@ version = "1.0.0"
 
 [[package]]
 category = "dev"
+description = "Sitemap generator for Sphinx"
+name = "sphinx-sitemap"
+optional = false
+python-versions = "*"
+version = "2.1.0"
+
+[package.dependencies]
+six = "*"
+sphinx = ">=1.2"
+
+[[package]]
+category = "dev"
 description = "sphinxcontrib-applehelp is a sphinx extension which outputs Apple help books"
 name = "sphinxcontrib-applehelp"
 optional = false
@@ -579,7 +591,7 @@ python-versions = ">=3.6"
 version = "3.1.0"
 
 [metadata]
-content-hash = "09c85f35a85154ffd3920e0bb22ed9c5620d786653ab8abb4eea09ad19261917"
+content-hash = "c80387feca2f095f02f77d674776e8dddd470a1b0fa951b5c2aa20c068550e4d"
 python-versions = "^3.6"
 
 [metadata.hashes]
@@ -632,6 +644,7 @@ six = ["30639c035cdb23534cd4aa2dd52c3bf48f06e5f4a941509c8bafd8ce11080259", "8b74
 snowballstemmer = ["209f257d7533fdb3cb73bdbd24f436239ca3b2fa67d56f6ff88e86be08cc5ef0", "df3bac3df4c2c01363f3dd2cfa78cce2840a79b9f1c2d2de9ce8d31683992f52"]
 sphinx = ["1c445320a3310baa5ccb8d957267ef4a0fc930dc1234db5098b3d7af14fbb242", "7d3d5087e39ab5a031b75588e9859f011de70e213cd0080ccbc28079fb0786d1"]
 sphinx-hand-theme = ["a5fa801f574a794f5774edf4c45f3a9f36c123989df5edef87f5fddc6129e6ba"]
+sphinx-sitemap = ["ba3576f38e8d1cabde483dabed2cc2b958af85ff97f2a4442f990b02e967d6a5"]
 sphinxcontrib-applehelp = ["806111e5e962be97c29ec4c1e7fe277bfd19e9652fb1a4392105b43e01af885a", "a072735ec80e7675e3f432fcae8610ecf509c5f1869d17e2eecff44389cdbc58"]
 sphinxcontrib-devhelp = ["8165223f9a335cc1af7ffe1ed31d2871f325254c0423bc0c4c7cd1c1e4734a2e", "ff7f1afa7b9642e7060379360a67e9c41e8f3121f2ce9164266f61b9f4b338e4"]
 sphinxcontrib-htmlhelp = ["3c0bc24a2c41e340ac37c85ced6dafc879ab485c095b1d65d2461ac2f7cca86f", "e8f5bb7e31b2dbb25b9cc435c8ab7a79787ebf7f906155729338f3156d93659b"]

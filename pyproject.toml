@@ -38,6 +38,7 @@ pytest = "^3.0"
 pytest-cov = "^2.4"
 sphinx = "*"
 sphinx_hand_theme = "*"
+sphinx-sitemap = "*"
 
 [tool.poetry.scripts]
 pytezos = 'pytezos:cli.main'
