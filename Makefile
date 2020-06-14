@@ -10,5 +10,5 @@ docs:
 	cd docs && $(MAKE) html
 
 release:
-	VERSION=$$(cat pyproject.toml | grep version | awk -F\" '{ print $$2 }')
-	git tag $$VERSION && git push origin $$VERSION
+	PYTEZOS_VERSION=$$(cat pyproject.toml | grep version | awk -F\" '{ print $$2 }')
+	git tag $$PYTEZOS_VERSION && git push origin $$PYTEZOS_VERSION
