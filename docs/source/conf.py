@@ -31,6 +31,7 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.viewcode',
     'sphinx.ext.napoleon',
+    'sphinx_sitemap',
     'sphinx.ext.todo',
 ]
 
@@ -73,3 +74,6 @@ html_static_path = ['_static']
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = True
+
+html_baseurl = 'https://baking-bad.github.io/pytezos/'
+html_extra_path = ['robots.txt']
