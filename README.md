@@ -6,7 +6,26 @@
 [![Made With](https://img.shields.io/badge/made%20with-python-blue.svg?)](https://www.python.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Python SDK for Tezos: RPC, cryptography, operations, smart contract interaction
+Python SDK for Tezos:
+* RPC query engine
+* Cryptography
+* Building and parsing operations
+* Smart contract interaction
+* Local forging/packing & vice versa
+* Working with Michelson AST
+
+PyTezos CLI:
+* Generating contract parameter/storage schema
+* Activating and revealing accounts
+* Deploying contracts (+ GitHub integration)
+
+Michelson REPL:
+* Builtin interpreter (reimplemented)
+* Set of extra helpers (stack visualization, blockchain context mocking)
+
+Michelson integration testing framework:
+* Writing integration tests using `unittest` package
+* Simulating contract execution using remote intepreter (via RPC) or builtin one
 
 ### Requirements
 
@@ -61,9 +80,16 @@ Verified & minified images for CI/CD https://hub.docker.com/r/bakingbad/pytezos/
 docker pull bakingbad/pytezos
 ```
 
-### Usage
+### Quick start
+Read [quick start guide](https://pytezos.baking-bad.org/quick_start.html)
 
-Read [quick start guide](https://baking-bad.github.io/pytezos), or just enjoy surfing the interactive documentation using Python console/Jupyter:
+### API reference
+Check out a complete [API reference](https://pytezos.baking-bad.org)
+
+#### Inline documentation
+If you are working in Jupyter/Google Colab or any other interactive console, 
+you can display documentation for a particular class/method:
+
 ```python
 >>> from pytezos import pytezos
 >>> pytezos

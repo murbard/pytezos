@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.abspath('../..'))
 
 # -- Project information -----------------------------------------------------
 
-project = 'pytezos'
+project = 'PyTezos'
 copyright = '2020, Baking Bad'
 author = 'Arthur Breitman, Michael Zaikin'
 
@@ -76,5 +76,5 @@ html_static_path = ['_static']
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = True
 
-html_baseurl = 'https://baking-bad.github.io/pytezos/'
+html_baseurl = 'https://pytezos.baking-bad.org/'
 html_extra_path = ['robots.txt']
