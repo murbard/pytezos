@@ -37,7 +37,7 @@ parameterized = "^0.7.0"
 pytest = "^3.0"
 pytest-cov = "^2.4"
 sphinx = "*"
-sphinx_hand_theme = "*"
+sphinx_rtd_theme = "*"
 sphinx-sitemap = "*"
 
 [tool.poetry.scripts]

@@ -54,10 +54,7 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 # -- Options for HTML output -------------------------------------------------
 
-import sphinx_hand_theme
-html_theme = "sphinx_hand_theme"
-html_theme_path = [sphinx_hand_theme.get_html_theme_path()]
-
+html_theme = "sphinx_rtd_theme"
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
