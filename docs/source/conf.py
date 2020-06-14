@@ -78,3 +78,4 @@ todo_include_todos = True
 
 html_baseurl = 'https://pytezos.baking-bad.org/'
 html_extra_path = ['robots.txt']
+html_favicon = 'favicon.ico'
