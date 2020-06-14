@@ -28,19 +28,15 @@ before_deploy:
   - make docs
   - poetry config http-basic.pypi __token__ $PYPI_TOKEN
   - poetry build
-  - export VERSION=$(cat pyproject.toml | awk '$1 ~ /^version/ {print $3}' | sed 's/"//g')
-  - export TAG=${VERSION%.*}
-  - git config --global user.email "builds@travis-ci.com"
-  - git config --global user.name "Travis CI"
-  - git tag $TAG -f
-  - git push https://${GH_TOKEN}@github.com/baking-bad/pytezos.git $TAG -f
 
 deploy:
   - provider: script
     script: poetry publish
     skip_cleanup: true
     on:
-      branch: master
+      all_branches: true
+      tag: true
+      condition: "$TRAVIS_TAG =~ ^[0-9.]+$"
   - provider: pages
     skip_cleanup: true
     local_dir: docs/build

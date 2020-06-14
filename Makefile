@@ -8,3 +8,7 @@ test:
 
 docs:
 	cd docs && $(MAKE) html
+
+release:
+	VERSION=$$(cat pyproject.toml | grep version | awk -F\" '{ print $$2 }')
+	git tag $$VERSION && git push origin $$VERSION
