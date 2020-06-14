@@ -36,6 +36,8 @@ fastecdsa = "^1.7.1"
 parameterized = "^0.7.0"
 pytest = "^3.0"
 pytest-cov = "^2.4"
+sphinx = "*"
+sphinx_hand_theme = "*"
 
 [tool.poetry.scripts]
 pytezos = 'pytezos:cli.main'
