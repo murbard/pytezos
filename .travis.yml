@@ -8,9 +8,6 @@ cache:
   directories:
     - $HOME/.cache/pypoetry
 
-if:
-  - tag IS blank
-
 before_install:
   - sudo apt-get update -q
   - sudo apt-get install libsodium-dev -y

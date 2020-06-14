@@ -1,3 +1,4 @@
+.ONESHELL:
 .PHONY: docs
 
 debug:
@@ -11,4 +12,4 @@ docs:
 
 release:
 	PYTEZOS_VERSION=$$(cat pyproject.toml | grep version | awk -F\" '{ print $$2 }')
-	git tag $$PYTEZOS_VERSION && git push origin $$PYTEZOS_VERSION
+	git tag $$PYTEZOS_VERSION -f && git push origin $$PYTEZOS_VERSION -f
