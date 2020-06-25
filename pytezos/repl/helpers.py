@@ -2,10 +2,11 @@ from os.path import isfile
 
 from pytezos import Contract
 from pytezos.interop import Interop
-from pytezos.encoding import is_kt
+from pytezos.encoding import is_kt, forge_timestamp
 from pytezos.repl.control import instruction, do_interpret
 from pytezos.repl.context import Context
-from pytezos.repl.parser import get_int, get_string, get_bool, parse_prim_expr, restore_entry_expr, assert_expr_equal
+from pytezos.repl.parser import get_int, get_string, get_bool, parse_prim_expr, restore_entry_expr, assert_expr_equal, \
+    dispatch_core_map
 from pytezos.repl.types import Pair, Mutez, Address, ChainID, Timestamp, assert_stack_type, List, Operation
 
 networks = ['mainnet', 'zeronet', 'babylonnet', 'carthagenet']
@@ -123,7 +124,7 @@ def do_patch(ctx: Context, prim, args, annots):
     if key in ['AMOUNT', 'BALANCE']:
         res = Mutez(get_int(args[1]))
     elif key == 'NOW':
-        res = Timestamp(get_int(args[1]))
+        res = Timestamp(dispatch_core_map(args[1], {'int': int, 'string': forge_timestamp}))
     elif key in ['SOURCE', 'SENDER']:
         res = Address.new(get_string(args[1]))
     elif key == 'CHAIN_ID':

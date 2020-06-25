@@ -5,7 +5,7 @@ from pytezos.michelson.micheline import Schema, is_optional
 core_types = ['string', 'int', 'bool']
 domain_types = {
     'nat': 'int  /* Natural number */',
-    'unit': 'None /* Void */',
+    'unit': 'Unit || None /* Void */',
     'bytes': 'string  /* Hex string */ ||\n\tbytes  /* Python byte string */',
     'timestamp': 'int  /* Unix time in seconds */ ||\n\tstring  /* Formatted datetime `%Y-%m-%dT%H:%M:%SZ` */',
     'mutez': 'int  /* Amount in `utz` (10^-6) */ ||\n\tDecimal  /* Amount in `tz` */',

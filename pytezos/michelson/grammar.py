@@ -195,4 +195,6 @@ class MichelsonParser(object):
         :param code: Michelson source
         :returns: Micheline expression
         """
+        if len(code) > 0 and code[0] == '(' and code[-1] == ')':
+            code = code[1:-1]
         return self.parser.parse(code)

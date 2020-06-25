@@ -87,7 +87,10 @@ def dispatch_core_map(val_expr, mapping: dict):
     assert act_type in mapping, f'expected {expected}, got {act_type}'
     res = mapping[act_type]
     if callable(res):
-        return res(val)
+        try:
+            return res(val)
+        except ValueError as e:
+            raise MichelsonTypeCheckError.init(str(e), act_type)
     else:
         return res
 

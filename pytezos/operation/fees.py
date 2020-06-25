@@ -43,7 +43,7 @@ def default_gas_limit(content) -> int:
         'reveal': 10000,
         'delegation': 10000,
         'origination': hard_gas_limit_per_operation if content.get('script') else 10000,
-        'transaction': hard_gas_limit_per_operation if content['destination'].startswith('KT') else 10207
+        'transaction': hard_gas_limit_per_operation if content.get('destination', '').startswith('KT') else 10207
     }
     return values.get(content['kind'])
 
@@ -57,6 +57,6 @@ def default_storage_limit(content):
         'reveal': 0,
         'delegation': 0,
         'origination': hard_storage_limit_per_operation if content.get('script') else 10207,
-        'transaction': hard_storage_limit_per_operation if content['destination'].startswith('KT') else 257
+        'transaction': hard_storage_limit_per_operation if content.get('destination', '').startswith('KT') else 257
     }
     return values.get(content['kind'])

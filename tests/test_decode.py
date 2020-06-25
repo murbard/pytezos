@@ -3,6 +3,7 @@ from parameterized import parameterized
 
 from pytezos.michelson.converter import michelson_to_micheline
 from pytezos.michelson.contract import ContractStorage, ContractParameter
+from pytezos.michelson.grammar import MichelsonParser
 
 storage_data = [(
     """Pair (Pair "tz1YPSCGWXwBdTncK2aCctSZAXWvGsGwVJqU" True) 
@@ -96,3 +97,7 @@ class TestComparable(TestCase):
         decoded = parameter.decode(source)
         encoded = parameter.encode(decoded, entrypoint='default')
         self.assertEqual(source, encoded['value'])
+
+    def test_wrapped_expr(self):
+        p = MichelsonParser()
+        p.parse('(Pair 1 2)')

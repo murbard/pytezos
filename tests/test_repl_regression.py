@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from pytezos.repl.interpreter import Interpreter, StackItem
+from pytezos.repl.interpreter import Interpreter, StackItem, MichelsonRuntimeError
 from pytezos.repl.control import assert_stack_type
 from pytezos.repl.types import Option
 
@@ -21,3 +21,13 @@ class TestREPLRegression(TestCase):
         top = i.ctx.stack[0]  # type: Option
         assert_stack_type(top, Option)
         self.assertTrue(top.is_none())
+
+    def test_now_failed_parse_exception_type(self):
+        i = Interpreter()
+        with self.assertRaises(MichelsonRuntimeError):
+            i.execute('PUSH timestamp "2020-06-17 10:00:00"')
+
+    def test_patch_now_str(self):
+        i = Interpreter()
+        i.execute('PATCH NOW "2020-06-17T10:00:00Z"')
+        i.execute('PATCH NOW 1593082373')

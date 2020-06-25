@@ -12,6 +12,7 @@ from pytezos.repl.parser import parse_expression, dispatch_core_map
 
 Nested = namedtuple('Nested', ['prim', 'args'])
 Schema = namedtuple('Schema', ['metadata', 'bin_types', 'bin_names', 'json_to_bin'])
+Unit = None
 
 
 class Pair(tuple):
@@ -230,7 +231,7 @@ def parse_micheline(val_expr, type_expr, schema: Schema, bin_root='0'):
             res = {schema.bin_names[arg_path]: val[0]} if is_leaf else val[0]
             return next(iter(res)) if bin_type == 'enum' else res
         elif bin_type == 'unit':
-            return None
+            return Unit
         elif bin_type == 'lambda':
             return micheline_to_michelson(val)
         elif bin_type == 'timestamp':
@@ -419,8 +420,6 @@ def michelson_to_micheline(data, parser=None):
     """
     if parser is None:
         parser = michelson_parser()
-    if data[0] == '(' and data[-1] == ')':
-        data = data[1:-1]
     return parser.parse(data)
 
 
