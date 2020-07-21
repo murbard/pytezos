@@ -1,10 +1,10 @@
 # PyTezos
 
 [![PyPI version](https://badge.fury.io/py/pytezos.svg?)](https://badge.fury.io/py/pytezos)
-[![Tests](https://github.com/baking-bad/pytezos/workflows/Tests/badge.svg)
+[![Tests](https://github.com/baking-bad/pytezos/workflows/Tests/badge.svg?)](https://github.com/baking-bad/pytezos/actions?query=workflow%3ATests)
 [![Docker Build Status](https://img.shields.io/docker/cloud/build/bakingbad/pytezos)](https://hub.docker.com/r/bakingbad/pytezos)
 [![Made With](https://img.shields.io/badge/made%20with-python-blue.svg?)](ttps://www.python.org)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)h](https://opensource.org/licenses/MIT)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 Python SDK for Tezos:
 * RPC query engine
