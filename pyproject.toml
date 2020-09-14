@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pytezos"
-version = "2.5.7"
+version = "2.5.8"
 description = "Python toolkit for Tezos"
 license = "MIT"
 authors = ["Michael Zaikin <mz@baking-bad.org>", "Arthur Breitman", "Roman Serikov"]
@@ -39,6 +39,7 @@ pytest-cov = "^2.4"
 sphinx = "*"
 sphinx_rtd_theme = { git = "https://github.com/readthedocs/sphinx_rtd_theme.git", tag = "0.5.0rc2" }
 sphinx-sitemap = "*"
+sphinxcontrib-googleanalytics = "^0.1"
 
 [tool.poetry.scripts]
 pytezos = 'pytezos:cli.main'
