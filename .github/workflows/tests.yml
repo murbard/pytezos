@@ -20,10 +20,10 @@ jobs:
     - name: Run tests
       run: poetry run pytest tests/
     - name: Make docs
-      if: github.ref == 'refs/head/master'
+      if: github.ref == 'refs/heads/master'
       run: make docs
     - name: Deploy to GH Pages
-      if: github.ref == 'refs/head/master'
+      if: github.ref == 'refs/heads/master'
       uses: peaceiris/actions-gh-pages@v3
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
