@@ -24,18 +24,11 @@ jobs:
         poetry install -v
     - name: Run tests
       run: poetry run pytest tests/
-    - name: Make docs
-      run: make docs
     - name: Poetry publish
       run: |
         poetry config http-basic.pypi __token__ ${{secrets.PYPI_TOKEN}}
         poetry build
         poetry publish
-    - name: Deploy to GH Pages
-      uses: peaceiris/actions-gh-pages@v3
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./docs/build/html
     - name: Build github release
       uses: "marvinpinto/action-automatic-releases@latest"
       with:
