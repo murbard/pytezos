@@ -43,13 +43,13 @@ Arithmetic operations
     :undoc-members:
 
 Blockchain-specific operations
-+++++++++++++++++++++++
+++++++++++++++++++++++++++++++++
 .. automodule:: pytezos.repl.blockchain
     :members:
     :undoc-members:
 
 Control flow operators
-+++++++++++++++++++++++
+++++++++++++++++++++++++
 .. automodule:: pytezos.repl.blockchain
     :members:
     :undoc-members:
