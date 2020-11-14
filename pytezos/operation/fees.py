@@ -3,7 +3,7 @@ from pytezos.operation.forge import forge_operation
 hard_gas_limit_per_operation = 1040000
 hard_storage_limit_per_operation = 60000
 minimal_fees = 100
-minimal_nanotez_per_byte = .25
+minimal_nanotez_per_byte = 1
 minimal_nanotez_per_gas_unit = .1
 
 
