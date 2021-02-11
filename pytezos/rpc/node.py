@@ -89,7 +89,7 @@ class RpcNode:
         if res.status_code == 404:
             raise RpcError(f'Not found: {path}')
         elif res.status_code != 200:
-            raise RpcError.from_response(res) from None
+            raise RpcError.from_response(res)
 
         return res
 
@@ -135,7 +135,7 @@ class RpcNode:
 
 class RpcMultiNode(RpcNode):
 
-    def __init__(self, uri, network, caching):
+    def __init__(self, uri, network, caching=False):
         super(RpcMultiNode, self).__init__(uri=uri, network=network, caching=caching)
         if not isinstance(uri, list):
             self.uri = [uri]

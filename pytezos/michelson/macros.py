@@ -3,6 +3,8 @@ import functools
 from collections import namedtuple
 from typing import Tuple
 
+from pytezos.michelson.tags import prim_tags
+
 COMPARE = dict(prim='COMPARE')
 UNIT = dict(prim='UNIT')
 FAILWITH = dict(prim='FAILWITH')
@@ -15,23 +17,6 @@ CDR__ = dict(prim='CDR', annots=['@%%'])
 DROP = dict(prim='DROP')
 FAIL = [[UNIT, FAILWITH]]
 
-primitives = {
-    'ABS', 'ADD', 'ADDRESS', 'AMOUNT', 'AND', 'BALANCE', 'BLAKE2B', 'CAR', 'CAST',
-    'CDR', 'CHECK_SIGNATURE', 'COMPARE', 'CONCAT', 'CONS', 'CONTRACT',
-    'CREATE_ACCOUNT', 'CREATE_CONTRACT', 'DIP', 'DROP', 'DUP', 'EDIV', 'EMPTY_MAP',
-    'EMPTY_SET', 'EQ', 'EXEC', 'Elt', 'FAILWITH', 'False', 'GE', 'GET', 'GT',
-    'HASH_KEY', 'IF', 'IF_CONS', 'IF_LEFT', 'IF_NONE', 'IMPLICIT_ACCOUNT', 'INT',
-    'ISNAT', 'ITER', 'LAMBDA', 'LE', 'LEFT', 'LOOP', 'LOOP_LEFT', 'LSL', 'LSR',
-    'LT', 'Left', 'MAP', 'MEM', 'MUL', 'NEG', 'NEQ', 'NIL', 'NONE', 'NOT', 'NOW',
-    'None', 'OR', 'PACK', 'PAIR', 'PUSH', 'Pair', 'RENAME', 'RIGHT', 'Right',
-    'SELF', 'SENDER', 'SET_DELEGATE', 'SHA256', 'SHA512', 'SIZE', 'SLICE', 'SOME',
-    'SOURCE', 'STEPS_TO_QUOTA', 'SUB', 'SWAP', 'Some', 'TRANSFER_TOKENS', 'True',
-    'UNIT', 'UNPACK', 'UPDATE', 'Unit', 'XOR', 'address', 'big_map', 'bool',
-    'bytes', 'code', 'contract', 'int', 'key_hash', 'key', 'lambda', 'list', 'map',
-    'mutez', 'nat', 'operation', 'option', 'or', 'pair', 'parameter', 'set',
-    'signature', 'storage', 'string', 'timestamp', 'unit', 'DIG', 'DUG', 'EMPTY_BIG_MAP',
-    'APPLY', 'chain_id', 'CHAIN_ID'
-}
 macros = []
 
 PxrNode = namedtuple('PxrNode', ['depth', 'annots', 'args', 'is_root'])
@@ -40,6 +25,7 @@ PxrNode = namedtuple('PxrNode', ['depth', 'annots', 'args', 'is_root'])
 def macro(regexp):
     def register_macro(func):
         macros.append((re.compile(regexp), func))
+
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             return func(*args, **kwargs)
@@ -68,7 +54,7 @@ def expand_macro(prim, annots, args, internal=False, extra=None):
     """
     assert isinstance(annots, list)
     assert isinstance(args, list)
-    if prim in primitives or (isinstance(extra, list) and prim in extra):
+    if prim in prim_tags or (isinstance(extra, list) and prim in extra):
         return expr(prim=prim, annots=annots, args=args)
 
     for regexp, handler in macros:
@@ -191,17 +177,10 @@ def expand_dixp(prim, annots, args) -> dict:
 
 
 @macro(r'^D(UU+)P$')
-def expand_duxp(prim, annots, args) -> list:
+def expand_duxp(prim, annots, args) -> dict:
     assert not args
     depth = len(prim)
-    dup = expr(prim='DUP', annots=annots)
-    if depth == 1:
-        return [dup]
-    elif depth == 2:
-        return [dip_n(dup), SWAP]
-    else:
-        return [dip_n(dup, depth - 1),
-                expr(prim='DIG', args=[{'int': str(depth)}])]
+    return expr(prim='DUP', annots=annots, args=[{'int': str(depth)}])
 
 
 def build_pxr_tree(pxr_macro, pxr_annots) -> PxrNode:
@@ -243,21 +222,10 @@ def expand_pxr(prim, annots, args) -> list:
     return traverse_pxr_tree(prim, get_field_annots(annots), produce)
 
 
-@macro(r'^UNPAIR$')
-def expand_unpair(prim, annots, args) -> list:
-    assert not args
-    assert len(annots) <= 2, f'invalid number of annotations: {annots}'
-    car_annots = seq(annots[0]) if len(annots) > 0 else []
-    cdr_annots = seq(annots[1]) if len(annots) > 1 else []
-    return [DUP,
-            expr(prim='CAR', annots=car_annots),
-            dip_n(expr(prim='CDR', annots=cdr_annots))]
-
-
 @macro(r'^UN(P[PAI]{3,}R)$')
 def expand_unpxr(prim, annots, args) -> list:
     def produce(node: PxrNode):
-        return expand_unpair(prim=None, annots=node.annots, args=[])
+        return [expr(prim='UNPAIR', annots=skip_nones(node.annots))]
 
     assert not args
     return list(reversed(traverse_pxr_tree(prim, annots, produce)))
@@ -296,32 +264,13 @@ def expand_if_right(prim, annots, args) -> dict:
 @macro(r'^SET_CAR$')
 def expand_set_car(prim, annots, args) -> list:
     assert not args
-    if annots:
-        assert len(annots) == 1
-        access_check = [DUP,
-                        expr(prim='CAR', annots=annots),
-                        DROP]
-    else:
-        access_check, annots = [], ['%']
-    return [*access_check,
-            CDR__,
-            SWAP,
-            expr(prim='PAIR', annots=[annots[0], '%@'])]
+    return [SWAP, expr(prim='UPDATE', args=[{'int': '1'}], annots=annots)]
 
 
 @macro(r'^SET_CDR$')
 def expand_set_cdr(prim, annots, args) -> list:
     assert not args
-    if annots:
-        assert len(annots) == 1
-        access_check = [DUP,
-                        expr(prim='CDR', annots=annots),
-                        DROP]
-    else:
-        access_check, annots = [], ['%']
-    return [*access_check,
-            CAR__,
-            expr(prim='PAIR', annots=['%@', annots[0]])]
+    return [SWAP, expr(prim='UPDATE', args=[{'int': '2'}], annots=annots)]
 
 
 def expand_set_cxr(prim, annots):

@@ -139,7 +139,7 @@ class OperationResult:
             assert False, content
 
     @classmethod
-    def from_operation_group(cls, operation_group: dict, **predicates):
+    def from_operation_group(cls, operation_group: dict, **predicates) -> List['OperationResult']:
         """ Initialize with operation group contents.
 
         :param operation_group: operation_group: {"branch": "B...", "contents": [...], ...} \
@@ -184,7 +184,7 @@ class OperationResult:
         return cls(
             parameters=content.get('parameters'),
             storage=operation_result.get('storage'),
-            big_map_diff=operation_result.get('big_map_diff', []),
+            lazy_diff=operation_result.get('lazy_diff', []),
             # TODO: if it is already an internal operation, we should think... (build a tree?)
             operations=cls.get_contents(content, source=content['destination'])
         )

@@ -5,10 +5,10 @@ from datetime import datetime
 from itertools import count
 from typing import Iterator
 
-from pytezos.tools.docstring import get_attr_docstring
+from pytezos.jupyter import get_attr_docstring
 from pytezos.rpc.search import BlockSliceQuery
 from pytezos.rpc.query import RpcQuery
-from pytezos.encoding import is_bh, is_ogh
+from pytezos.crypto.encoding import is_bh, is_ogh
 
 
 def to_timestamp(v):
@@ -66,7 +66,7 @@ class BlocksQuery(RpcQuery, path='/chains/{}/blocks'):
             )
 
         if isinstance(block_id, int) and block_id < 0:
-            return self.blocks[f'head~{block_id}']
+            block_id = f'head{block_id}'
 
         return super(BlocksQuery, self).__getitem__(block_id)
 
