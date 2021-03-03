@@ -10,7 +10,6 @@ from pytezos.michelson.instructions.base import MichelsonInstruction
 from pytezos.michelson.instructions.base import Wildcard
 from pytezos.michelson.instructions.base import format_stdout
 from pytezos.michelson.instructions.stack import PushInstruction
-from pytezos.michelson.micheline import Micheline
 from pytezos.michelson.micheline import MichelineSequence
 from pytezos.michelson.micheline import MichelsonRuntimeError
 from pytezos.michelson.stack import MichelsonStack

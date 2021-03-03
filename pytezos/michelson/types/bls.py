@@ -8,8 +8,8 @@ from py_ecc.fields import optimized_bls12_381_FQ as FQ
 from py_ecc.fields import optimized_bls12_381_FQ2 as FQ2
 
 from pytezos.michelson.micheline import parse_micheline_literal
-from pytezos.michelson.types import BytesType
-from pytezos.michelson.types import IntType
+from pytezos.michelson.types.core import BytesType
+from pytezos.michelson.types.core import IntType
 
 
 class BLS12_381_FrType(IntType, prim='bls12_381_fr'):

@@ -8,7 +8,6 @@ from pytezos.context.impl import ExecutionContext  # type: ignore
 from pytezos.context.mixin import ContextMixin  # type: ignore
 from pytezos.crypto.encoding import base58_encode
 from pytezos.crypto.key import blake2b_32
-from pytezos.logging import logger
 from pytezos.michelson.forge import forge_base58
 from pytezos.operation.content import ContentMixin
 from pytezos.operation.fees import calculate_fee

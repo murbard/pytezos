@@ -19,7 +19,7 @@ mypy:
 lint: isort pylint mypy
 
 test:
-	pytest -v .
+	poetry run pytest -v .
 
 docs:
 	cd docs && rm -rf ./build && $(MAKE) html

@@ -8,7 +8,6 @@ from pytezos.context.abstract import AbstractContext  # type: ignore
 from pytezos.michelson.instructions.base import MichelsonInstruction
 from pytezos.michelson.instructions.base import format_stdout
 from pytezos.michelson.micheline import MichelineSequence
-from pytezos.michelson.micheline import MichelsonRuntimeError
 from pytezos.michelson.sections import ParameterSection
 from pytezos.michelson.stack import MichelsonStack
 from pytezos.michelson.types import AddressType

@@ -1,15 +1,10 @@
 from typing import List
-from typing import Type
-from typing import cast
 
 from pytezos.context.abstract import AbstractContext  # type: ignore
-from pytezos.michelson.format import micheline_to_michelson
 from pytezos.michelson.instructions.base import MichelsonInstruction
 from pytezos.michelson.instructions.base import Wildcard
 from pytezos.michelson.instructions.base import format_stdout
-from pytezos.michelson.micheline import Micheline
 from pytezos.michelson.stack import MichelsonStack
-from pytezos.michelson.types import MichelsonType
 
 
 class PushInstruction(MichelsonInstruction, prim='PUSH', args_len=2):

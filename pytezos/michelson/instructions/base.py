@@ -74,5 +74,5 @@ class MichelsonInstruction(Micheline):
         return {k: v for k, v in expr.items() if v}
 
     @classmethod
-    def execute(cls, stack: 'MichelsonStack', stdout: List[str], context: AbstractContext):
+    def execute(cls, stack: MichelsonStack, stdout: List[str], context: AbstractContext):
         raise NotImplementedError
