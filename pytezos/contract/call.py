@@ -1,16 +1,16 @@
 from pprint import pformat
 from decimal import Decimal
 from typing import Union
-from deprecation import deprecated
+from deprecation import deprecated  # type: ignore
 
 from pytezos.contract.result import ContractCallResult
 from pytezos.logging import logger
 from pytezos.operation.group import OperationGroup
 from pytezos.jupyter import get_class_docstring
-from pytezos.context.mixin import ContextMixin
+from pytezos.context.mixin import ContextMixin  # type: ignore
 from pytezos.michelson.format import micheline_to_michelson
 from pytezos.operation.content import format_tez, format_mutez
-from pytezos.context.impl import ExecutionContext
+from pytezos.context.impl import ExecutionContext  # type: ignore
 from pytezos.michelson.repl import Interpreter
 from pytezos.michelson.sections.storage import StorageSection
 
@@ -63,7 +63,7 @@ class ContractCall(ContextMixin):
                          amount=self.amount,
                          parameters=self.parameters)
 
-    @property
+    @property  # type: ignore
     @deprecated(deprecated_in='3.0.0', removed_in='3.1.0', details='use `as_transaction()` instead')
     def operation_group(self) -> OperationGroup:
         return self.as_transaction().fill()

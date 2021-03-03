@@ -31,7 +31,7 @@ class ShellQuery(RpcQuery, path=''):
         """
         return self.blocks.head
 
-    @property
+    @property  # type: ignore
     @lru_cache(maxsize=None)
     def block(self):
         """ Cached head block, useful if you just want to explore things.
@@ -78,7 +78,7 @@ class ShellQuery(RpcQuery, path=''):
         :param time_between_blocks: override the corresponding parameter from constants
         """
         if time_between_blocks is None:
-            time_between_blocks = int(self.block.context.constants()["time_between_blocks"][0])
+            time_between_blocks = int(self.block.context.constants()["time_between_blocks"][0])  # type: ignore
         header = self.head.header()
         if block_hash is None:
             block_hash = header['hash']

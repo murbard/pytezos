@@ -1,13 +1,13 @@
 from glob import glob
 from os.path import abspath, dirname, join, exists
 from pprint import pformat
-import fire
+import fire  # type: ignore
 
 from pytezos import pytezos, ContractInterface
 from pytezos.logging import logger
 from pytezos.rpc.errors import RpcError
 from pytezos.operation.result import OperationResult
-from pytezos.context.mixin import default_network
+from pytezos.context.mixin import default_network  # type: ignore
 from pytezos.michelson.types.base import generate_pydoc
 from pytezos.cli.github import create_deployment, create_deployment_status
 

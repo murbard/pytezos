@@ -4,6 +4,14 @@
 debug:
 	pip install . --force --no-deps
 
+install:
+	poetry install
+
+mypy:
+	mypy pytezos
+
+lint: mypy
+
 test:
 	pytest -v .
 
