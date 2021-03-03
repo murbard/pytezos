@@ -1,16 +1,35 @@
 from decimal import Decimal
-from typing import Type, cast
+from typing import Type
+from typing import cast
 
-from pytezos.crypto.encoding import is_address, is_public_key, is_pkh, is_sig, is_kt, is_chain_id
-from pytezos.michelson.forge import forge_public_key, unforge_public_key, unforge_chain_id, unforge_signature, \
-    forge_address, unforge_address, unforge_contract, forge_base58, optimize_timestamp, forge_contract
-from pytezos.michelson.format import format_timestamp, micheline_to_michelson
-from pytezos.michelson.types.core import NatType, IntType, StringType
-from pytezos.michelson.types.base import MichelsonType, Undefined
+from pytezos.context.abstract import AbstractContext
+from pytezos.context.abstract import get_originated_address
+from pytezos.crypto.encoding import is_address
+from pytezos.crypto.encoding import is_chain_id
+from pytezos.crypto.encoding import is_kt
+from pytezos.crypto.encoding import is_pkh
+from pytezos.crypto.encoding import is_public_key
+from pytezos.crypto.encoding import is_sig
+from pytezos.michelson.forge import forge_address
+from pytezos.michelson.forge import forge_base58
+from pytezos.michelson.forge import forge_contract
+from pytezos.michelson.forge import forge_public_key
+from pytezos.michelson.forge import optimize_timestamp
+from pytezos.michelson.forge import unforge_address
+from pytezos.michelson.forge import unforge_chain_id
+from pytezos.michelson.forge import unforge_contract
+from pytezos.michelson.forge import unforge_public_key
+from pytezos.michelson.forge import unforge_signature
+from pytezos.michelson.format import format_timestamp
+from pytezos.michelson.format import micheline_to_michelson
 from pytezos.michelson.micheline import Micheline
 from pytezos.michelson.micheline import parse_micheline_literal
 from pytezos.michelson.parse import michelson_to_micheline
-from pytezos.context.abstract import AbstractContext, get_originated_address
+from pytezos.michelson.types.base import MichelsonType
+from pytezos.michelson.types.base import Undefined
+from pytezos.michelson.types.core import IntType
+from pytezos.michelson.types.core import NatType
+from pytezos.michelson.types.core import StringType
 
 
 class TimestampType(IntType, prim='timestamp'):

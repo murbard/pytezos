@@ -1,14 +1,15 @@
-from typing import Optional, Union
 from decimal import Decimal
+from typing import Optional
+from typing import Union
 
-from pytezos.rpc import ShellQuery
-from pytezos.crypto.key import Key
-from pytezos.operation.group import OperationGroup
-from pytezos.operation.content import ContentMixin
-from pytezos.contract.interface import ContractInterface
-from pytezos.contract.call import ContractCall
 from pytezos.context.mixin import ContextMixin
+from pytezos.contract.call import ContractCall
+from pytezos.contract.interface import ContractInterface
+from pytezos.crypto.key import Key
 from pytezos.jupyter import get_class_docstring
+from pytezos.operation.content import ContentMixin
+from pytezos.operation.group import OperationGroup
+from pytezos.rpc import ShellQuery
 
 
 class PyTezosClient(ContextMixin, ContentMixin):

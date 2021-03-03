@@ -4,6 +4,14 @@
 debug:
 	pip install . --force --no-deps
 
+isort:
+	poetry run isort pytezos
+
+pylint:
+	poetry run pylint pytezos || poetry run pylint-exit $$?
+
+lint: isort pylint
+
 test:
 	pytest -v .
 
