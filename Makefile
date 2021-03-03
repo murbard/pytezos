@@ -5,7 +5,7 @@ debug:
 	pip install . --force --no-deps
 
 install:
-	poetry install
+	poetry install -v
 
 isort:
 	poetry run isort pytezos
