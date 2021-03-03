@@ -3,7 +3,7 @@ from typing import Tuple
 from typing import Union
 from typing import cast
 
-from pytezos.context.abstract import AbstractContext
+from pytezos.context.abstract import AbstractContext  # type: ignore
 from pytezos.michelson.instructions.base import MichelsonInstruction
 from pytezos.michelson.instructions.base import format_stdout
 from pytezos.michelson.stack import MichelsonStack
@@ -24,7 +24,7 @@ class ConsInstruction(MichelsonInstruction, prim='CONS'):
         lst.assert_type_in(ListType)
         res = lst.prepend(elt)
         stack.push(res)
-        stdout.append(format_stdout(cls.prim, [elt, lst], [res]))
+        stdout.append(format_stdout(cls.prim, [elt, lst], [res]))  # type: ignore
         return cls()
 
 
@@ -32,9 +32,9 @@ class NilInstruction(MichelsonInstruction, prim='NIL', args_len=1):
 
     @classmethod
     def execute(cls, stack: MichelsonStack, stdout: List[str], context: AbstractContext):
-        res = ListType.empty(cls.args[0])
+        res = ListType.empty(cls.args[0])  # type: ignore
         stack.push(res)
-        stdout.append(format_stdout(cls.prim, [], [res]))
+        stdout.append(format_stdout(cls.prim, [], [res]))  # type: ignore
         return cls()
 
 
@@ -42,10 +42,10 @@ class EmptyBigMapInstruction(MichelsonInstruction, prim='EMPTY_BIG_MAP', args_le
 
     @classmethod
     def execute(cls, stack: MichelsonStack, stdout: List[str], context: AbstractContext):
-        res = BigMapType.empty(key_type=cls.args[0], val_type=cls.args[1])
+        res = BigMapType.empty(key_type=cls.args[0], val_type=cls.args[1])  # type: ignore
         res.attach_context(context)
         stack.push(res)
-        stdout.append(format_stdout(cls.prim, [], [res]))
+        stdout.append(format_stdout(cls.prim, [], [res]))  # type: ignore
         return cls()
 
 
@@ -53,9 +53,9 @@ class EmptyMapInstruction(MichelsonInstruction, prim='EMPTY_MAP', args_len=2):
 
     @classmethod
     def execute(cls, stack: MichelsonStack, stdout: List[str], context: AbstractContext):
-        res = MapType.empty(key_type=cls.args[0], val_type=cls.args[1])
+        res = MapType.empty(key_type=cls.args[0], val_type=cls.args[1])  # type: ignore
         stack.push(res)
-        stdout.append(format_stdout(cls.prim, [], [res]))
+        stdout.append(format_stdout(cls.prim, [], [res]))  # type: ignore
         return cls()
 
 
@@ -63,9 +63,9 @@ class EmptySetInstruction(MichelsonInstruction, prim='EMPTY_SET', args_len=1):
 
     @classmethod
     def execute(cls, stack: MichelsonStack, stdout: List[str], context: AbstractContext):
-        res = SetType.empty(item_type=cls.args[0])
+        res = SetType.empty(item_type=cls.args[0])  # type: ignore
         stack.push(res)
-        stdout.append(format_stdout(cls.prim, [], [res]))
+        stdout.append(format_stdout(cls.prim, [], [res]))  # type: ignore
         return cls()
 
 
@@ -81,7 +81,7 @@ class GetInstruction(MichelsonInstruction, prim='GET'):
         else:
             res = OptionType.from_some(val)
         stack.push(res)
-        stdout.append(format_stdout(cls.prim, [key, src], [res]))
+        stdout.append(format_stdout(cls.prim, [key, src], [res]))  # type: ignore
         return cls()
 
 
@@ -95,7 +95,7 @@ class GetAndUpdateInstruction(MichelsonInstruction, prim='GET_AND_UPDATE'):
         res = OptionType.none(src.args[1]) if prev_val is None else OptionType.from_some(prev_val)
         stack.push(dst)
         stack.push(res)
-        stdout.append(format_stdout(cls.prim, [key, val, src], [res, dst]))
+        stdout.append(format_stdout(cls.prim, [key, val, src], [res, dst]))  # type: ignore
         return cls()
 
 
@@ -108,12 +108,12 @@ class UpdateInstruction(MichelsonInstruction, prim='UPDATE'):
         val.assert_type_in(OptionType, BoolType)
         if isinstance(val, BoolType):
             src.assert_type_in(SetType)
-            dst = src.add(key) if bool(val) else src.remove(key)
+            dst = src.add(key) if bool(val) else src.remove(key)  # type: ignore
         else:
             src.assert_type_in(MapType, BigMapType)
-            _, dst = src.update(key, None if val.is_none() else val.get_some())
+            _, dst = src.update(key, None if val.is_none() else val.get_some())  # type: ignore
         stack.push(dst)
-        stdout.append(format_stdout(cls.prim, [key, val, src], [dst]))
+        stdout.append(format_stdout(cls.prim, [key, val, src], [dst]))  # type: ignore
         return cls()
 
 
@@ -125,7 +125,7 @@ class MemInstruction(MichelsonInstruction, prim='MEM'):
         src.assert_type_in(MapType, BigMapType, SetType)
         res = BoolType.from_value(src.contains(key))
         stack.push(res)
-        stdout.append(format_stdout(cls.prim, [key, src], [res]))
+        stdout.append(format_stdout(cls.prim, [key, src], [res]))  # type: ignore
         return cls()
 
 
@@ -133,9 +133,9 @@ class NoneInstruction(MichelsonInstruction, prim='NONE', args_len=1):
 
     @classmethod
     def execute(cls, stack: MichelsonStack, stdout: List[str], context: AbstractContext):
-        res = OptionType.none(cls.args[0])
+        res = OptionType.none(cls.args[0])  # type: ignore
         stack.push(res)
-        stdout.append(format_stdout(cls.prim, [], [res]))
+        stdout.append(format_stdout(cls.prim, [], [res]))  # type: ignore
         return cls()
 
 
@@ -146,5 +146,5 @@ class SomeInstruction(MichelsonInstruction, prim='SOME'):
         some = stack.pop1()
         res = OptionType.from_some(some)
         stack.push(res)
-        stdout.append(format_stdout(cls.prim, [some], [res]))
+        stdout.append(format_stdout(cls.prim, [some], [res]))  # type: ignore
         return cls()

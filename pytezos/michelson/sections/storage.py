@@ -1,14 +1,14 @@
 from typing import List
 from typing import Type
 
-from pytezos.context.abstract import AbstractContext
+from pytezos.context.abstract import AbstractContext  # type: ignore
 from pytezos.michelson.micheline import Micheline
 from pytezos.michelson.micheline import MichelsonRuntimeError
 from pytezos.michelson.types import *
 
 
 class StorageSection(Micheline, prim='storage', args_len=1):
-    args: List[Type[MichelsonType]]
+    args: List[Type[MichelsonType]]  # type: ignore
 
     def __init__(self, item: MichelsonType):
         super(Micheline, self).__init__()
@@ -23,10 +23,10 @@ class StorageSection(Micheline, prim='storage', args_len=1):
             cls = Micheline.match(type_expr)
             if not issubclass(cls, StorageSection):
                 cls = StorageSection.create_type(args=[cls])
-            assert cls.args[0].field_name is None, f'argument type cannot be annotated: %{cls.args[0].field_name}'
+            assert cls.args[0].field_name is None, f'argument type cannot be annotated: %{cls.args[0].field_name}'  # type: ignore
         except Exception as e:
             raise MichelsonRuntimeError('storage', *e.args)
-        return cls
+        return cls  # type: ignore
 
     @classmethod
     def execute(cls, stack, stdout: List[str], context: AbstractContext):
@@ -35,7 +35,7 @@ class StorageSection(Micheline, prim='storage', args_len=1):
 
     @classmethod
     def generate_pydoc(cls) -> str:
-        definitions = []
+        definitions = []  # type: ignore
         res = cls.args[0].generate_pydoc(definitions, cls.prim)
         if res != f'${cls.prim}':
             definitions.insert(0, (cls.prim, res))
@@ -69,6 +69,6 @@ class StorageSection(Micheline, prim='storage', args_len=1):
         return type(self)(item)
 
     def aggregate_lazy_diff(self, mode='readable') -> List[dict]:
-        lazy_diff = []
+        lazy_diff = []  # type: ignore
         self.item.aggregate_lazy_diff(lazy_diff, mode=mode)
         return lazy_diff

@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Optional
 from typing import Tuple
 
-from pytezos.context.abstract import AbstractContext
+from pytezos.context.abstract import AbstractContext  # type: ignore
 from pytezos.context.abstract import get_originated_address
 from pytezos.crypto.encoding import base58_encode
 from pytezos.crypto.key import Key
@@ -71,7 +71,7 @@ class ExecutionContext(AbstractContext):
     def get_counter(self) -> int:
         if self.counter is None:
             assert self.key, f'key is undefined'
-            self.counter = int(self.shell.contracts[self.key.public_key_hash()]()['counter'])
+            self.counter = int(self.shell.contracts[self.key.public_key_hash()]()['counter'])  # type: ignore
         self.counter += 1
         return self.counter
 
@@ -112,7 +112,7 @@ class ExecutionContext(AbstractContext):
         assert amount <= balance, f'cannot spend {amount} tez, {balance} tez left'
         self.balance_update -= amount
 
-    def get_parameter_expr(self, address=None) -> Optional:
+    def get_parameter_expr(self, address=None) -> Optional:  # type: ignore
         if self.shell and address:
             if address == get_originated_address(0):
                 return None  # dummy callback
@@ -174,7 +174,8 @@ class ExecutionContext(AbstractContext):
         if self.now is not None:
             return self.now
         elif self.shell:
-            constants = self.shell.block.context.constants()  # cached
+            # NOTE: cached
+            constants = self.shell.block.context.constants()  # type: ignore
             ts = self.shell.head.header()['timestamp']
             dt = datetime.strptime(ts, '%Y-%m-%dT%H:%M:%SZ')
             first_delay = constants['time_between_blocks'][0]

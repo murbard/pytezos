@@ -2,7 +2,9 @@ from decimal import Decimal
 from typing import Type
 from typing import cast
 
-from pytezos.context.abstract import AbstractContext
+from jinja2.runtime import Undefined
+
+from pytezos.context.abstract import AbstractContext  # type: ignore
 from pytezos.context.abstract import get_originated_address
 from pytezos.crypto.encoding import is_address
 from pytezos.crypto.encoding import is_chain_id
@@ -25,14 +27,12 @@ from pytezos.michelson.format import micheline_to_michelson
 from pytezos.michelson.micheline import Micheline
 from pytezos.michelson.micheline import parse_micheline_literal
 from pytezos.michelson.parse import michelson_to_micheline
-from pytezos.michelson.types.base import MichelsonType
-from pytezos.michelson.types.base import Undefined
-from pytezos.michelson.types.core import IntType
-from pytezos.michelson.types.core import NatType
-from pytezos.michelson.types.core import StringType
+from pytezos.michelson.types import IntType
+from pytezos.michelson.types import NatType
+from pytezos.michelson.types import StringType
 
 
-class TimestampType(IntType, prim='timestamp'):
+class TimestampType(IntType, prim='timestamp'):  # type: ignore
 
     @classmethod
     def from_value(cls, value: int) -> 'TimestampType':
@@ -97,7 +97,7 @@ class AddressType(StringType, prim='address'):
     def __repr__(self):
         return f'{self.value[:6]}⋯{self.value[-3:]}'
 
-    def __lt__(self, other: 'AddressType') -> bool:
+    def __lt__(self, other: 'AddressType') -> bool:  # type: ignore
         if is_pkh(self.value) and is_kt(other.value):
             return True
         elif is_kt(self.value) and is_pkh(other.value):
@@ -317,7 +317,7 @@ class ContractType(AddressType, prim='contract', args_len=1):
         return super(ContractType, self).to_python_object()
 
 
-class LambdaType(MichelsonType, prim='lambda', args_len=2):
+class LambdaType(MichelsonType, prim='lambda', args_len=2):  # type: ignore
 
     def __init__(self, value: Type[Micheline]):
         super(LambdaType, self).__init__()

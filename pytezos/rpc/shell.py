@@ -9,6 +9,7 @@ import simplejson as json
 
 from pytezos.crypto.encoding import base58_decode
 from pytezos.jupyter import get_attr_docstring
+from pytezos.logging import logger
 from pytezos.rpc.query import RpcQuery
 from pytezos.rpc.search import CyclesQuery
 from pytezos.rpc.search import VotingPeriodsQuery
@@ -32,7 +33,7 @@ class ShellQuery(RpcQuery, path=''):
         """
         return self.blocks.head
 
-    @property
+    @property  # type: ignore
     @lru_cache(maxsize=None)
     def block(self):
         """ Cached head block, useful if you just want to explore things.
@@ -79,7 +80,7 @@ class ShellQuery(RpcQuery, path=''):
         :param time_between_blocks: override the corresponding parameter from constants
         """
         if time_between_blocks is None:
-            time_between_blocks = int(self.block.context.constants()["time_between_blocks"][0])
+            time_between_blocks = int(self.block.context.constants()["time_between_blocks"][0])  # type: ignore
         header = self.head.header()
         if block_hash is None:
             block_hash = header['hash']
@@ -87,7 +88,7 @@ class ShellQuery(RpcQuery, path=''):
         prev_block_dt = datetime.strptime(header['timestamp'], '%Y-%m-%dT%H:%M:%SZ')
         elapsed_sec = (datetime.utcnow() - prev_block_dt).seconds
         delay_sec = 0 if elapsed_sec > time_between_blocks else time_between_blocks - elapsed_sec
-        print(f'Wait {delay_sec} seconds until block {block_hash} is finalized')
+        logger.info('Wait %s seconds until block %s is finalized' % (delay_sec, block_hash,))
         sleep(delay_sec)
 
         for i in range(time_between_blocks):

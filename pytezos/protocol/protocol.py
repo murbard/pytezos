@@ -7,10 +7,10 @@ from tempfile import TemporaryDirectory
 from typing import List
 from typing import Tuple
 
-import netstruct
+import netstruct  # type: ignore
 import requests
 import simplejson as json
-from tqdm import tqdm
+from tqdm import tqdm  # type: ignore
 
 from pytezos.crypto.encoding import base58_encode
 from pytezos.crypto.key import blake2b_32
@@ -65,7 +65,7 @@ def url_to_files(url) -> List[Tuple[str, str]]:
 
 
 def files_to_proto(files: List[Tuple[str, str]]) -> dict:
-    components = OrderedDict()
+    components = OrderedDict()  # type: ignore
 
     for filename, text in files:
         name, ext = filename.split('.')

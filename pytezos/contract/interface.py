@@ -6,9 +6,9 @@ from typing import Optional
 from typing import Union
 
 import requests
-from deprecation import deprecated
+from deprecation import deprecated  # type: ignore
 
-from pytezos.context.mixin import ContextMixin
+from pytezos.context.mixin import ContextMixin  # type: ignore
 from pytezos.context.mixin import ExecutionContext
 from pytezos.contract.data import ContractData
 from pytezos.contract.entrypoint import ContractEntrypoint
@@ -211,22 +211,22 @@ class ContractInterface(ContextMixin):
         assert root_name in self.entrypoints, f'root entrypoint is undefined'
         return getattr(self, root_name)
 
-    @property
+    @property  # type: ignore
     @deprecated(deprecated_in='3.0.0', removed_in='3.1.0', details='access `ContractInterface` directly')
     def contract(self) -> 'ContractInterface':
         return self
 
-    @property
+    @property  # type: ignore
     @deprecated(deprecated_in='3.0.0', removed_in='3.1.0', details='use `to_michelson()` instead')
     def text(self) -> str:
         return self.to_michelson()
 
-    @property
+    @property  # type: ignore
     @deprecated(deprecated_in='3.0.0', removed_in='3.1.0', details='use `to_micheline()` instead')
     def code(self):
         return self.to_micheline()
 
-    @property
+    @property  # type: ignore
     @deprecated(deprecated_in='3.0.0', removed_in='3.1.0', details='use `default()` instead')
     def call(self) -> ContractEntrypoint:
         return self.parameter

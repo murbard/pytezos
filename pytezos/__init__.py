@@ -14,6 +14,7 @@ from pytezos.client import PyTezosClient
 from pytezos.contract.interface import Contract
 from pytezos.contract.interface import ContractInterface
 from pytezos.crypto.key import Key
+from pytezos.logging import logger
 from pytezos.michelson.forge import forge_micheline
 from pytezos.michelson.forge import unforge_micheline
 from pytezos.michelson.format import micheline_to_michelson
@@ -22,7 +23,5 @@ from pytezos.michelson.parse import michelson_to_micheline
 from pytezos.michelson.types.base import MichelsonType
 from pytezos.michelson.types.base import Undefined
 from pytezos.michelson.types.core import Unit
-from pytezos.operation.group import OperationGroup
-from pytezos.operation.result import OperationResult
 
 pytezos = PyTezosClient()

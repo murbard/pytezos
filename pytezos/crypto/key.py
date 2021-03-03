@@ -2,12 +2,9 @@ import binascii
 import hashlib
 import json
 from getpass import getpass
-from os.path import abspath
-from os.path import expanduser
-from os.path import join
 
-from mnemonic import Mnemonic
-from pyblake2 import blake2b
+from mnemonic import Mnemonic  # type: ignore
+from pyblake2 import blake2b  # type: ignore
 
 from pytezos.crypto.encoding import base58_decode
 from pytezos.crypto.encoding import base58_encode
@@ -28,13 +25,13 @@ class CryptoExtraFallback:
 
 
 try:
-    import fastecdsa.curve
-    import fastecdsa.ecdsa
-    import fastecdsa.encoding.sec1
-    import fastecdsa.keys
-    import pysodium
-    import secp256k1
-    from fastecdsa.encoding.util import bytes_to_int
+    import fastecdsa.curve  # type: ignore
+    import fastecdsa.ecdsa  # type: ignore
+    import fastecdsa.encoding.sec1  # type: ignore
+    import fastecdsa.keys  # type: ignore
+    import pysodium  # type: ignore
+    import secp256k1  # type: ignore
+    from fastecdsa.encoding.util import bytes_to_int  # type: ignore
 except ImportError as e:
     pysodium = CryptoExtraFallback()
     secp256k1 = CryptoExtraFallback()

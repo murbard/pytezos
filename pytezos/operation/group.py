@@ -8,7 +8,7 @@ from pytezos.context.impl import ExecutionContext  # type: ignore
 from pytezos.context.mixin import ContextMixin  # type: ignore
 from pytezos.crypto.encoding import base58_encode
 from pytezos.crypto.key import blake2b_32
-from pytezos.jupyter import get_class_docstring
+from pytezos.logging import logger
 from pytezos.michelson.forge import forge_base58
 from pytezos.operation.content import ContentMixin
 from pytezos.operation.fees import calculate_fee
@@ -212,6 +212,10 @@ class OperationGroup(ContextMixin, ContentMixin):
         extra_size = (32 + 64) // len(opg.contents) + 1  # size of serialized branch and signature
 
         def fill_content(content: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+            nonlocal fee
+            nonlocal gas_limit
+            nonlocal storage_limit
+
             if validation_passes[content['kind']] != 3:
                 return None
 

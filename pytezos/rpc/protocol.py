@@ -2,7 +2,7 @@ from datetime import datetime
 from itertools import count
 from typing import Iterator
 
-import bson
+import bson  # type: ignore
 import pendulum
 from pendulum.parsing.exceptions import ParserError
 
@@ -135,7 +135,10 @@ class BlockQuery(RpcQuery, path='/chains/{}/blocks/{}'):
     def level(self) -> int:
         """ Get level for this block from metadata.
         """
-        return self.metadata()['level']['level']
+        try:
+            return self.metadata()['level']['level']
+        except KeyError as exc:
+            raise Exception('Can\'t get block level from metadata. It seems like node is not fully initialized yet.') from exc
 
     def cycle(self) -> int:
         """ Get cycle for this block from metadata.
@@ -201,7 +204,7 @@ class ContextRawBytesQuery(RpcQuery, path='/chains/{}/blocks/{}/context/raw/byte
         kwargs.update(timeout=60)
         super(ContextRawBytesQuery, self).__init__(*args, **kwargs)
 
-    def __call__(self, depth=1) -> dict:
+    def __call__(self, depth=1) -> dict:  # type: ignore
         """ Return the raw context.
 
         :param depth: Context is a tree structure, default depth is 1
@@ -352,7 +355,7 @@ class OperationQuery(RpcQuery, path=['/chains/{}/blocks/{}/operations/{}/{}']):
 
 class ProposalQuery(RpcQuery, path='/chains/{}/blocks/{}/votes/proposals/{}'):
 
-    def __call__(self) -> int:
+    def __call__(self) -> int:  # type: ignore
         """ Roll count for this proposal.
         """
         proposals = self._parent()

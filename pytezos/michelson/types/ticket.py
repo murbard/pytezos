@@ -6,7 +6,7 @@ from typing import Tuple
 from typing import Type
 from typing import cast
 
-from pytezos.context.abstract import AbstractContext
+from pytezos.context.abstract import AbstractContext  # type: ignore
 from pytezos.michelson.format import micheline_to_michelson
 from pytezos.michelson.micheline import Micheline
 from pytezos.michelson.types.base import MichelsonType
@@ -32,11 +32,11 @@ class TicketType(MichelsonType, prim='ticket', args_len=1):
     @staticmethod
     def create(ticketer: str, item: MichelsonType, amount: int) -> 'TicketType':
         cls = TicketType.create_type(args=[item.get_anon_type()])
-        return cls(ticketer, item, amount)
+        return cls(ticketer, item, amount)  # type: ignore
 
     @classmethod
     def from_comb(cls, comb: PairType) -> 'TicketType':
-        ticketer, item, amount = tuple(comb.iter_comb())  # type: AddressType, MichelsonType, NatType
+        ticketer, item, amount = tuple(comb.iter_comb())  # type: AddressType, MichelsonType, NatType  # type: ignore
         return cls(item=item,
                    ticketer=str(ticketer),
                    amount=int(amount))

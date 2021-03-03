@@ -4,13 +4,19 @@
 debug:
 	pip install . --force --no-deps
 
+install:
+	poetry install
+
 isort:
 	poetry run isort pytezos
 
 pylint:
 	poetry run pylint pytezos || poetry run pylint-exit $$?
 
-lint: isort pylint
+mypy:
+	poetry run mypy pytezos
+
+lint: isort pylint mypy
 
 test:
 	pytest -v .

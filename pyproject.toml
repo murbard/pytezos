@@ -48,6 +48,7 @@ sphinxcontrib-googleanalytics = "^0.1"
 pylint = "^2.7.2"
 pylint-exit = "^1.2.0"
 isort = "^5.7.0"
+mypy = "^0.812"
 
 [tool.poetry.scripts]
 pytezos = 'pytezos:cli.cli.main'

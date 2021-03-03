@@ -3,7 +3,7 @@ from os.path import expanduser
 from typing import Optional
 from typing import Union
 
-from pytezos.context.impl import ExecutionContext
+from pytezos.context.impl import ExecutionContext  # type: ignore
 from pytezos.crypto.encoding import is_pkh
 from pytezos.crypto.encoding import is_public_key
 from pytezos.crypto.key import Key

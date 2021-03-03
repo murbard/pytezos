@@ -2,10 +2,9 @@ from typing import Any
 from typing import Callable
 from typing import Generator
 
-from loguru import logger
-
 from pytezos.crypto.encoding import is_bh
 from pytezos.jupyter import get_attr_docstring
+from pytezos.logging import logger
 from pytezos.rpc.node import RpcError
 from pytezos.rpc.query import RpcQuery
 
@@ -13,27 +12,27 @@ from pytezos.rpc.query import RpcQuery
 def find_state_change_intervals(head: int, last: int, get: Callable, equals: Callable,
                                 step=60) -> Generator:
     succ_value = get(head)
-    logger.debug(f'{succ_value} at head {head}')
+    logger.debug('%s at head %s' % succ_value, head)
 
     for level in range(head - step, last, -step):
         value = get(level)
-        logger.debug(f'{value} at level {level}')
+        logger.debug('%s at level %s' % value, level)
 
         if not equals(value, succ_value):
-            logger.debug(f'{value} -> {succ_value} at ({level}, {level + step})')
+            logger.debug('%s -> %s at (%s, {level + step})' % value, succ_value, level)
             yield level + step, succ_value, level, value
             succ_value = value
 
 
 def find_state_change(head: int, last: int, get: Callable, equals: Callable,
-                      pred_value: Any) -> (int, Any):
+                      pred_value: Any) -> (int, Any):  # type: ignore
     def bisect(start: int, end: int):
         if end == start + 1:
             return end, get(end)
 
         level = (end + start) // 2
         value = get(level)
-        logger.debug(f'{value} at level {level}')
+        logger.debug('%s at level %s' % value, level)
 
         if equals(value, pred_value):
             return bisect(level, end)
@@ -49,7 +48,7 @@ def walk_state_change_interval(head: int, last: int, get: Callable, equals: Call
     value = last_value
     while not equals(value, head_value):
         level, value = find_state_change(head, level, get, equals, pred_value=value)
-        logger.debug(f'{last_value} -> {value} at {level}')
+        logger.debug('%s -> %s at %s' % last_value, value, level)
         yield level, value
 
 
@@ -90,7 +89,7 @@ class BlockSliceQuery(RpcQuery):
         else:
             return self._getitem(stop + item + 1)
 
-    def __call__(self) -> list:
+    def __call__(self) -> list:  # type: ignore
         """ Get block hashes (base58) for this interval.
         """
         header = self._getitem(self._stop).header()
@@ -206,7 +205,7 @@ class BlockSliceQuery(RpcQuery):
 
         for block_level in levels:
             try:
-                logger.debug(f'checking level {block_level}...')
+                logger.debug(f'checking level %s...' % block_level)
                 return self._getitem(block_level).operations[operation_group_hash]()
             except StopIteration:
                 continue

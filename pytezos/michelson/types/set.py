@@ -3,7 +3,7 @@ from typing import Generator
 from typing import List
 from typing import Type
 
-from pytezos.context.abstract import AbstractContext
+from pytezos.context.abstract import AbstractContext  # type: ignore
 from pytezos.michelson.micheline import Micheline
 from pytezos.michelson.micheline import MichelineSequence
 from pytezos.michelson.types.base import MichelsonType
@@ -27,7 +27,7 @@ class SetType(MichelsonType, prim='set', args_len=1):
     @staticmethod
     def empty(item_type: Type[MichelsonType]) -> 'SetType':
         cls = SetType.create_type(args=[item_type])
-        return cls(items=[])
+        return cls(items=[])  # type: ignore
 
     @staticmethod
     def from_items(items: List[MichelsonType]) -> 'SetType':
@@ -36,8 +36,8 @@ class SetType(MichelsonType, prim='set', args_len=1):
         for item in items[1:]:
             item_type.assert_type_equal(type(item))
         cls = SetType.create_type(args=[item_type])
-        cls.check_constraints(items)
-        return cls(items)
+        cls.check_constraints(items)  # type: ignore
+        return cls(items)  # type: ignore
 
     @classmethod
     def check_constraints(cls, items: List[MichelsonType]):

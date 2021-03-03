@@ -3,7 +3,7 @@ from typing import List
 from typing import Optional
 from typing import Type
 
-from pytezos.context.abstract import AbstractContext
+from pytezos.context.abstract import AbstractContext  # type: ignore
 from pytezos.michelson.micheline import Micheline
 from pytezos.michelson.micheline import MichelineLiteral
 from pytezos.michelson.micheline import MichelineSequence
