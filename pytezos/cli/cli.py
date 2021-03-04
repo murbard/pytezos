@@ -1,15 +1,19 @@
 from glob import glob
-from os.path import abspath, dirname, join, exists
+from os.path import abspath
+from os.path import dirname
+from os.path import exists
+from os.path import join
 from pprint import pformat
+
 import fire  # type: ignore
 
-from pytezos import pytezos, ContractInterface
-from pytezos.logging import logger
-from pytezos.rpc.errors import RpcError
-from pytezos.operation.result import OperationResult
+from pytezos import ContractInterface
+from pytezos import pytezos
 from pytezos.context.mixin import default_network  # type: ignore
+from pytezos.logging import logger
 from pytezos.michelson.types.base import generate_pydoc
-from pytezos.cli.github import create_deployment, create_deployment_status
+from pytezos.operation.result import OperationResult
+from pytezos.rpc.errors import RpcError
 
 kernel_js_path = join(dirname(dirname(__file__)), 'assets', 'kernel.js')
 kernel_json = {

@@ -1,16 +1,18 @@
-import requests
-import simplejson as json
-from typing import Optional
-from functools import lru_cache
 from binascii import hexlify
 from datetime import datetime
+from functools import lru_cache
 from time import sleep
+from typing import Optional
 
-from pytezos.logging import logger
+import requests
+import simplejson as json
+
 from pytezos.crypto.encoding import base58_decode
-from pytezos.rpc.query import RpcQuery
 from pytezos.jupyter import get_attr_docstring
-from pytezos.rpc.search import CyclesQuery, VotingPeriodsQuery
+from pytezos.logging import logger
+from pytezos.rpc.query import RpcQuery
+from pytezos.rpc.search import CyclesQuery
+from pytezos.rpc.search import VotingPeriodsQuery
 
 
 def make_operation_result(**kwargs):
@@ -86,7 +88,7 @@ class ShellQuery(RpcQuery, path=''):
         prev_block_dt = datetime.strptime(header['timestamp'], '%Y-%m-%dT%H:%M:%SZ')
         elapsed_sec = (datetime.utcnow() - prev_block_dt).seconds
         delay_sec = 0 if elapsed_sec > time_between_blocks else time_between_blocks - elapsed_sec
-        logger.info('Wait %s seconds until block %s is finalized' % delay_sec, block_hash)
+        logger.info('Wait %s seconds until block %s is finalized' % (delay_sec, block_hash,))
         sleep(delay_sec)
 
         for i in range(time_between_blocks):
