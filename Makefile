@@ -27,6 +27,17 @@ docs:
 rpc-docs:
 	python -m scripts.fetch_docs
 
-release:
-	PYTEZOS_VERSION=$$(cat pyproject.toml | grep version | awk -F\" '{ print $$2 }')
-	git tag $$PYTEZOS_VERSION -f && git push origin $$PYTEZOS_VERSION -f
+release-patch:
+	bumpversion patch
+	git push --tags
+	git push
+
+release-minor:
+	bumpversion minor
+	git push --tags
+	git push
+
+release-major:
+	bumpversion major
+	git push --tags
+	git push
