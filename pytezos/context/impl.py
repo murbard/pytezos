@@ -273,5 +273,5 @@ class ExecutionContext(AbstractContext):
 
     def get_operations_ttl(self) -> int:
         if self.sandboxed:
-            return DEFAULT_OPERATIONS_TTL
-        return MAX_OPERATIONS_TTL
+            return MAX_OPERATIONS_TTL
+        return DEFAULT_OPERATIONS_TTL

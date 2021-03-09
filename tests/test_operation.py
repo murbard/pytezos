@@ -13,8 +13,8 @@ class TestOperation(TestCase):
             'branch_offset_not_sandboxed': [5, None, False, -5],
             'ttl_sandboxed': [None, 5, True, -55],
             'ttl_not_sandboxed': [None, 5, False, -55],
-            'ttl_sandboxed_default': [None, None, True, -50],
-            'ttl_not_sandboxed_default': [None, None, False, 0],
+            'ttl_sandboxed_default': [None, None, True, 0],
+            'ttl_not_sandboxed_default': [None, None, False, -50],
         }
 
         client = PyTezosClient()
