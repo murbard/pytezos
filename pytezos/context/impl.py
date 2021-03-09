@@ -7,6 +7,8 @@ from pytezos.context.abstract import get_originated_address
 from pytezos.crypto.encoding import base58_encode
 from pytezos.crypto.key import Key
 from pytezos.michelson.micheline import get_script_section
+from pytezos.operation import DEFAULT_OPERATIONS_TTL
+from pytezos.operation import MAX_OPERATIONS_TTL
 from pytezos.rpc.errors import RpcError
 from pytezos.rpc.shell import ShellQuery
 
@@ -41,6 +43,7 @@ class ExecutionContext(AbstractContext):
         self.alloc_sapling_index = 0
         self.balance_update = 0
         self.big_maps = {}
+        self._sandboxed: Optional[bool] = None
 
     def reset(self):
         self.counter = None
@@ -64,6 +67,15 @@ class ExecutionContext(AbstractContext):
             return dict(code=[self.parameter_expr, self.storage_expr, self.code_expr])
         else:
             return None
+
+    @property
+    def sandboxed(self) -> bool:
+        if self.shell is None:
+            raise Exception('`shell` is not set')
+        if self._sandboxed is None:
+            version = self.shell.version()
+            self._sandboxed = version['network_version']['chain_name'] == 'SANDBOXED_TEZOS'
+        return self._sandboxed
 
     def set_counter(self, counter: int):
         self.counter = counter
@@ -258,3 +270,8 @@ class ExecutionContext(AbstractContext):
 
     def set_voting_power(self, address: str, voting_power: int):
         self.voting_power[address] = voting_power
+
+    def get_operations_ttl(self) -> int:
+        if self.sandboxed:
+            return DEFAULT_OPERATIONS_TTL
+        return MAX_OPERATIONS_TTL

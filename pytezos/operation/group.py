@@ -8,7 +8,11 @@ from pytezos.context.impl import ExecutionContext  # type: ignore
 from pytezos.context.mixin import ContextMixin  # type: ignore
 from pytezos.crypto.encoding import base58_encode
 from pytezos.crypto.key import blake2b_32
+from pytezos.jupyter import get_class_docstring
+from pytezos.logging import logger
 from pytezos.michelson.forge import forge_base58
+from pytezos.operation import DEFAULT_GAS_RESERVE
+from pytezos.operation import MAX_OPERATIONS_TTL
 from pytezos.operation.content import ContentMixin
 from pytezos.operation.fees import calculate_fee
 from pytezos.operation.fees import default_fee
@@ -18,10 +22,7 @@ from pytezos.operation.forge import forge_operation_group
 from pytezos.operation.result import OperationResult
 from pytezos.rpc.errors import RpcError
 
-DEFAULT_GAS_RESERVE = 100
-DEFAULT_BRANCH_OFFSET = 50
-
-# FIXME: Add explaination of these values
+# NOTE: Explaination: https://pytezos.baking-bad.org/tutorials/02.html#operation-group
 validation_passes = {
     'endorsement': 0,
     'proposal': 1,
@@ -104,7 +105,12 @@ class OperationGroup(ContextMixin, ContentMixin):
         """
         return self._spawn(contents=self.contents + [content])
 
-    def fill(self, counter=None, branch_offset=50):
+    def fill(
+            self,
+            counter: Optional[int] = None,
+            branch_offset: Optional[int] = None,
+            ttl: Optional[int] = None,
+        ):
         """ Try to fill all fields left unfilled, use approximate fees
         (not optimal, use `autofill` to simulate operation and get precise values).
 
@@ -112,9 +118,16 @@ class OperationGroup(ContextMixin, ContentMixin):
         :param branch_offset: select head~offset block as branch, where offset is in range (0, 60)
         :rtype: OperationGroup
         """
-        assert 0 < branch_offset < 60, 'branch offset has to be in range (0, 60)'
+        if branch_offset is not None:
+            logger.warning('`branch_offset` argument is deprecated, use `ttl` instead')
+            ttl = MAX_OPERATIONS_TTL - branch_offset
+        if ttl is None:
+            ttl = self.context.get_operations_ttl()
+        if not 0 < ttl <= MAX_OPERATIONS_TTL:
+            raise Exception('`ttl` has to be in range (0, 60]')
+
         chain_id = self.chain_id or self.context.get_chain_id()
-        branch = self.branch or self.shell.blocks[-branch_offset].hash()
+        branch = self.branch or self.shell.blocks[-(MAX_OPERATIONS_TTL - ttl)].hash()
         protocol = self.protocol or self.shell.head.header()['protocol']
         source = self.key.public_key_hash()
 
@@ -186,7 +199,8 @@ class OperationGroup(ContextMixin, ContentMixin):
         self,
         gas_reserve: int = DEFAULT_GAS_RESERVE,
         counter: Optional[int] = None,
-        branch_offset: int = DEFAULT_BRANCH_OFFSET,
+        branch_offset: Optional[int] = None,
+        ttl: Optional[int] = None,
         fee: Optional[int] = None,
         gas_limit: Optional[int] = None,
         storage_limit: Optional[int] = None,
@@ -203,7 +217,15 @@ class OperationGroup(ContextMixin, ContentMixin):
             results of operation dry-run.
         :rtype: OperationGroup
         """
-        opg = self.fill(counter=counter, branch_offset=branch_offset)
+        if branch_offset is not None:
+            logger.warning('`branch_offset` argument is deprecated, use `ttl` instead')
+            ttl = MAX_OPERATIONS_TTL - branch_offset
+        if ttl is None:
+            ttl = self.context.get_operations_ttl()
+        if not 0 < ttl <= MAX_OPERATIONS_TTL:
+            raise Exception('`ttl` has to be in range (0, 60]')
+
+        opg = self.fill(counter=counter, ttl=ttl)
         opg_with_metadata = opg.run()
         if not OperationResult.is_applied(opg_with_metadata):
             raise RpcError.from_errors(OperationResult.errors(opg_with_metadata))
