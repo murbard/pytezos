@@ -50,6 +50,7 @@ pylint = "^2.7.2"
 pylint-exit = "^1.2.0"
 isort = "^5.7.0"
 mypy = "^0.812"
+diff-cover = "^4.2.3"
 
 [tool.poetry.scripts]
 pytezos = 'pytezos.cli.cli:cli'
