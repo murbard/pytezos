@@ -2,8 +2,6 @@ from decimal import Decimal
 from typing import Type
 from typing import cast
 
-from jinja2.runtime import Undefined
-
 from pytezos.context.abstract import AbstractContext  # type: ignore
 from pytezos.context.abstract import get_originated_address
 from pytezos.crypto.encoding import is_address
@@ -31,6 +29,7 @@ from pytezos.michelson.types.core import IntType
 from pytezos.michelson.types.core import MichelsonType
 from pytezos.michelson.types.core import NatType
 from pytezos.michelson.types.core import StringType
+from pytezos.michelson.types.base import Undefined
 
 
 class TimestampType(IntType, prim='timestamp'):  # type: ignore
