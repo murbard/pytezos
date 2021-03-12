@@ -132,8 +132,8 @@ class OperationGroup(ContextMixin, ContentMixin):
             'period': lambda x: str(self.shell.head.voting_period()),
             'public_key': lambda x: self.key.public_key(),
             'fee': lambda x: str(default_fee(x)),
-            'gas_limit': lambda x: str(default_gas_limit(x)),
-            'storage_limit': lambda x: str(default_storage_limit(x)),
+            'gas_limit': lambda x: str(default_gas_limit(x, self.context.constants)),
+            'storage_limit': lambda x: str(default_storage_limit(x, self.context.constants)),
         }
 
         def fill_content(content):

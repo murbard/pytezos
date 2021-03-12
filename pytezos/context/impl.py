@@ -69,6 +69,13 @@ class ExecutionContext(AbstractContext):
         raise ValueError("It's not allowed to copy context")
 
     @property
+    def constants(self):
+        if self.shell is None:
+            raise Exception('`shell` is not set')
+        # NOTE: Cached
+        return self.shell.block.context.constants()
+
+    @property
     def script(self) -> Optional[dict]:
         if self.parameter_expr and self.storage_expr and self.code_expr:
             return dict(code=[self.parameter_expr, self.storage_expr, self.code_expr])
@@ -222,11 +229,9 @@ class ExecutionContext(AbstractContext):
         if self.now is not None:
             return self.now
         elif self.shell:
-            # NOTE: cached
-            constants = self.shell.block.context.constants()  # type: ignore
             ts = self.shell.head.header()['timestamp']
             dt = datetime.strptime(ts, '%Y-%m-%dT%H:%M:%SZ')
-            first_delay = constants['time_between_blocks'][0]
+            first_delay = self.constants['time_between_blocks'][0]
             return int((dt - datetime(1970, 1, 1)).total_seconds()) + int(first_delay)
         else:
             return 0
