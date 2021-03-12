@@ -153,7 +153,7 @@ def forge_address(value: str, tz_only=False) -> bytes:
     elif prefix == 'KT1':
         res = b'\x01' + address + b'\x00'
     else:
-        raise ValueError(value)
+        raise ValueError(f'Can\'t forge address: unknown prefix `{prefix}`')
 
     return res[1:] if tz_only else res
 

@@ -23,7 +23,7 @@ DEFAULT_GAS_RESERVE = 100
 DEFAULT_BURN_RESERVE = 100
 DEFAULT_BRANCH_OFFSET = 50
 
-# FIXME: Add explaination of these values
+# NOTE: Explaination: https://pytezos.baking-bad.org/tutorials/02.html#operation-group
 validation_passes = {
     'endorsement': 0,
     'proposal': 1,
