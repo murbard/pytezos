@@ -202,3 +202,6 @@ class AbstractContext:
 
     def set_voting_power(self, address: str, voting_power: int):
         raise NotImplementedError
+
+    def get_operations_ttl(self) -> int:
+        raise NotImplementedError

@@ -45,7 +45,7 @@ class SandboxTestCase(SandboxedNodeTestCase):
             amount=42,
         )
 
-        op.fill(branch_offset=1).sign().inject()
+        op.fill(branch_offset=1).sign().inject(min_confirmations=0)
         sleep(1)
 
         # Assert
