@@ -1,17 +1,11 @@
-from os.path import exists
-from os.path import expanduser
-from typing import Optional
-from typing import Union
+from os.path import exists, expanduser
+from typing import Optional, Union
 
 from pytezos.context.impl import ExecutionContext  # type: ignore
-from pytezos.crypto.encoding import is_pkh
-from pytezos.crypto.encoding import is_public_key
-from pytezos.crypto.key import Key
-from pytezos.crypto.key import is_installed
+from pytezos.crypto.encoding import is_pkh, is_public_key
+from pytezos.crypto.key import Key, is_installed
 from pytezos.jupyter import InlineDocstring
-from pytezos.rpc import RpcMultiNode
-from pytezos.rpc import RpcNode
-from pytezos.rpc import ShellQuery
+from pytezos.rpc import RpcMultiNode, RpcNode, ShellQuery
 from pytezos.rpc.errors import RpcError
 
 default_network = 'edo2net'

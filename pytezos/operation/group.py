@@ -1,8 +1,5 @@
 from pprint import pformat
-from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
 from pytezos.context.impl import ExecutionContext  # type: ignore
 from pytezos.context.mixin import ContextMixin  # type: ignore
@@ -11,10 +8,7 @@ from pytezos.crypto.key import blake2b_32
 from pytezos.jupyter import get_class_docstring
 from pytezos.michelson.forge import forge_base58
 from pytezos.operation.content import ContentMixin
-from pytezos.operation.fees import calculate_fee
-from pytezos.operation.fees import default_fee
-from pytezos.operation.fees import default_gas_limit
-from pytezos.operation.fees import default_storage_limit
+from pytezos.operation.fees import calculate_fee, default_fee, default_gas_limit, default_storage_limit
 from pytezos.operation.forge import forge_operation_group
 from pytezos.operation.result import OperationResult
 from pytezos.rpc.errors import RpcError

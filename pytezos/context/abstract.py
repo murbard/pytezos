@@ -1,10 +1,8 @@
-from typing import Optional
-from typing import Tuple
+from typing import Optional, Tuple
 
 from pyblake2 import blake2b  # type: ignore
 
-from pytezos.crypto.encoding import base58_decode
-from pytezos.crypto.encoding import base58_encode
+from pytezos.crypto.encoding import base58_decode, base58_encode
 from pytezos.crypto.key import Key
 
 

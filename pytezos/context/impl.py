@@ -1,7 +1,6 @@
 from datetime import datetime
 from inspect import Parameter
-from typing import Optional
-from typing import Tuple
+from typing import Optional, Tuple
 
 from pytezos.context.abstract import AbstractContext  # type: ignore
 from pytezos.context.abstract import get_originated_address

@@ -1,6 +1,5 @@
 from decimal import Decimal
-from typing import Optional
-from typing import Union
+from typing import Optional, Union
 
 from pytezos.context.mixin import ContextMixin  # type: ignore
 from pytezos.contract.call import ContractCall
