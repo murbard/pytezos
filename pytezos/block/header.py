@@ -1,21 +1,15 @@
 from pprint import pformat
-from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
 import bson  # type: ignore
 
-from pytezos.block.forge import forge_block_header
-from pytezos.block.forge import forge_protocol_data
-from pytezos.block.forge import forge_signed_operation
+from pytezos.block.forge import forge_block_header, forge_protocol_data, forge_signed_operation
 from pytezos.context.impl import ExecutionContext  # type: ignore
 from pytezos.context.mixin import ContextMixin  # type: ignore
 from pytezos.crypto.encoding import base58_encode
 from pytezos.crypto.key import blake2b_32
 from pytezos.jupyter import get_class_docstring
-from pytezos.michelson.forge import forge_array
-from pytezos.michelson.forge import forge_base58
+from pytezos.michelson.forge import forge_array, forge_base58
 
 
 class BlockHeader(ContextMixin):

@@ -11,8 +11,7 @@ from pytezos.crypto.encoding import base58_decode
 from pytezos.jupyter import get_attr_docstring
 from pytezos.logging import logger
 from pytezos.rpc.query import RpcQuery
-from pytezos.rpc.search import CyclesQuery
-from pytezos.rpc.search import VotingPeriodsQuery
+from pytezos.rpc.search import CyclesQuery, VotingPeriodsQuery
 
 
 def make_operation_result(**kwargs):

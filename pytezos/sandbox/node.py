@@ -1,11 +1,8 @@
 import atexit
 import unittest
 from datetime import datetime
-from time import sleep
-from time import time
-from typing import Any
-from typing import Dict
-from typing import Optional
+from time import sleep, time
+from typing import Any, Dict, Optional
 
 import requests.exceptions
 from testcontainers.core.generic import DockerContainer  # type: ignore

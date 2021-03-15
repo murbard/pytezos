@@ -1,15 +1,13 @@
 from datetime import datetime
 from inspect import Parameter
-from typing import Optional
-from typing import Tuple
+from typing import Optional, Tuple
 
 from pytezos.context.abstract import AbstractContext  # type: ignore
 from pytezos.context.abstract import get_originated_address
 from pytezos.crypto.encoding import base58_encode
 from pytezos.crypto.key import Key
 from pytezos.michelson.micheline import get_script_section
-from pytezos.operation import DEFAULT_OPERATIONS_TTL
-from pytezos.operation import MAX_OPERATIONS_TTL
+from pytezos.operation import DEFAULT_OPERATIONS_TTL, MAX_OPERATIONS_TTL
 from pytezos.rpc.errors import RpcError
 from pytezos.rpc.shell import ShellQuery
 

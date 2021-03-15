@@ -1,6 +1,5 @@
 from decimal import Decimal
-from typing import Optional
-from typing import Union
+from typing import Optional, Union
 
 from pytezos.block.header import BlockHeader
 from pytezos.context.mixin import ContextMixin  # type: ignore
@@ -12,8 +11,7 @@ from pytezos.logging import logger
 from pytezos.operation.content import ContentMixin
 from pytezos.operation.group import OperationGroup
 from pytezos.rpc import ShellQuery
-from pytezos.sandbox.parameters import get_protocol_hash
-from pytezos.sandbox.parameters import get_protocol_parameters
+from pytezos.sandbox.parameters import get_protocol_hash, get_protocol_parameters
 
 
 class PyTezosClient(ContextMixin, ContentMixin):

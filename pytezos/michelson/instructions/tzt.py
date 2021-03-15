@@ -1,11 +1,9 @@
 
-from typing import List
-from typing import Type
+from typing import List, Type
 
 from pytezos.context.abstract import AbstractContext
 from pytezos.logging import logger
-from pytezos.michelson.instructions.base import MichelsonInstruction
-from pytezos.michelson.instructions.base import format_stdout
+from pytezos.michelson.instructions.base import MichelsonInstruction, format_stdout
 from pytezos.michelson.micheline import MichelineLiteral
 from pytezos.michelson.stack import MichelsonStack
 from pytezos.michelson.types.base import MichelsonType

@@ -58,7 +58,6 @@ diff-cover = "^4.2.3"
 pytezos = 'pytezos.cli.cli:cli'
 
 [tool.isort]
-force_single_line = true
 line_length = 140
 
 [build-system]
