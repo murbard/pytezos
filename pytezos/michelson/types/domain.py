@@ -2,8 +2,6 @@ from decimal import Decimal
 from typing import Type
 from typing import cast
 
-from jinja2.runtime import Undefined
-
 from pytezos.context.abstract import AbstractContext  # type: ignore
 from pytezos.context.abstract import get_originated_address
 from pytezos.crypto.encoding import is_address
@@ -27,6 +25,7 @@ from pytezos.michelson.format import micheline_to_michelson
 from pytezos.michelson.micheline import Micheline
 from pytezos.michelson.micheline import parse_micheline_literal
 from pytezos.michelson.parse import michelson_to_micheline
+from pytezos.michelson.types.base import Undefined
 from pytezos.michelson.types.core import IntType
 from pytezos.michelson.types.core import MichelsonType
 from pytezos.michelson.types.core import NatType
@@ -326,6 +325,12 @@ class LambdaType(MichelsonType, prim='lambda', args_len=2):  # type: ignore
 
     def __repr__(self):
         return 'Lambda'
+
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, LambdaType):
+            return False
+        # FIXME: That seems ugly
+        return self.value.as_micheline_expr() == other.value.as_micheline_expr()
 
     @classmethod
     def generate_pydoc(cls, definitions: list, inferred_name=None, comparable=False):
