@@ -1,11 +1,26 @@
+from copy import deepcopy
 from typing import Any, List, Optional, Tuple, cast
 
+from attr import dataclass
+
 from pytezos.context.impl import ExecutionContext
-from pytezos.michelson.micheline import MichelsonRuntimeError
-from pytezos.michelson.parse import MichelsonParser
+from pytezos.michelson.micheline import MichelineSequence, MichelsonRuntimeError
+from pytezos.michelson.parse import MichelsonParser, MichelsonParserError, michelson_to_micheline
 from pytezos.michelson.program import MichelsonProgram, TztMichelsonProgram
+from pytezos.michelson.sections import CodeSection
 from pytezos.michelson.stack import MichelsonStack
 from pytezos.michelson.types import OperationType
+
+
+@dataclass(kw_only=True)
+class InterpreterResult:
+    operations = None
+    storage = None
+    lazy_diff = None
+    stdout: List[str]
+    error: Optional[Exception] = None
+    instructions: Optional[MichelineSequence] = None
+    stack: Optional[MichelsonStack] = None
 
 
 class Interpreter:
@@ -13,11 +28,41 @@ class Interpreter:
     Based on the following reference: https://tezos.gitlab.io/michelson-reference/
     """
 
-    def __init__(self, debug=True):
+    def __init__(
+        self,
+        extra_primitives: Optional[List[str]] = None,
+        debug: bool = False,
+    ):
         self.stack = MichelsonStack()
         self.context = ExecutionContext()
-        self.parser = MichelsonParser(extra_primitives=[])
-        self.debug = debug
+        self.context.debug = debug
+        self.parser = MichelsonParser(debug=debug, extra_primitives=extra_primitives)
+
+    def execute(self, code: str) -> InterpreterResult:
+        """Execute some code preserving current context and stack"""
+        result = InterpreterResult(stdout=[])
+        stack_backup = deepcopy(self.stack)
+        context_backup = deepcopy(self.context)
+
+        try:
+            code_section = CodeSection.match(michelson_to_micheline(code))
+            instructions = code_section.args[0].execute(self.stack, result.stdout, self.context)
+            result.instructions = cast(MichelineSequence, instructions)
+            result.stack = self.stack
+        except (MichelsonParserError, MichelsonRuntimeError) as e:
+            if self.context.debug:
+                raise
+
+            self.stack = stack_backup
+            self.context = context_backup
+            result.stdout.append(e.format_stdout())
+            result.error = e
+
+        return result
+
+    def reset(self) -> None:
+        self.stack = MichelsonStack()
+        self.context = ExecutionContext()
 
     @staticmethod
     def run_code(

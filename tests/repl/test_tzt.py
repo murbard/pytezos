@@ -9,8 +9,6 @@ from pytezos.michelson.parse import MichelsonParser
 from pytezos.michelson.parse import michelson_to_micheline
 from pytezos.michelson.repl import Interpreter
 
-logger.setLevel(logging.DEBUG)
-
 
 class TztTest(TestCase):
     path = join(dirname(__file__), "tzt")
@@ -23,7 +21,6 @@ class TztTest(TestCase):
         "address_00.tzt",
         "address_01.tzt",
         "address_02.tzt",
-        # NOTE: unknown primitive Contract
         "contract_00.tzt",
         "contract_01.tzt",
         "contract_02.tzt",

@@ -1,3 +1,4 @@
+
 from pytezos.michelson.instructions.adt import (CarInstruction, CdrInstruction, GetnInstruction, LeftInstruction, PairInstruction,
                                                 RightInstruction, UnpairInstruction, UpdatenInstruction)
 from pytezos.michelson.instructions.arithmetic import (AbsInstruction, AddInstruction, EdivInstruction, IntInstruction, IsNatInstruction,
@@ -14,6 +15,9 @@ from pytezos.michelson.instructions.crypto import (Blake2bInstruction, CheckSign
                                                    Sha3Instruction, Sha256Instruction, Sha512Instruction)
 from pytezos.michelson.instructions.generic import (ConcatInstruction, NeverInstruction, PackInstruction, SizeInstruction, SliceInstruction,
                                                     UnitInstruction, UnpackInstruction)
+from pytezos.michelson.instructions.jupyter import (BeginInstruction, BigMapDiffInstruction, CommitInstruction, DebugInstruction,
+                                                    DropAllInstruction, DumpAllInstruction, DumpInstruction, PatchInstruction,
+                                                    PatchValueInstruction, PrintInstruction, ResetInstruction, ResetValueInstruction)
 from pytezos.michelson.instructions.stack import (DigInstruction, DropInstruction, DropnInstruction, DugInstruction, DupInstruction,
                                                   DupnInstruction, PushInstruction, RenameInstruction, SwapInstruction)
 from pytezos.michelson.instructions.struct import (ConsInstruction, EmptyBigMapInstruction, EmptyMapInstruction, EmptySetInstruction,
@@ -24,4 +28,4 @@ from pytezos.michelson.instructions.tezos import (AddressInstruction, AmountInst
                                                   NowInstruction, SelfAddressInstruction, SelfInstruction, SenderInstruction,
                                                   SetDelegateInstruction, SourceInstruction, TransferTokensInstruction)
 from pytezos.michelson.instructions.ticket import JoinTicketsInstruction, ReadTicketInstruction, SplitTicketInstruction, TicketInstruction
-from pytezos.michelson.instructions.tzt import StackEltInstruction
+from pytezos.michelson.instructions.tzt import BigMapInstruction, StackEltInstruction
