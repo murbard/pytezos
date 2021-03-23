@@ -1,5 +1,4 @@
 from datetime import datetime
-from inspect import Parameter
 from typing import Optional, Tuple
 
 from pytezos.context.abstract import AbstractContext  # type: ignore
@@ -57,17 +56,6 @@ class ExecutionContext(AbstractContext):
         self.tzt_big_maps = {}
         self._sandboxed: Optional[bool] = None
 
-    def reset(self):
-        self.counter = None
-        self.origination_index = 1
-        self.tmp_big_map_index = 0
-        self.tmp_sapling_index = 0
-        self.alloc_big_map_index = 0
-        self.alloc_sapling_index = 0
-        self.balance_update = 0
-        self.big_maps.clear()
-        self.tzt_big_maps.clear()
-
     def __copy__(self):
         raise ValueError("It's not allowed to copy context")
 
@@ -96,6 +84,17 @@ class ExecutionContext(AbstractContext):
             version = self.shell.version()
             self._sandboxed = version['network_version']['chain_name'] == 'SANDBOXED_TEZOS'
         return self._sandboxed
+
+    def reset(self):
+        self.counter = None
+        self.origination_index = 1
+        self.tmp_big_map_index = 0
+        self.tmp_sapling_index = 0
+        self.alloc_big_map_index = 0
+        self.alloc_sapling_index = 0
+        self.balance_update = 0
+        self.big_maps.clear()
+        self.tzt_big_maps.clear()
 
     def set_counter(self, counter: int):
         self.counter = counter
@@ -150,7 +149,7 @@ class ExecutionContext(AbstractContext):
                 return None  # dummy callback
             else:
                 script = self.shell.contracts[address].script()
-                return get_script_section(script, 'parameter')
+                return get_script_section(script, name='parameter')
         return None if address else self.parameter_expr
 
     def get_storage_expr(self):
