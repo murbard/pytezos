@@ -1,7 +1,6 @@
 from typing import Any, Dict, List, Tuple
 
 from pytezos.michelson.forge import forge_array, forge_base58, optimize_timestamp
-from pytezos.operation.forge import forge_operation
 
 
 def bump_fitness(fitness: Tuple[str, str]) -> Tuple[str, str]:
@@ -50,8 +49,8 @@ def forge_protocol_data(protocol_data: Dict[str, Any]) -> bytes:
         res += forge_priority(protocol_data['priority'])
         res += bytes.fromhex(protocol_data['proof_of_work_nonce'])
         if protocol_data.get('seed_nonce_hash'):
-            res += b'\x01'
-            res += bytes.fromhex(protocol_data['seed_nonce_hash'])
+            res += b'\xFF'
+            res += forge_base58(protocol_data['seed_nonce_hash'])
         else:
             res += b'\x00'
     return res
@@ -67,10 +66,4 @@ def forge_block_header(shell_header: Dict[str, Any]) -> bytes:
     res += forge_fitness(shell_header['fitness'])
     res += forge_base58(shell_header['context'])
     res += bytes.fromhex(shell_header['protocol_data'])
-    return res
-
-
-def forge_signed_operation(operation: Dict[str, Any]) -> bytes:
-    res = b''.join(map(forge_operation, operation['contents']))
-    res += forge_base58(operation['signature'])
     return res
