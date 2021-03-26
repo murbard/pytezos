@@ -1,5 +1,6 @@
 # NOTE: Explaination: https://pytezos.baking-bad.org/tutorials/02.html#operation-group
 validation_passes = {
+    'failing_noop': -1,
     'endorsement': 0,
     'proposal': 1,
     'ballot': 1,
@@ -20,6 +21,7 @@ operation_tags = {
     'double_endorsement_evidence': 2,
     'double_baking_evidence': 3,
     'activate_account': 4,
+    'failing_noop': 17,
     'reveal': 107,
     'transaction': 108,
     'origination': 109,

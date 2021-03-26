@@ -16,10 +16,8 @@ def has_parameters(content):
         if content['parameters']['entrypoint'] == 'default' \
                 and content['parameters']['value'] == {'prim': 'Unit'}:
             return False
-        else:
-            return True
-    else:
-        return False
+        return True
+    return False
 
 
 def forge_entrypoint(entrypoint) -> bytes:
@@ -39,6 +37,7 @@ def forge_operation(content) -> bytes:
     :param content: {.., "kind": "transaction", ...}
     """
     encode_content = {
+        'failing_noop': forge_failing_noop,
         'activate_account': forge_activate_account,
         'reveal': forge_reveal,
         'transaction': forge_transaction,
@@ -134,4 +133,10 @@ def forge_delegation(content):
     else:
         res += forge_bool(False)
 
+    return res
+
+
+def forge_failing_noop(content):
+    res = forge_nat(operation_tags[content['kind']])
+    res += forge_array(content['arbitrary'].encode())
     return res
