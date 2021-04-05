@@ -5,6 +5,7 @@ from pprint import pformat
 from typing import Optional
 
 import click
+import docker
 
 from pytezos import ContractInterface, __version__, pytezos
 from pytezos.cli.github import create_deployment, create_deployment_status
@@ -27,18 +28,28 @@ def make_bcd_link(network, address):
     return f'https://better-call.dev/{network}/{address}'
 
 
-def get_contract(path):
+def get_local_contract_path(path, extension='tz'):
     if path is None:
-        files = glob('*.tz')
+        files = glob(f'*.{extension}')
         if len(files) != 1:
             raise Exception('No contracts found in working directory, specify --path implicitly')
-        contract = ContractInterface.from_file(abspath(files[0]))
-    elif exists(path):
+        path = abspath(files[0])
+    if exists(path):
+        return path
+    return False
+
+def get_contract(path):
+    path = get_local_contract_path(path)
+    if path:
         contract = ContractInterface.from_file(path)
     else:
         network, address = path.split(':')
         contract = pytezos.using(shell=network).contract(address)
     return contract
+
+
+def get_docker_client():
+    return docker.from_env()
 
 
 @click.group()
@@ -171,6 +182,86 @@ def deploy(
                 environment_url=bcd_link,
             )
             logger.info(status)
+
+
+@cli.command(help='Update Ligo compiler (docker pull ligolang/ligo)')
+@click.option('--tag', '-t', type=str, help='Version or tag to pull', default='0.13.0')
+@click.pass_context
+def update_ligo(
+    _ctx,
+    tag: str,
+):
+    client = get_docker_client()
+    logger.info(f'Pulling ligolang/ligo{(":" + tag) if tag else ""}, please stay put.')
+    client.images.pull('ligolang/ligo', tag=tag)
+    logger.info('Pulled Ligo compiler image successfully!')
+
+
+def run_ligo_container(
+    tag: str = '0.13.0',
+    command: str = '',
+):
+    try:
+        client = get_docker_client()
+        return client.containers.run(image=f'ligolang/ligo:{tag}', command=comand)
+    except docker.errors.ImageNotFound:
+        logger.error('Ligo compiler not found. Please run update-ligo first.')
+
+
+@cli.command(help='Compile contract using Ligo compiler.')
+@click.option('--tag', '-t', type=str, help='Version or tag of Ligo compiler', default='0.13.0')
+@click.option('--path', '-p', type=str, help='Path to contract', default='0.13.0')
+@click.pass_context
+def ligo_compile_contract(
+    _ctx,
+    tag: str,
+    path: str,
+):
+    path = get_local_contract_path(path, extension='ligo')
+    if path:
+        run_ligo_container(tag=tag, command=f'compile-contract {path}')
+    else:
+        logger.error('No local contract found. Please ensure a valid contract is present or specify path.')
+
+
+@cli.command(help='Define initial storage using Ligo compiler.')
+@click.option('--tag', '-t', type=str, help='Version or tag of Ligo compiler', default='0.13.0')
+@click.option('--path', '-p', type=str, help='Path to contract')
+@click.option('--entry-point', '-ep', type=str, help='Entrypoint for the storage')
+@click.option('--expression', '-ex', type=str, help='Expression for the storage')
+@click.pass_context
+def ligo_compile_contract(
+    _ctx,
+    tag: str,
+    path: str,
+    entry_point: str,
+    expression: str,
+):
+    path = get_local_contract_path(path)
+    if path:
+        run_ligo_container(tag=tag, command=f'compile-storage {path} {entry_point} {expression}')
+    else:
+        logger.error('No local contract found. Please ensure a valid contract is present or specify path.')
+
+
+@cli.command(help='Invoke a contract with a parameter using Ligo compiler.')
+@click.option('--tag', '-t', type=str, help='Version or tag of Ligo compiler', default='0.13.0')
+@click.option('--path', '-p', type=str, help='Path to contract')
+@click.option('--entry-point', '-ep', type=str, help='Entrypoint for the invocation')
+@click.option('--expression', '-ex', type=str, help='Expression for the invocation')
+@click.pass_context
+def ligo_invoke_contract(
+    _ctx,
+    tag: str,
+    path: str,
+    entry_point: str,
+    expression: str,
+):
+    path = get_local_contract_path(path)
+    if path:
+        run_ligo_container(tag=tag, command=f'compile-parameter {path} {entry_point} {expression}')
+    else:
+        logger.error('No local contract found. Please ensure a valid contract is present or specify path.')
 
 
 if __name__ == '__main__':
