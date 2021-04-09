@@ -210,7 +210,7 @@ def sandbox(
     node = client.containers.run(
         SANDBOX_IMAGE,
         ports={
-            '8732/tcp': ('localhost', port)
+            '8732': ('localhost', port)
         },
         detach=True
     )
