@@ -1,18 +1,24 @@
+import atexit
+import signal
 import sys
+import threading
 from glob import glob
 from os.path import abspath, dirname, exists, join
 from pprint import pformat
 from typing import Optional
 
 import click
+import docker
 
 from pytezos import ContractInterface, __version__, pytezos
 from pytezos.cli.github import create_deployment, create_deployment_status
+from pytezos.client import PyTezosClient
 from pytezos.context.mixin import default_network  # type: ignore
 from pytezos.logging import logger
 from pytezos.michelson.types.base import generate_pydoc
 from pytezos.operation.result import OperationResult
 from pytezos.rpc.errors import RpcError
+from pytezos.sandbox.parameters import EDO, FLORENCE
 
 kernel_js_path = join(dirname(dirname(__file__)), 'assets', 'kernel.js')
 kernel_json = {
@@ -21,6 +27,8 @@ kernel_json = {
     "language": "michelson",
     "codemirror_mode": "michelson",
 }
+
+SANDBOX_IMAGE = 'bakingbad/sandboxed-node:v9.0-rc1-1'
 
 
 def make_bcd_link(network, address):
@@ -39,6 +47,10 @@ def get_contract(path):
         network, address = path.split(':')
         contract = pytezos.using(shell=network).contract(address)
     return contract
+
+
+def get_docker_client():
+    return docker.from_env()
 
 
 @click.group()
@@ -171,6 +183,78 @@ def deploy(
                 environment_url=bcd_link,
             )
             logger.info(status)
+
+
+@cli.command(help='Run containerized sandbox')
+@click.option('--protocol', type=click.Choice(['Florence', 'Edo']), help='Protocol to use', default='Florence')
+@click.option('--port', '-p', type=int, help='Port to map container port to', default=8732)
+@click.option('--block-time', '-bt', type=int, help='Interval between calls to bake_block (in seconds)', default=1)
+@click.pass_context
+def sandbox(
+    _ctx,
+    protocol: str,
+    port: int,
+    block_time: int,
+):
+    client = get_docker_client()
+    try:
+        client.images.get(SANDBOX_IMAGE)
+    except docker.errors.ImageNotFound:
+        logger.info('Will now pull latest sandbox image, please stay put.')
+        image, tag = SANDBOX_IMAGE.split(':')
+        for line in client.api.pull(image, tag=tag, stream=True, decode=True):
+            logger.info(line)
+        logger.info('Pulled sandbox image successfully!')
+
+    logger.info('Starting node.')
+    node = client.containers.run(
+        SANDBOX_IMAGE,
+        ports={
+            '8732/tcp': ('localhost', port)
+        },
+        detach=True
+    )
+
+    atexit.register(node.stop)
+
+    logger.info('Giving node 2 seconds to start.')
+
+    def end_waiting():
+        logger.info('Waiting over.')
+
+    waiting_for_node_start_thread = threading.Timer(2, end_waiting)
+    waiting_for_node_start_thread.start()
+    waiting_for_node_start_thread.join()
+
+    logger.info('Creating client.')
+    pytezos_client = PyTezosClient().using(
+        shell=f'http://localhost:{port}'
+    )
+    pytezos_client.using(
+        key='dictator'
+    ).activate_protocol(
+        {
+            'Edo': EDO,
+            'Florence': FLORENCE,
+        }[protocol]
+    ).fill(block_id='genesis').sign().inject()
+
+    def bake_block(min_fee: int = 0):
+        logger.info('Baking block...')
+        block = pytezos_client.using(key='bootstrap1').bake_block(min_fee).fill().work().sign().inject()
+        logger.info(f'Baked block: {block}')
+        return block
+
+    try:
+        while True:
+            baker_thread = threading.Timer(block_time, bake_block)
+            baker_thread.daemon = True
+            baker_thread.start()
+            baker_thread.join()
+    except click.Abort:
+        logger.info('Aborted. Exiting.')
+        client.containers.stop(node)
+        return
 
 
 if __name__ == '__main__':
