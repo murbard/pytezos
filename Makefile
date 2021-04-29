@@ -2,10 +2,9 @@
 .PHONY: docs
 .DEFAULT_GOAL: all
 
-all: install lint test cover
+DEV ?= 1
 
-debug:
-	pip install . --force --no-deps
+all: install lint test cover
 
 update:
 	wget https://gitlab.com/tzip/tzip/-/raw/master/proposals/tzip-16/metadata-schema.json -O src/pytezos/contract/metadata-schema.json
@@ -23,11 +22,20 @@ update:
 
 
 install:
-	git submodule update --init
-	poetry install --remove-untracked
+	git submodule update --init  || true
+	poetry install --remove-untracked `if [ "${DEV}" = "0" ]; then echo "--no-dev"; fi`
+
+install-kernel:
+	poetry run python -m michelson_kernel install
+
+remove-kernel:
+	jupyter kernelspec uninstall michelson -f
 
 notebook:
 	PYTHONPATH="$$PYTHONPATH:src" poetry run jupyter notebook
+
+debug:
+	pip install . --force --no-deps
 
 isort:
 	poetry run isort src
@@ -49,11 +57,20 @@ cover:
 build:
 	poetry build
 
+image:
+	docker build . -t michelson-kernel
+
 docs:
-	cd docs && rm -rf ./build && $(MAKE) html
+	cd docs && rm -rf ./build && $(MAKE) html && cd ..
+
+kernel-docs:
+	python scripts/gen_kernel_docs_py.py
 
 rpc-docs:
-	python -m scripts.fetch_docs
+	python scripts/fetch_docs.py
+
+binder:
+
 
 release-patch:
 	bumpversion patch
@@ -69,3 +86,4 @@ release-major:
 	bumpversion major
 	git push --tags
 	git push
+

@@ -53,3 +53,4 @@ RUN apk update \
 	&& rm -rf ~/.cache/pip && apk del py-pip \
 	&& apk del build-deps \
 	&& rm -f /sbin/apk && rm -rf /etc/apk && rm -rf /lib/apk && rm -rf /usr/share/apk && rm -rf /var/lib/apk
+RUN mkdir /home/jupyter/notebooks
