@@ -25,6 +25,7 @@ WORKDIR ${HOME}
 USER ${USER}
 
 RUN pip install --user pytezos
+RUN michelson_kernel install
 
 EXPOSE 8888
 ENTRYPOINT []
