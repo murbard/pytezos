@@ -18,7 +18,7 @@ RUN adduser --disabled-password \
     --uid ${NB_UID} \
     ${NB_USER}
 
-COPY *.ipynb ${HOME}/
+COPY binder/*.ipynb ${HOME}/
 RUN chown -R ${NB_USER}:${NB_USER} ${HOME}/
 
 WORKDIR ${HOME}
