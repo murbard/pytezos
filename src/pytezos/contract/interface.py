@@ -280,7 +280,7 @@ class ContractInterface(ContextMixin):
 
         :rtype: ContractTokenMetadataProxy
         """
-        return ContractTokenMetadataProxy(self._get_token_metadata)
+        return ContractTokenMetadataProxy(self._get_token_metadata)  # type: ignore
 
     @lru_cache
     def _get_token_metadata(self, token_id: int) -> Optional[ContractTokenMetadata]:
