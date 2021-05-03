@@ -6,15 +6,21 @@ from tabulate import tabulate
 
 from michelson_kernel import __version__
 from michelson_kernel.docs import docs
-from pytezos import MichelsonType, micheline_to_michelson
+from pytezos import micheline_to_michelson
 from pytezos.michelson.instructions import BigMapDiffInstruction, CommitInstruction
 from pytezos.michelson.instructions.base import MichelsonInstruction
+from pytezos.michelson.instructions.jupyter import RunInstruction
 from pytezos.michelson.micheline import MichelineSequence, MichelsonRuntimeError
 from pytezos.michelson.parse import MichelsonParserError
 from pytezos.michelson.repl import Interpreter
 from pytezos.michelson.stack import MichelsonStack
 from pytezos.michelson.tags import prim_tags
 from pytezos.michelson.types import OperationType, PairType
+from pytezos.michelson.types.domain import LambdaType
+from pytezos.michelson.types.list import ListType
+from pytezos.michelson.types.map import MapType
+from pytezos.michelson.types.option import OptionType
+from pytezos.michelson.types.set import SetType
 
 static_macros = [
     'CMPEQ',
@@ -68,6 +74,22 @@ def parse_token(line: str, cursor_pos: int) -> Tuple[str, int, int]:
     return line[begin_pos:end_pos], begin_pos, end_pos
 
 
+def format_prim(item) -> str:
+    if isinstance(item, PairType) and item.items:
+        return f'{item.prim} ({" ".join(format_prim(i) for i in item.args)})'
+    if isinstance(item, OptionType) and item.item:
+        return f'{item.prim} ({item.item.prim})'
+    if isinstance(item, SetType) and item.items:
+        return f'{item.prim} ({" ".join(format_prim(i) for i in item.args)})'
+    if isinstance(item, ListType):
+        return f'{item.prim} ({" ".join(format_prim(i) for i in item.args)})'
+    if isinstance(item, MapType):
+        return f'{item.prim} ({" ".join(format_prim(i) for i in item.args)})'
+    if isinstance(item, type) and issubclass(item, LambdaType):
+        return f'{item.prim} ({" ".join(format_prim(i) for i in item.args)})'
+    return item.prim  # type: ignore
+
+
 def preformat_operations_table(items: List[OperationType]) -> List[Dict[str, Any]]:
     return [
         {
@@ -79,24 +101,34 @@ def preformat_operations_table(items: List[OperationType]) -> List[Dict[str, Any
 
 
 def preformat_storage_table(item) -> List[Dict[str, Any]]:
+    prim = format_prim(item)
+    value = item.to_python_object()
+    if isinstance(value, bytes):
+        value = value.hex()
     return [
         {
-            'type': item.prim,
-            'value': item.to_python_object(),
+            'type': prim,
+            'value': value,
         }
     ]
 
 
 def preformat_stack_table(items: List[MichelsonInstruction]) -> List[Dict[str, Any]]:
-    return [
-        {
-            'index': i,
-            'type': item.prim,
-            # FIXME:
-            'value': item.to_python_object(),  # type: ignore
-        }
-        for i, item in enumerate(items)
-    ]
+    rows = []
+    for i, item in enumerate(items):
+        prim = format_prim(item)
+        value = item.to_python_object()  # type: ignore
+        if isinstance(value, bytes):
+            value = value.hex()
+
+        rows.append(
+            {
+                'index': i,
+                'type': prim,
+                'value': value,  # type: ignore
+            }
+        )
+    return rows
 
 
 def html_table(table: List[Dict[str, Any]], header: str) -> str:
@@ -160,7 +192,7 @@ class MichelsonKernel(Kernel):
     ]
 
     def __init__(self, **kwargs):
-        super(MichelsonKernel, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self.interpreter = Interpreter()
 
     def _stdout(self, text: str) -> None:
@@ -176,8 +208,8 @@ class MichelsonKernel(Kernel):
     def _find_stack_items(self, instructions: MichelineSequence, stack: MichelsonStack) -> Optional[List[MichelsonInstruction]]:
         for operation in instructions.items[::-1]:
             items = getattr(operation, 'items', None)
-            if isinstance(items, MichelineSequence):
-                stack_items = self._find_stack_items(instructions, stack)
+            if isinstance(items, list):
+                stack_items = self._find_stack_items(MichelineSequence(items), stack)
                 if stack_items:
                     return stack_items
             if not isinstance(operation, MichelsonInstruction):
@@ -190,13 +222,15 @@ class MichelsonKernel(Kernel):
         for instruction in instructions.items[::-1]:
             if isinstance(instruction, CommitInstruction) and instruction.lazy_diff:
                 return instruction.lazy_diff
-            elif isinstance(instruction, BigMapDiffInstruction) and instruction.lazy_diff:
+            if isinstance(instruction, BigMapDiffInstruction) and instruction.lazy_diff:
                 return instruction.lazy_diff
         return None
 
     def _find_contract_result(self, instructions: MichelineSequence) -> Optional[PairType]:
         for instruction in instructions.items[::-1]:
-            if isinstance(instruction, CommitInstruction):
+            if isinstance(instruction, MichelineSequence):
+                return self._find_contract_result(instruction)
+            if isinstance(instruction, (CommitInstruction, RunInstruction,)):
                 return instruction.result
         return None
 
