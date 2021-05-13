@@ -47,6 +47,7 @@ class ContractInterface(ContextMixin):
     def __init__(self, context: ExecutionContext) -> None:
         super().__init__(context=context)
         self._logger = logging.getLogger(__name__)
+        self._storage: Optional[ContractData] = None
         self.entrypoints = self.program.parameter.list_entrypoints()
         for entrypoint, ty in self.entrypoints.items():
             if entrypoint == 'token_metadata':
@@ -176,8 +177,8 @@ class ContractInterface(ContextMixin):
     def big_map_get(self, path):
         """Get BigMap entry as Python object by plain key and block height.
 
-        :param path: Json path to the key (or just key to access default BigMap location). \
-            Use `/` to separate nodes and `::` to separate tuple args. \
+        :param path: JSON path to the key (or just key to access default BigMap location).
+            Use `/` to separate nodes and `::` to separate tuple args.
             In any other case you'd need to escape those symbols.
         :returns: object
         """
@@ -200,9 +201,10 @@ class ContractInterface(ContextMixin):
         ipfs_gateway: Optional[str] = None,
     ) -> 'ContractInterface':
         """Change the block at which the current contract is inspected.
+
         Also, if address is undefined you can specify RPC endpoint, and private key.
 
-        :param shell: one of 'mainnet', '***net', or RPC node uri, or instance of `ShellQuery`
+        :param shell: one of 'mainnet', '***net', or RPC node uri, or instance of :class:`pytezos.rpc.shell.ShellQuery`
         :param key: base58 encoded key, path to the faucet file, alias from tezos-client, or instance of `Key`
         :param block_id: block height / hash / offset to use, default is `head`
         :param mode: whether to use `readable` or `optimized` encoding for parameters/storage/other
@@ -222,13 +224,47 @@ class ContractInterface(ContextMixin):
 
     @property
     def storage(self) -> ContractData:
-        if self.address:
+        if self._storage:
+            return self._storage
+        elif self.address:
             expr = self.shell.blocks[self.context.block_id].context.contracts[self.address].storage()
             storage = self.program.storage.from_micheline_value(expr)
             storage.attach_context(self.context)
         else:
             storage = self.program.storage.dummy(self.context)
         return ContractData(self.context, storage.item, title="storage")
+
+    @storage.setter
+    def storage(self, storage: ContractData) -> None:
+        if self.address:
+            raise Exception('Can\'t set storage of deployed contract')
+        self._storage = storage
+
+    def storage_from_file(self, path: str) -> None:
+        """Load contract storage from file
+
+        :param path: path to .tz file
+        """
+        with open(path) as file:
+            expr = michelson_to_micheline(file.read())
+        self.storage_from_micheline(expr)
+
+    def storage_from_micheline(self, expression) -> None:
+        """Load contract storage from Micheline expression
+
+        :param expression: Micheline expression
+        """
+        storage = self.program.storage.from_micheline_value(expression)
+        storage.attach_context(self.context)
+        self.storage = ContractData(self.context, storage.item, title="storage")
+
+    def storage_from_michelson(self, source: str) -> None:
+        """Load contract storage from Michelson code
+
+        :param source: Michelson code
+        """
+        expr = michelson_to_micheline(source)
+        self.storage_from_micheline(expr)
 
     @cached_property
     def metadata(self) -> Optional[ContractMetadata]:
