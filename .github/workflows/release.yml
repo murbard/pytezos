@@ -12,6 +12,8 @@ jobs:
       ACTIONS_ALLOW_UNSECURE_COMMANDS: true
     steps:
     - uses: actions/checkout@master
+    - name: Set env
+      run: echo ::set-env name=RELEASE_VERSION::${GITHUB_REF#refs/*/}
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
