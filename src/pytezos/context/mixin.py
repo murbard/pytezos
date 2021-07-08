@@ -23,8 +23,7 @@ nodes = {
                 'https://tezos-prod.cryptonomic-infra.tech/'],
     'sandbox': ['http://127.0.0.1:8732/'],
     'localhost': ['http://127.0.0.1:8732/'],
-    'florencenet': ['https://florence-tezos.giganode.io/'],
-    'edo2net': ['https://edonet-tezos.giganode.io/']
+    'florencenet': ['https://testnet-tezos.giganode.io']
 }
 keys = {
     'alice': alice_key,
