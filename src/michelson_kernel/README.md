@@ -2,11 +2,81 @@
 
 ![michelson](https://cdn-images-1.medium.com/max/800/1*r_kVx8Rsqa0TLcIaK_WUQw.gif)
 
-### Installation
+## How to install
 
-To install Michelson kernel at current environment run
-```shell
-$ michelson-kernel install
+### Option 1: try online!
+Powered by awesome Binder: https://mybinder.org/v2/gh/baking-bad/pytezos/binder?filepath=michelson_quickstart.ipynb
+
+### Option 2: run in docker
+1. Get the latest image from dockerhub (only when new releases are published)
+```
+docker pull bakingbad/michelson-kernel
+```
+2. Create container using verified docker image:
+```
+docker run --rm -it -p 127.0.0.1:8888:8888 -v $(pwd):/home/jupyter/notebooks bakingbad/michelson-kernel
+```
+3. Open the link from container output in your browser
+4. Save notebooks in the mapped folder in order not to loose them
+
+### Option 3: install python package
+1. Requires Python 3.7+. The recomended way to install it (especially if you plan to use multiple versions) is [pyenv](https://github.com/pyenv/pyenv-installer). Make sure you have all [necessary packets](https://github.com/pyenv/pyenv/wiki/Common-build-problems) installed. After that:
+```
+pyenv install 3.7.0
+pyenv local 3.7.0   # per folder
+pyenv global 3.7.9  # per system
+```
+
+2. Ensure you have several crypto libraries installed (see [pytezos docs](https://baking-bad.github.io/pytezos/#requirements)):
+```
+sudo apt install libsodium-dev libsecp256k1-dev libgmp-dev
+```
+3. Install the PyTezos package using pip
+```
+pip install pytezos
+```
+4. Install Jupyter
+```
+pip install jupyter
+```
+5. Install Michelson kernel
+```
+michelson-kernel install
+```
+6. Check that Jupyter is now supporting Michelson kernel
+```
+jupyter kernelspec list
+```
+7. Run jupyter
+```
+jupyter notebook
+```
+Open the link from the command output, create new notebook with Michelson kernel.
+
+### Option 4: install from sources
+1. Follow steps 1-2 from "Option 3" to ensure you have correct Python version and packets required for the PyTezos library
+2. Ensure the following packages are installed: `libssl-dev zlib1g-dev uuid-dev`
+3. Ensure you have `poetry` installed
+4. Get the sources, build and install
+```
+git clone https://github.com/baking-bad/pytezos
+cd pytezos
+poetry install
+```
+4. Follow steps 4-6 from "Option 3"
+
+## How to uninstall
+1. Run the following command
+```
+jupyter kernelspec uninstall michelson -f
+```
+2. Check that Jupyter is no longer supporting Michelson kernel
+```
+jupyter kernelspec list
+```
+3. Uninstall Python package
+```
+pip uninstall pytezos
 ```
 
 ### How it works
