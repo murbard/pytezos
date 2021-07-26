@@ -14,6 +14,7 @@ from pytezos.logging import logger
 from pytezos.rpc.kind import validation_passes
 from pytezos.rpc.query import RpcQuery
 from pytezos.rpc.search import CyclesQuery, VotingPeriodsQuery
+from pytezos.rpc.protocol import BlockQuery, BlocksQuery
 
 
 def make_operation_result(**kwargs):
@@ -22,18 +23,18 @@ def make_operation_result(**kwargs):
 
 class ShellQuery(RpcQuery, path=''):
     @property
-    def blocks(self):
+    def blocks(self) -> BlocksQuery:
         """Shortcut for `chains.main.blocks`"""
         return self.chains.main.blocks
 
     @property
-    def head(self):
+    def head(self) -> BlockQuery:
         """Shortcut for `blocks.head`"""
         return self.blocks.head
 
     @property  # type: ignore
     @lru_cache(maxsize=None)
-    def block(self):
+    def block(self) -> BlockQuery:
         """Cached head block, useful if you just want to explore things."""
         return self.blocks[self.head.hash()]
 
@@ -94,13 +95,13 @@ class ShellQuery(RpcQuery, path=''):
 
             prev_block_dt = datetime.strptime(header['timestamp'], '%Y-%m-%dT%H:%M:%SZ')
             elapsed_sec = (datetime.utcnow() - prev_block_dt).seconds
-            sleep_sec = 0 if elapsed_sec > block_delay else (block_delay - elapsed_sec)
+            sleep_sec = 1 if elapsed_sec > block_delay else (block_delay - elapsed_sec + 1)
 
             logger.info('Sleep %d seconds until block %s is superseded', sleep_sec, current_block_hash)
             sleep(sleep_sec)
 
             next_block_hash: Optional[str] = None
-            timeout = block_delay + secondary_delay * max_priority
+            timeout = block_delay + secondary_delay * max_priority + 1
             logger.info('Waiting for a new block (%d sec timeout)', timeout)
 
             for delay in range(timeout):

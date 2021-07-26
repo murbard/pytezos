@@ -1,14 +1,17 @@
 import atexit
+import logging
 import unittest
+from concurrent.futures import CancelledError, ThreadPoolExecutor, wait, Future
+from threading import Event
 from time import sleep
-from typing import Optional
+from typing import Optional, Any
 
 import requests.exceptions
 from testcontainers.core.generic import DockerContainer  # type: ignore
 
 from pytezos.client import PyTezosClient
 from pytezos.operation.group import OperationGroup
-from pytezos.sandbox.parameters import FLORENCE
+from pytezos.sandbox.parameters import FLORENCE, GRANADA
 
 # NOTE: Container object is a singleton which will be used in all tests inherited from class _SandboxedNodeTestCase
 # and stopped after all tests are completed.
@@ -16,11 +19,13 @@ node_container: Optional[DockerContainer] = None
 node_container_client: PyTezosClient = PyTezosClient()
 node_fitness: int = 1
 
+executor: Optional[ThreadPoolExecutor] = None
+
 
 class SandboxedNodeTestCase(unittest.TestCase):
     """Perform tests with sanboxed node in Docker container."""
 
-    IMAGE: str = 'bakingbad/sandboxed-node:v9.0-rc1-1'
+    IMAGE: str = 'bakingbad/sandboxed-node:v9.4-1'
     "Docker image to use"
 
     PORT: Optional[int] = None
@@ -104,3 +109,38 @@ class SandboxedNodeTestCase(unittest.TestCase):
     def client(self) -> PyTezosClient:
         """PyTezos client to interact with sandboxed node."""
         return self.get_client().using(key='bootstrap2')
+
+
+class SandboxedNodeAutoBakeTestCase(SandboxedNodeTestCase):
+    exit_event: Optional[Event] = None
+    baker: Optional[Future] = None
+
+    TIME_BETWEEN_BLOCKS = 3
+
+    @staticmethod
+    def autobake(time_between_blocks: int, node_url: str, key: str, exit_event: Event):
+        logging.info("Baker thread started")
+        client = PyTezosClient().using(shell=node_url, key=key)
+        ptr = 0
+        while not exit_event.is_set():
+            if ptr % time_between_blocks == 0:
+                client.bake_block().fill().work().sign().inject()
+            sleep(1)
+            ptr += 1
+        logging.info("Baker thread stopped")
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        super().setUpClass()
+        global executor  # pylint: disable=global-statement
+        if not executor:
+            executor = ThreadPoolExecutor(1)
+        cls.exit_event = Event()  # type: ignore
+        cls.baker = executor.submit(cls.autobake, cls.TIME_BETWEEN_BLOCKS, cls.get_node_url(), 'bootstrap1', cls.exit_event)
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        assert cls.exit_event
+        assert cls.baker
+        cls.exit_event.set()
+        wait([cls.baker])
