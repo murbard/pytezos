@@ -194,10 +194,10 @@ class MichelsonType(Micheline):
     def from_python_object(cls, py_obj) -> 'MichelsonType':
         raise NotImplementedError
 
-    def to_micheline_value(self, mode='readable', lazy_diff=False):
+    def to_micheline_value(self, mode='readable', lazy_diff: Optional[bool] = False):
         raise NotImplementedError
 
-    def to_python_object(self, try_unpack=False, lazy_diff=False, comparable=False):
+    def to_python_object(self, try_unpack=False, lazy_diff: Optional[bool] = False, comparable=False):
         raise NotImplementedError
 
     def to_literal(self) -> Type[Micheline]:

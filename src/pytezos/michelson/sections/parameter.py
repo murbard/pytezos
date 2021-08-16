@@ -92,7 +92,7 @@ class ParameterSection(Micheline, prim='parameter', args_len=1):
             assert isinstance(flat_values, dict) and len(flat_values) == 1, f'expected named type'
             entrypoint, item = next(iter(flat_values.items()))
         return {'entrypoint': entrypoint,
-                'value': item.to_micheline_value(mode=mode)}
+                'value': item.to_micheline_value(mode=mode, lazy_diff=None)}
 
     @classmethod
     def generate_pydoc(cls) -> str:
@@ -123,11 +123,11 @@ class ParameterSection(Micheline, prim='parameter', args_len=1):
             item = cls.args[0].from_python_object(py_obj)
         return cls(item)
 
-    def to_micheline_value(self, mode='readable', lazy_diff=False):
-        return self.item.to_micheline_value(mode=mode, lazy_diff=lazy_diff)
+    def to_micheline_value(self, mode='readable', lazy_diff=None):
+        return self.item.to_micheline_value(mode=mode, lazy_diff=None)
 
-    def to_python_object(self, try_unpack=False, lazy_diff=False) -> dict:
-        py_obj = self.item.to_python_object(try_unpack=try_unpack, lazy_diff=lazy_diff)
+    def to_python_object(self, try_unpack=False, lazy_diff=None) -> dict:
+        py_obj = self.item.to_python_object(try_unpack=try_unpack, lazy_diff=None)
         if issubclass(self.args[0], OrType):
             return py_obj
         else:

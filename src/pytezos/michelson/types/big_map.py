@@ -111,14 +111,20 @@ class BigMapType(MapType, prim='big_map', args_len=2):
                 for k, v in self.items
             ])
 
-    def to_micheline_value(self, mode='readable', lazy_diff=False):
+    def to_micheline_value(self, mode='readable', lazy_diff: Optional[bool] = False):
+        if lazy_diff is None:
+            lazy_diff = self.ptr is None
+
         if lazy_diff:
             return super(BigMapType, self).to_micheline_value(mode=mode)
         else:
             assert self.ptr is not None, f'Big_map id is not defined'
             return {'int': str(self.ptr)}
 
-    def to_python_object(self, try_unpack=False, lazy_diff=False, comparable=False):
+    def to_python_object(self, try_unpack=False, lazy_diff: Optional[bool] = False, comparable=False):
+        if lazy_diff is None:
+            lazy_diff = self.ptr is None
+
         if lazy_diff:
             assert not comparable, f'big_map is not comparable'
             res = super(BigMapType, self).to_python_object(try_unpack=try_unpack)
