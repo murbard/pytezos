@@ -234,7 +234,7 @@ class Micheline(metaclass=ErrorTrace):
 
     @classmethod
     def execute(cls, stack, stdout, context) -> 'Micheline':
-        assert False, f'`execute` has to be explicitly defined'
+        assert False, f'`execute` has to be explicitly defined ({cls.prim})'
 
 
 MichelineT = TypeVar('MichelineT', bound=Micheline)
@@ -253,6 +253,16 @@ class MichelineSequence(Micheline):
     @classmethod
     def execute(cls, stack, stdout, context) -> Micheline:
         return cls([arg.execute(stack, stdout, context) for arg in cls.args])
+
+
+class GlobalConstant(Micheline, prim='constant', args_len=1):
+
+    @classmethod
+    def create_type(cls,
+                    args: List[Type['Micheline']],
+                    annots: Optional[list] = None,
+                    **kwargs) -> Type['Micheline']:
+        raise RuntimeError('Please, register global constants in advance using context helpers')
 
 
 class MichelineLiteral(Micheline):
@@ -291,12 +301,12 @@ class MichelineLiteral(Micheline):
         return cls.literal
 
 
-def validate_sections(sequence: Type[MichelineSequence], sections: Sequence[str]) -> None:
-    if len(sequence.args) != len(sections):
-        raise Exception(f'expected {len(sections)} sections, got {len(sequence.args)}')
+def validate_sections(sequence: Type[MichelineSequence], required_sections: Sequence[str]) -> None:
+    if len(sequence.args) < len(required_sections):
+        raise Exception(f'expected at least {len(required_sections)} sections, got {len(sequence.args)}')
     sequence_sections = {arg.prim for arg in sequence.args}
-    if sequence_sections != set(sections):
-        raise Exception(f'Unknown sections {sequence_sections}, expected: {sections}')
+    if set(required_sections).intersection(sequence_sections) == required_sections:
+        raise Exception(f'Unknown sections {sequence_sections}, required: {required_sections}')
 
 
 @overload
@@ -335,3 +345,24 @@ def get_script_section(sequence, cls=None, name=None, required=False):
         if required:
             raise
     return None
+
+
+@overload
+def get_script_sections(sequence: Type[MichelineSequence], cls: None, name: str)\
+        -> List[MichelineT]:
+    ...
+
+
+@overload
+def get_script_sections(sequence: Type[MichelineSequence], cls: Type[MichelineT], name: None)\
+        -> List[MichelineT]:
+    ...
+
+
+def get_script_sections(sequence, cls=None, name=None):
+    if cls:
+        return [arg for arg in sequence.args if issubclass(arg, cls)]
+    elif name:
+        return [arg for arg in sequence['code'] if arg['prim'] == name]
+    else:
+        raise Exception('Either `cls` or `name` must be specified')

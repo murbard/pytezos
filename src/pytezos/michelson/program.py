@@ -4,7 +4,7 @@ from pytezos.context.impl import ExecutionContext
 from pytezos.crypto.encoding import base58_encode
 from pytezos.michelson.instructions.base import MichelsonInstruction, format_stdout
 from pytezos.michelson.instructions.tzt import BigMapInstruction, StackEltInstruction
-from pytezos.michelson.micheline import MichelineSequence, get_script_section, try_catch, validate_sections
+from pytezos.michelson.micheline import MichelineSequence, get_script_section, get_script_sections, try_catch, validate_sections
 from pytezos.michelson.sections.code import CodeSection
 from pytezos.michelson.sections.parameter import ParameterSection
 from pytezos.michelson.sections.storage import StorageSection
@@ -20,8 +20,9 @@ from pytezos.michelson.sections.tzt import (
     SenderSection,
     SourceSection,
 )
+from pytezos.michelson.sections.view import ViewSection
 from pytezos.michelson.stack import MichelsonStack
-from pytezos.michelson.types import ListType, OperationType, PairType
+from pytezos.michelson.types import ListType, MichelsonType, OperationType, PairType
 
 
 class MichelsonProgram:
@@ -30,9 +31,10 @@ class MichelsonProgram:
     parameter: Type[ParameterSection]
     storage: Type[StorageSection]
     code: Type[CodeSection]
+    views: List[Type[ViewSection]]
 
-    def __init__(self, entrypoint: str, parameter: ParameterSection, storage: StorageSection) -> None:
-        self.entrypoint = entrypoint
+    def __init__(self, name: str, parameter: ParameterSection, storage: StorageSection) -> None:
+        self.name = name
         self.parameter_value = parameter
         self.storage_value = storage
 
@@ -46,6 +48,7 @@ class MichelsonProgram:
                 parameter=ParameterSection.match(context.get_parameter_expr()),
                 storage=StorageSection.match(context.get_storage_expr()),
                 code=CodeSection.match(context.get_code_expr() if with_code else []),
+                views=[ViewSection.match(expr) for expr in context.get_views_expr()] if with_code else [],
             ),
         )
         return cast(Type['MichelsonProgram'], cls)
@@ -53,7 +56,14 @@ class MichelsonProgram:
     @staticmethod
     def create(sequence: Type[MichelineSequence]) -> Type['MichelsonProgram']:
         """Create MichelsonProgram type from micheline"""
-        validate_sections(sequence, ('parameter', 'storage', 'code'))
+        validate_sections(
+            sequence,
+            (
+                'parameter',
+                'storage',
+                'code',
+            ),
+        )
         cls = type(
             MichelsonProgram.__name__,
             (MichelsonProgram,),
@@ -61,6 +71,7 @@ class MichelsonProgram:
                 parameter=get_script_section(sequence, cls=ParameterSection, required=True),  # type: ignore
                 storage=get_script_section(sequence, cls=StorageSection, required=True),  # type: ignore
                 code=get_script_section(sequence, cls=CodeSection, required=True),  # type: ignore
+                views=get_script_sections(sequence, cls=ViewSection),  # type: ignore
             ),
         )
         return cast(Type['MichelsonProgram'], cls)
@@ -78,13 +89,26 @@ class MichelsonProgram:
             cls.parameter.as_micheline_expr(),
             cls.storage.as_micheline_expr(),
             cls.code.as_micheline_expr(),
+            *[view.as_micheline_expr() for view in cls.views],
         ]
+
+    @classmethod
+    def get_view(cls, name: str) -> Type[ViewSection]:
+        return next(view for view in cls.views if view.name == name)
 
     @classmethod
     def instantiate(cls, entrypoint: str, parameter, storage) -> 'MichelsonProgram':
         parameter_value = cls.parameter.from_parameters(dict(entrypoint=entrypoint, value=parameter))
         storage_value = cls.storage.from_micheline_value(storage)
         return cls(entrypoint, parameter_value, storage_value)
+
+    @classmethod
+    def instantiate_view(cls, name: str, parameter, storage) -> 'MichelsonProgram':
+        view = cls.get_view(name)
+        parameter_ty = ParameterSection.create_type(args=[view.args[1]])
+        parameter_value = parameter_ty.from_micheline_value(parameter)
+        storage_value = cls.storage.from_micheline_value(storage)
+        return cls(name, parameter_value, storage_value)
 
     @try_catch('BEGIN')
     def begin(self, stack: MichelsonStack, stdout: List[str], context: ExecutionContext) -> None:
@@ -93,11 +117,16 @@ class MichelsonProgram:
         self.storage_value.attach_context(context)
         res = PairType.from_comb([self.parameter_value.item, self.storage_value.item])
         stack.push(res)
-        stdout.append(format_stdout(f'BEGIN %{self.entrypoint}', [], [res]))
+        stdout.append(format_stdout(f'BEGIN %{self.name}', [], [res]))
 
     def execute(self, stack: MichelsonStack, stdout: List[str], context: ExecutionContext) -> MichelsonInstruction:
         """Execute contract in interpreter"""
         return cast(MichelsonInstruction, self.code.args[0].execute(stack, stdout, context))
+
+    def execute_view(self, stack: MichelsonStack, stdout: List[str], context: ExecutionContext):
+        """Execute view in interpreter"""
+        view = self.get_view(self.name)
+        return cast(MichelsonInstruction, view.args[3].execute(stack, stdout, context))
 
     @try_catch('END')
     def end(self, stack: MichelsonStack, stdout: List[str], output_mode='readable') -> Tuple[List[dict], Any, List[dict], PairType]:
@@ -114,8 +143,18 @@ class MichelsonProgram:
         operations = [op.content for op in res.items[0]]  # type: ignore
         lazy_diff = []  # type: ignore
         storage = res.items[1].aggregate_lazy_diff(lazy_diff).to_micheline_value(mode=output_mode)
-        stdout.append(format_stdout(f'END %{self.entrypoint}', [res], []))
+        stdout.append(format_stdout(f'END %{self.name}', [res], []))
         return operations, storage, lazy_diff, res
+
+    @try_catch('RET')
+    def ret(self, stack: MichelsonStack, stdout: List[str], output_mode='readable') -> MichelsonType:
+        view = self.get_view(self.name)
+        res = stack.pop1()
+        if len(stack):
+            raise Exception(f'Stack is not empty: {repr(stack)}')
+        res.assert_type_equal(view.args[2], message='view return type')
+        stdout.append(format_stdout(f'RET %{self.name}', [res], []))
+        return view.args[2].from_micheline_value(res.to_micheline_value(mode=output_mode))
 
 
 class TztMichelsonProgram:

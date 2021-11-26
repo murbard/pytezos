@@ -3,7 +3,7 @@ import logging
 from decimal import Decimal
 from functools import lru_cache
 from os.path import exists, expanduser
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Type, Union
 from urllib.parse import urlparse
 
 import requests
@@ -17,6 +17,7 @@ from pytezos.contract.entrypoint import ContractEntrypoint
 from pytezos.contract.metadata import ContractMetadata
 from pytezos.contract.result import ContractCallResult
 from pytezos.contract.token_metadata import ContractTokenMetadata
+from pytezos.contract.view import ContractView
 from pytezos.crypto.key import Key
 from pytezos.jupyter import get_class_docstring
 from pytezos.logging import logger
@@ -24,6 +25,7 @@ from pytezos.michelson.format import micheline_to_michelson
 from pytezos.michelson.micheline import MichelsonRuntimeError
 from pytezos.michelson.parse import michelson_to_micheline
 from pytezos.michelson.program import MichelsonProgram
+from pytezos.michelson.sections import ViewSection
 from pytezos.michelson.types.base import generate_pydoc
 from pytezos.operation.group import OperationGroup
 from pytezos.rpc import ShellQuery
@@ -49,12 +51,27 @@ class ContractInterface(ContextMixin):
         self._logger = logging.getLogger(__name__)
         self._storage: Optional[ContractData] = None
         self.entrypoints = self.program.parameter.list_entrypoints()
+        self.views = {view.name: view for view in self.program.views}  # type: Dict[str, Type[ViewSection]]
+
         for entrypoint, ty in self.entrypoints.items():
             if entrypoint == 'token_metadata':
                 continue
             attr = ContractEntrypoint(context=context, entrypoint=entrypoint)
             attr.__doc__ = generate_pydoc(ty, entrypoint)
+            assert not hasattr(self, entrypoint), f'Entrypoint name collision {entrypoint}'
             setattr(self, entrypoint, attr)
+
+        for view_name, view_ty in self.views.items():
+            view_attr = ContractView(
+                context=context,
+                name=view_name,
+                parameter=view_ty.args[1].as_micheline_expr(),
+                return_type=view_ty.args[2].as_micheline_expr(),
+                code=view_ty.args[3].as_micheline_expr(),  # type: ignore
+            )
+            view_attr.__doc__ = view_ty.generate_pydoc()  # type: ignore
+            assert not hasattr(self, view_name), f'View name collision {view_name}'
+            setattr(self, view_name, view_attr)
 
     def __repr__(self) -> str:
         res = [
@@ -63,6 +80,8 @@ class ContractInterface(ContextMixin):
             '.parameter\t# root entrypoint',
             '\nEntrypoints',
             *list(map(lambda x: f'.{x}()', self.entrypoints)),
+            '\nViews',
+            *list(map(lambda x: f'.{x}()', self.views)),
             '\nHelpers',
             get_class_docstring(self.__class__, attr_filter=lambda x: x not in self.entrypoints),
         ]
@@ -113,12 +132,17 @@ class ContractInterface(ContextMixin):
         :param context: optional execution context
         :rtype: ContractInterface
         """
-        program = MichelsonProgram.match(expression)
+        if context is not None:
+            code_expr = context.resolve_global_constants(expression)
+        else:
+            code_expr = expression
+        program = MichelsonProgram.match(code_expr)
         cls = type(ContractInterface.__name__, (ContractInterface,), dict(program=program))
         context = ExecutionContext(
             shell=context.shell if context else None,
             key=context.key if context else None,
-            script=dict(code=expression),
+            script=dict(code=code_expr),
+            global_constants=context.global_constants if context else None,
         )
         return cls(context)
 
@@ -208,6 +232,7 @@ class ContractInterface(ContextMixin):
         :param key: base58 encoded key, path to the faucet file, alias from tezos-client, or instance of `Key`
         :param block_id: block height / hash / offset to use, default is `head`
         :param mode: whether to use `readable` or `optimized` encoding for parameters/storage/other
+        :param ipfs_gateway: override IPFS gateway URI
         :rtype: ContractInterface
         """
         has_address = self.context.address is not None

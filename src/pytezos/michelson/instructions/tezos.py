@@ -1,12 +1,13 @@
+import logging
 from typing import List, Optional, Tuple, Type, cast
 
 from pytezos.context.abstract import AbstractContext  # type: ignore
 from pytezos.michelson.instructions.base import MichelsonInstruction, format_stdout
-from pytezos.michelson.micheline import MichelineSequence
-from pytezos.michelson.sections import ParameterSection
+from pytezos.michelson.micheline import MichelineLiteral, MichelineSequence, MichelsonRuntimeError
+from pytezos.michelson.sections import ParameterSection, StorageSection, ViewSection
 from pytezos.michelson.stack import MichelsonStack
 from pytezos.michelson.types import (AddressType, ChainIdType, ContractType, KeyHashType, MutezType, NatType, OperationType, OptionType,
-                                     TimestampType, UnitType)
+                                     PairType, TimestampType, UnitType)
 from pytezos.michelson.types.base import MichelsonType
 
 
@@ -258,3 +259,55 @@ class LevelInstruction(MichelsonInstruction, prim='LEVEL'):
         stack.push(res)
         stdout.append(format_stdout(cls.prim, [], [res]))  # type: ignore
         return cls(stack_items_added=1)
+
+
+class ViewInstruction(MichelsonInstruction, prim='VIEW', args_len=2):
+
+    @classmethod
+    def execute(cls, stack: 'MichelsonStack', stdout: List[str], context: AbstractContext):
+        input_value, view_address = cast(Tuple[MichelsonType, AddressType], stack.pop2())
+
+        name = cast(Type[MichelineLiteral], cls.args[0]).get_string()
+        address: Optional[str] = str(view_address)
+        if address == context.get_self_address():
+            address = None
+        else:
+            # FIXME: spawn new context with patched BALANCE and others
+            logging.warning('PyTezos does not support external views with BALANCE or other context-dependent opcodes')
+
+        return_ty = cast(Type[MichelsonType], cls.args[1])
+
+        try:
+            view_expr = context.get_view_expr(name, address=address)
+            if view_expr is None:
+                raise MichelsonRuntimeError(f'Failed to load view {str(view_address)}%{name}')
+
+            view_ty = ViewSection.match(view_expr)
+            return_ty.assert_type_equal(view_ty.args[2], message=f'view {name} return type')
+        except (MichelsonRuntimeError, AssertionError) as e:
+            stdout.append(f'VIEW: {str(e)}')
+            res = OptionType.none(return_ty)
+        else:
+            storage_expr = context.get_storage_value(address)
+            storage_ty = StorageSection.match(context.get_storage_expr())
+            storage_value = storage_ty.from_micheline_value(storage_expr).item
+
+            parameter = PairType.from_comb([input_value, storage_value])
+            view_stack = MichelsonStack([parameter])
+            # FIXME: need to patch context.balance
+            view_code = cast(MichelineSequence, view_ty.args[3])
+            view_code.execute(view_stack, stdout, context)
+            if len(view_stack) != 1:
+                raise MichelsonRuntimeError('Expected single item on the stack, got', view_stack)
+            res = OptionType.from_some(view_stack.pop1())
+
+        stack.push(res)
+        stdout.append(format_stdout(cls.prim, [input_value, view_address], [res]))  # type: ignore
+        return cls(stack_items_added=1)
+
+
+class OpenChestInstruction(MichelsonInstruction, prim='OPEN_CHEST'):
+
+    @classmethod
+    def execute(cls, stack: MichelsonStack, stdout: List[str], context: AbstractContext):
+        raise NotImplementedError

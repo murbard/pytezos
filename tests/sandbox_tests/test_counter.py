@@ -13,7 +13,7 @@ class TransactionCounterTestCase(SandboxedNodeTestCase):
         client = self.client
         for _ in range(3):
             client.transaction(destination=sandbox_addresses['bootstrap3'], amount=42) \
-                .autofill() \
+                .autofill(gas_reserve=100000) \
                 .sign() \
                 .inject(min_confirmations=0)
 
@@ -22,11 +22,11 @@ class TransactionCounterTestCase(SandboxedNodeTestCase):
 
     def test_2_send_zero_fee_transaction_and_bake(self) -> None:
         self.client.transaction(destination=sandbox_addresses['bootstrap3'], amount=42) \
-            .autofill(fee=0) \
+            .autofill() \
             .sign() \
             .inject(min_confirmations=0)
 
-        self.bake_block(min_fee=1)
+        self.bake_block(min_fee=1000)
 
         pending_operations = self.client.shell.mempool.pending_operations()
         self.assertEqual(1, len(pending_operations['applied']))
@@ -37,19 +37,19 @@ class TransactionCounterTestCase(SandboxedNodeTestCase):
             .sign() \
             .inject(min_confirmations=0)
 
-        self.bake_block(min_fee=1)
+        self.bake_block(min_fee=1000)
         pending_operations = self.client.shell.mempool.pending_operations()
         self.assertEqual(1, len(pending_operations['applied']))
         self.assertEqual(1, len(pending_operations['branch_delayed']))
 
     def test_4_reuse_counter(self) -> None:
         self.client.transaction(destination=sandbox_addresses['bootstrap3'], amount=13) \
-            .send_async(ttl=60, counter=5, gas_limit=15000, storage_limit=0)  # override delayed tx
+            .send_async(ttl=120, counter=5, gas_limit=15000, storage_limit=0)  # override delayed tx
         pending_operations = self.client.shell.mempool.pending_operations()
         self.assertEqual(2, len(pending_operations['applied']))
         self.assertEqual(1, len(pending_operations['branch_delayed']))
 
     def test_5_force_bake(self) -> None:
-        self.bake_block(min_fee=0)
+        self.bake_block()
         pending_operations = self.client.shell.mempool.pending_operations()
         self.assertEqual(1, len(pending_operations['branch_refused']))

@@ -1,17 +1,19 @@
 import atexit
 import logging
 import unittest
-from concurrent.futures import CancelledError, Future, ThreadPoolExecutor, wait
+from concurrent.futures import Future, ThreadPoolExecutor, wait
 from threading import Event
 from time import sleep
-from typing import Any, Optional
+from typing import Optional
 
 import requests.exceptions
 from testcontainers.core.generic import DockerContainer  # type: ignore
 
 from pytezos.client import PyTezosClient
 from pytezos.operation.group import OperationGroup
-from pytezos.sandbox.parameters import FLORENCE, GRANADA
+from pytezos.sandbox.parameters import LATEST
+
+DOCKER_IMAGE = 'bakingbad/sandboxed-node:v11.0-1'
 
 # NOTE: Container object is a singleton which will be used in all tests inherited from class _SandboxedNodeTestCase
 # and stopped after all tests are completed.
@@ -25,13 +27,13 @@ executor: Optional[ThreadPoolExecutor] = None
 class SandboxedNodeTestCase(unittest.TestCase):
     """Perform tests with sanboxed node in Docker container."""
 
-    IMAGE: str = 'bakingbad/sandboxed-node:v9.4-1'
+    IMAGE: str = DOCKER_IMAGE
     "Docker image to use"
 
     PORT: Optional[int] = None
     "Port to expose to host machine"
 
-    PROTOCOL: str = GRANADA
+    PROTOCOL: str = LATEST
     "Hash of protocol to activate"
 
     @classmethod

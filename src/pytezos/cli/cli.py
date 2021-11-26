@@ -1,3 +1,4 @@
+import atexit
 import io
 import sys
 import tarfile
@@ -9,6 +10,8 @@ from typing import List, Optional
 
 import click
 import docker  # type: ignore
+import requests
+from testcontainers.core.generic import DockerContainer  # type: ignore
 
 from pytezos import ContractInterface, __version__, pytezos
 from pytezos.cli.github import create_deployment, create_deployment_status
@@ -17,8 +20,8 @@ from pytezos.logging import logger
 from pytezos.michelson.types.base import generate_pydoc
 from pytezos.operation.result import OperationResult
 from pytezos.rpc.errors import RpcError
-from pytezos.sandbox.node import SandboxedNodeTestCase
-from pytezos.sandbox.parameters import EDO, FLORENCE
+from pytezos.sandbox.node import DOCKER_IMAGE
+from pytezos.sandbox.parameters import EDO, FLORENCE, HANGZHOU
 
 kernel_js_path = join(dirname(dirname(__file__)), 'assets', 'kernel.js')
 kernel_json = {
@@ -44,6 +47,7 @@ def get_local_contract_path(path, extension='tz'):
     if exists(path):
         return path
     return False
+
 
 def get_contract(path):
     path = get_local_contract_path(path)
@@ -314,9 +318,10 @@ def smartpy_compile(
     else:
         logger.error('No local script found. Please ensure a valid script is present or specify path.')
 
+
 @cli.command(help='Run containerized sandbox node')
-@click.option('--image', type=str, help='Docker image to use', default=SandboxedNodeTestCase.IMAGE)
-@click.option('--protocol', type=click.Choice(['florence', 'edo']), help='Protocol to use', default='florence')
+@click.option('--image', type=str, help='Docker image to use', default=DOCKER_IMAGE)
+@click.option('--protocol', type=click.Choice(['edo', 'florence', 'hangzhou']), help='Protocol to use', default='hangzhou')
 @click.option('--port', '-p', type=int, help='Port to expose', default=8732)
 @click.option('--interval', '-i', type=float, help='Interval between baked blocks (in seconds)', default=1.0)
 @click.option('--blocks', '-b', type=int, help='Number of blocks to bake before exit')
@@ -329,21 +334,38 @@ def sandbox(
     interval: float,
     blocks: int,
 ):
-    protocol = {
+    protocol_hash = {
         'edo': EDO,
         'florence': FLORENCE,
+        'hangzhou': HANGZHOU,
     }[protocol]
 
-    SandboxedNodeTestCase.PROTOCOL = protocol
-    SandboxedNodeTestCase.IMAGE = image
-    SandboxedNodeTestCase.PORT = port
-    SandboxedNodeTestCase.setUpClass()
+    container = DockerContainer(image)
+    if port:
+        container.ports[8732] = port
+
+    container.start()
+    atexit.register(container.stop)
+
+    container_id = container.get_wrapped_container().id
+    host = container.get_docker_client().bridge_ip(container_id)
+    client = pytezos.using(key='bootstrap1', shell=f'http://{host}:8732')
+
+    while True:
+        try:
+            client.shell.node.get("/version/")
+            break
+        except requests.exceptions.ConnectionError:
+            time.sleep(0.1)
+
+    logger.info('Activating protocol %s...', protocol_hash)
+    client.using(key='dictator').activate_protocol(protocol_hash).fill().sign().inject()
 
     blocks_baked = 0
     while True:
         try:
             logger.info('Baking block %s...', blocks_baked)
-            block_hash = SandboxedNodeTestCase.get_client().using(key='bootstrap1').bake_block().fill().work().sign().inject()
+            block_hash = client.bake_block().fill().work().sign().inject()
             logger.info('Baked block: %s', block_hash)
             blocks_baked += 1
 
@@ -353,6 +375,7 @@ def sandbox(
             time.sleep(interval)
         except KeyboardInterrupt:
             break
+
 
 @cli.command(help='Update Ligo compiler (docker pull ligolang/ligo)')
 @click.option('--tag', '-t', type=str, help='Version or tag to pull', default='0.13.0')

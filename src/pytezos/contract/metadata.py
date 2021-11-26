@@ -10,7 +10,7 @@ from jsonschema import validate as jsonschema_validate  # type: ignore
 
 from pytezos.context.impl import ExecutionContext
 from pytezos.context.mixin import ContextMixin
-from pytezos.contract.view import OffChainView
+from pytezos.contract.view import ContractView
 
 
 def _to_camelcase(string: str) -> str:
@@ -126,12 +126,12 @@ class ContractMetadata(ContextMixin):
         ]
         return '\n'.join(res)
 
-    def __getattribute__(self, name: str) -> OffChainView:
+    def __getattribute__(self, name: str) -> ContractView:
         with suppress(AttributeError):
             return super().__getattribute__(name)
         try:
             impl = self.storage_view_impl[name]
-            return OffChainView(
+            return ContractView(
                 context=self.context,
                 name=name,
                 parameter=impl.parameter,

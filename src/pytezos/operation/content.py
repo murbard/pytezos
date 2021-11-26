@@ -352,3 +352,27 @@ class ContentMixin:
                 'arbitrary': arbitrary,
             }
         )
+
+    @inline_doc
+    def register_global_constant(self, value: Any, source='', counter=0, fee=0, gas_limit=0, storage_limit=0):
+        """Operation to register Micheline expressions in a global table of constants
+
+        :param value: Micheline expression
+        :param source: Address from which funds will be delegated, leave None to use signatory address
+        :param counter: Current account counter, leave None for autocomplete
+        :param fee: Leave None for autocomplete
+        :param gas_limit: Leave None for autocomplete
+        :param storage_limit: Leave None for autocomplete
+        :returns: dict or OperationGroup
+        """
+        return self.operation(
+            {
+                'kind': 'register_global_constant',
+                'value': value,
+                'source': source,
+                'fee': format_mutez(fee),
+                'counter': str(counter),
+                'gas_limit': str(gas_limit),
+                'storage_limit': str(storage_limit),
+            }
+        )

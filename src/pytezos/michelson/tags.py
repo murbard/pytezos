@@ -141,6 +141,13 @@ prim_tags = {
     'SPLIT_TICKET': b'\x8A',
     'JOIN_TICKETS': b'\x8B',
     'GET_AND_UPDATE': b'\x8C',
+    # HANGZHOU
+    'chest': b'\x8D',
+    'chest_key': b'\x8E',
+    'OPEN_CHEST': b'\x8F',
+    'VIEW': b'\x90',
+    'view': b'\x91',
+    'constant': b'\x92',
     # FIXME: Dummy values for TZT, refactor macros
     'Stack_elt': b'\xEE',
     'Big_map': b'\xEE',

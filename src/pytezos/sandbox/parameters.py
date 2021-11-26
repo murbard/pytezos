@@ -5,6 +5,10 @@ from pytezos.crypto.key import Key
 EDO = 'PtEdo2ZkT9oKpimTah6x2embF25oss54njMuPzkJTEi5RqfdZFA'
 FLORENCE = 'PsFLorenaUUuikDWvMDr6fGBRG8kt3e3D3fHoXK1j1BFRxeSH4i'
 GRANADA = 'PtGRANADsDU8R9daYKAgWnQYAJ64omN1o3KMGVCykShA97vQbvV'
+HANGZHOU = 'PtHangz2aRngywmSRGGvrcTyMbbdpWdpFKuS4uMWxg2RaH9i1qx'
+LATEST = HANGZHOU
+
+protocol_version = {EDO: 8, FLORENCE: 9, GRANADA: 10, HANGZHOU: 11}
 
 sandbox_commitment = {
     "mnemonic": [
@@ -66,7 +70,6 @@ sandbox_params: Dict[str, Any] = {
     'hard_gas_limit_per_block': '10400000',
     'proof_of_work_threshold': str((1 << 63) - 1),
     'tokens_per_roll': '8000000000',
-    'michelson_maximum_type_size': 1000.0,
     'seed_nonce_revelation_tip': '125000',
     'origination_size': 257.0,
     'block_security_deposit': '512000000',
@@ -84,13 +87,23 @@ sandbox_params: Dict[str, Any] = {
 
 
 def get_protocol_parameters(protocol_hash: str) -> Dict[str, Any]:
-    if protocol_hash == GRANADA:
-        return {
-            **sandbox_params,
+    params = sandbox_params.copy()
+    if protocol_version[protocol_hash] >= 10:
+        params = {
+            **params,
             'minimal_block_delay': '0',
             'liquidity_baking_subsidy': '2500000',
             'liquidity_baking_sunset_level': 2032928.0,
             'liquidity_baking_escape_ema_threshold': 1000000.0,
         }
-    else:
-        return {**sandbox_params, 'test_chain_duration': '1966080'}
+
+    if protocol_version[protocol_hash] < 10:
+        params = {**params, 'test_chain_duration': '1966080'}
+
+    if protocol_version[protocol_hash] < 11:
+        params = {
+            **params,
+            'michelson_maximum_type_size': 1000.0,
+        }
+
+    return params
