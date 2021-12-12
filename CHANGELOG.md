@@ -2,6 +2,10 @@
 
 ## 3.3.2 - 2021-12-12
 
+### Added
+
+* explicit handling of the 401 to return a more meaningful response [@kaellis]
+
 ### Fixed
 
 * Regression in offline view behavior for storage with bigmaps
