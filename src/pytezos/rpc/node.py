@@ -53,7 +53,11 @@ class RpcError(Exception):
     def from_response(cls, res: requests.Response) -> 'RpcError':
         """Create RpcError from requests Response."""
         if res.headers.get('content-type') == 'application/json':
-            errors = res.json()
+            try:
+                errors = res.json()
+            except JSONDecodeError:
+                # sometimes rpc returns invalid json
+                return RpcError(res.text)
             assert isinstance(errors, list)
             return cls.from_errors(errors)
         else:
@@ -100,6 +104,9 @@ class RpcNode:
             },
             **kwargs,
         )
+        if res.status_code == 401:
+            logger.debug('<<<<< %s\n%s', res.status_code, res.text)
+            raise RpcError(f'Unauthorized: {path}')
         if res.status_code == 404:
             logger.debug('<<<<< %s\n%s', res.status_code, res.text)
             raise RpcError(f'Not found: {path}')
