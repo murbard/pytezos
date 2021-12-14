@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.3.3 - 2021-12-14
+
+### Fixed
+
+* Always try to fetch the latest storage in off-chain or on-chain views
+* Fixed case with `GET` instruction returning `None` with wrong type (key type instead of value type)
+
 ## 3.3.2 - 2021-12-12
 
 ### Added
