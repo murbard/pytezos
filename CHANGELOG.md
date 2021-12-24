@@ -1,5 +1,19 @@
 # Changelog
 
+## 3.3.4 - 2021-12-23
+
+### Fixed
+
+* New testnet faucet is handled properly (the json format has slightly changed)
+* Incorrect wrapping of static methods while injecting jupyter docs (py3.10)
+* Unable to call intermediate entrypoints from the contract interfaceE
+* Sandboxed node wasn't exposed at localhost causing connection issues on MacOS and Windows
+* Big map key of nested or/pair type wasn't handled correctly
+
+### Changed
+
+* `Key.verify` returns `True` if the signature is valid (it was `None` before)
+
 ## 3.3.3 - 2021-12-14
 
 ### Fixed
