@@ -45,7 +45,7 @@ You need to install cryptographic packages before installing the library/buildin
 
 ##### Ubuntu, Debian and other apt-based distributions
 ```shell
-$ sudo apt install libsodium-dev libsecp256k1-dev libgmp-dev
+$ sudo apt install libsodium-dev libsecp256k1-dev libgmp-dev pkg-config
 ```
 
 ##### Arch Linux
@@ -57,7 +57,7 @@ $ sudo pacman -Syu --needed libsodium libsecp256k1 gmp
 [Homebrew](https://brew.sh/) needs to be installed.
 ```shell
 $ brew tap cuber/homebrew-libsecp256k1
-$ brew install libsodium libsecp256k1 gmp
+$ brew install libsodium libsecp256k1 gmp pkg-config
 ```
 
 #### Windows
